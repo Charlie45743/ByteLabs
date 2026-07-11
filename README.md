@@ -1,5 +1,7 @@
 # ByteLabs
 
+**Live at [charlie130811-create.github.io/ByteLabs](https://charlie130811-create.github.io/ByteLabs/)**
+
 ByteLabs is a small, offline toolkit for encoding, hashing, ciphers, and learning how
 data is actually represented under the hood. It runs entirely in the browser — no
 server, no build step, no accounts, no analytics, and no data ever leaves the page.
@@ -90,17 +92,17 @@ Content-Security-Policy (same-origin only, no inline or `eval`'d script). Full w
 of what was checked lives in the project history; nothing here talks to a server
 because there isn't one.
 
-## Running it
+## Running it locally
 
-It's plain HTML/CSS/JavaScript, so just serve this folder with any static file server.
-With Laragon it's already in `www`, so open:
+It's plain HTML/CSS/JavaScript with no build step, so just serve this folder with any
+static file server — for example:
 
-    http://localhost/
+    npx serve .
 
-Open it through `http://localhost` (not a custom `.test` domain over plain http) so the
-browser treats it as a secure context — SHA hashing, HMAC, and PBKDF2 rely on the Web
-Crypto API, which only runs in secure contexts. (Argon2id and BLAKE2b are pure
-JavaScript and work regardless.)
+Serve it over `http://localhost` or `https`, not by opening `index.html` directly as a
+`file://` URL — the browser needs a secure context for SHA hashing, HMAC, and PBKDF2,
+which rely on the Web Crypto API. (Argon2id and BLAKE2b are pure JavaScript and work
+regardless.)
 
 ## License
 
