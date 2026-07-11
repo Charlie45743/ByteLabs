@@ -295,7 +295,7 @@
           btn.disabled = true; btn.textContent = "Computing…";
           await new Promise((r) => setTimeout(r, 0)); // let the button repaint before the heavy synchronous work
           try {
-            const pre = await runPipeline(i);
+            const pre = await runPipeline(steps.slice(0, i));
             if (pre.pausedAt >= 0) { toast("Compute step " + (pre.pausedAt + 1) + " first."); return; }
             if (pre.error) { toast(pre.error); return; }
             const result = String(await Promise.resolve(op.run(op.ignoresInput ? "" : pre.value, step.params)));
@@ -371,14 +371,15 @@
   let bakeSeq = 0;
   function scheduleBake() { bake(); }
 
-  // Runs steps [0, limit) in order. "Slow" steps (Argon2id, PBKDF2 — too heavy to
-  // run on every keystroke) use their cached result if it still matches the current
-  // upstream value/params, otherwise the pipeline stops there (pausedAt) until the
-  // user clicks that step's Compute button.
-  async function runPipeline(limit) {
+  // Runs the given steps in order (a snapshot array, not the live `steps` variable —
+  // see call sites). "Slow" steps (Argon2id, PBKDF2 — too heavy to run on every
+  // keystroke) use their cached result if it still matches the current upstream
+  // value/params, otherwise the pipeline stops there (pausedAt) until the user
+  // clicks that step's Compute button.
+  async function runPipeline(stepsSnapshot) {
     let value = $("#input").value;
-    for (let idx = 0; idx < limit; idx++) {
-      const step = steps[idx];
+    for (let idx = 0; idx < stepsSnapshot.length; idx++) {
+      const step = stepsSnapshot[idx];
       if (!step.enabled) continue;
       const op = OP_BY_ID[step.opId];
       if (op.slow) {
@@ -394,10 +395,11 @@
 
   async function bake() {
     const mine = ++bakeSeq;
-    const result = await runPipeline(steps.length);
+    const snapshot = steps.slice();
+    const result = await runPipeline(snapshot);
     if (mine !== bakeSeq) return; // a newer keystroke already started baking
     const { value, error, pausedAt } = result;
-    $("#bake-notice").textContent = pausedAt >= 0 ? `Paused before step ${pausedAt + 1} (${OP_BY_ID[steps[pausedAt].opId].name}) — click its Compute button to continue.` : "";
+    $("#bake-notice").textContent = pausedAt >= 0 ? `Paused before step ${pausedAt + 1} (${OP_BY_ID[snapshot[pausedAt].opId].name}) — click its Compute button to continue.` : "";
     $("#output").value = error ? "" : value;
     $("#output-stats").textContent = error ? "" : `${value.length} chars · ${bytesLen(value)} bytes`;
     $("#bake-error").textContent = error;
