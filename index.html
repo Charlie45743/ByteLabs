@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ByteLabs</title>
+  <meta name="description" content="A local, offline toolkit for encoding, hashing, analysis and learning." />
+  <link rel="stylesheet" href="assets/style.css" />
+</head>
+<body>
+  <!-- Top bar -->
+  <header class="topbar">
+    <div class="logo"><svg class="logo-mark" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 3h6M10 3v6l-5.2 8.3A2 2 0 0 0 6.5 20.5h11a2 2 0 0 0 1.7-3.2L14 9V3"/><path d="M7.5 14h9"/></svg> ByteLabs</div>
+    <nav class="topnav" aria-label="Main">
+      <button class="nav-item nav-lab" data-view="workbench"><svg class="flask" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 3h6M10 3v6l-5.2 8.3A2 2 0 0 0 6.5 20.5h11a2 2 0 0 0 1.7-3.2L14 9V3"/><path d="M7.5 14h9"/></svg>The Lab</button>
+      <button class="nav-item" data-view="analyze">Analyse</button>
+      <button class="nav-item" data-view="learn">Learn</button>
+      <button class="nav-item" data-view="challenges">Challenges</button>
+    </nav>
+    <div class="topbar-right">
+      <button id="open-search" class="search-btn">Search <kbd>Ctrl</kbd><kbd>K</kbd></button>
+      <button class="nav-item icon-only" data-view="settings" title="Settings" aria-label="Settings">Settings</button>
+    </div>
+  </header>
+
+  <main class="content">
+    <!-- WORKBENCH -->
+    <section class="view" id="view-workbench">
+      <div class="workbench">
+        <!-- Operations -->
+        <aside class="ops-pane">
+          <div class="pane-head">
+            <span>Operations</span>
+            <span class="count" id="op-count"></span>
+          </div>
+          <input type="search" id="op-filter" class="field flush" placeholder="Search operations…" aria-label="Search operations" />
+          <div id="op-list" class="op-list"></div>
+        </aside>
+
+        <!-- Steps -->
+        <section class="steps-pane">
+          <div class="pane-head">
+            <span>Steps</span>
+            <button class="link-btn" id="clear-steps">Clear</button>
+          </div>
+          <div class="steps-scroll" id="steps-scroll">
+            <ol id="steps" class="steps"></ol>
+            <div id="steps-empty" class="steps-empty">
+              <p>No steps yet.</p>
+              <p class="muted">Pick an operation on the left to add a step. Steps run top to bottom.</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- Input / Output -->
+        <section class="io-pane">
+          <div class="io-block">
+            <div class="pane-head">
+              <span>Input</span>
+              <div class="io-actions">
+                <button class="mini" id="btn-paste">Paste</button>
+                <button class="mini" id="btn-load">Load file</button>
+                <button class="mini" id="btn-clear-input">Clear</button>
+                <input type="file" id="file-input-wb" hidden />
+              </div>
+            </div>
+            <textarea id="input" class="editor" placeholder="Type or paste your text here…" spellcheck="false"></textarea>
+            <div id="wb-suggestions" class="suggestions"></div>
+            <div class="io-foot" id="input-stats"></div>
+          </div>
+
+          <div class="io-block">
+            <div class="pane-head">
+              <span>Output</span>
+              <div class="io-actions">
+                <button class="mini" id="btn-copy">Copy</button>
+                <button class="mini" id="btn-to-input">Move to input</button>
+                <button class="mini" id="btn-download">Download</button>
+              </div>
+            </div>
+            <textarea id="output" class="editor" readonly placeholder="Output appears here as you add steps." spellcheck="false"></textarea>
+            <div class="io-foot"><span id="output-stats"></span><span id="bake-notice" class="bake-notice"></span><span id="bake-error" class="bake-error"></span></div>
+          </div>
+        </section>
+      </div>
+    </section>
+
+    <!-- ANALYZE -->
+    <section class="view" id="view-analyze">
+      <div class="page">
+        <h1>Analyse</h1>
+        <p class="muted">Paste anything below — format detection, statistics and hashes update as you type.</p>
+        <textarea id="an-input" class="field mono" rows="4" placeholder="Paste text to analyse…" spellcheck="false"></textarea>
+        <div class="cards">
+          <div class="card">
+            <h3>Detected format</h3>
+            <div id="detect-results" class="detect-results"><p class="muted small">Nothing to analyse yet.</p></div>
+          </div>
+          <div class="card">
+            <h3>Statistics</h3>
+            <dl id="an-stats" class="kv"></dl>
+            <div class="entropy-meter"><span id="an-entropy-bar" style="width:0%"></span></div>
+          </div>
+          <div class="card">
+            <h3>Hashes</h3>
+            <div id="an-hashes" class="hash-list"><p class="muted small">Enter text to hash.</p></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Byte distribution</h3>
+          <p class="muted small">How often each byte value (0–255) appears — a quick visual fingerprint. Flat and full-width usually means compressed, encrypted, or random data; a few tall spikes usually means plain text.</p>
+          <div id="an-histogram" class="histogram" role="img" aria-label="Byte value histogram"></div>
+          <div id="an-hist-tooltip" class="hist-tooltip hidden"></div>
+        </div>
+
+        <div class="card">
+          <h3>Character inspector</h3>
+          <p class="muted small">Every character in the input above, broken down to its Unicode code point and UTF-8 bytes. Useful for spotting invisible characters or mojibake.</p>
+          <div id="an-chars" class="char-table-wrap"><p class="muted small">Enter text to inspect.</p></div>
+        </div>
+
+        <div class="card">
+          <h3>Compare hashes</h3>
+          <label class="lbl">Hash A</label>
+          <input id="cmp-a" class="field mono" placeholder="paste a hash…" />
+          <label class="lbl">Hash B</label>
+          <input id="cmp-b" class="field mono" placeholder="paste another hash…" />
+          <div id="cmp-result" class="cmp-result muted">Enter two hashes to compare.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- LEARN (progression map) -->
+    <section class="view" id="view-learn">
+      <div class="page learn-page">
+        <h1>Lessons</h1>
+        <p class="muted">Follow the path — finish a lesson to unlock the next one.</p>
+        <div id="lesson-progress" class="lesson-progress"></div>
+        <div id="lesson-map" class="lesson-map"></div>
+      </div>
+    </section>
+
+    <!-- CHALLENGES -->
+    <section class="view" id="view-challenges">
+      <div class="page">
+        <h1>Challenges</h1>
+        <p class="muted">Small practice problems. Progress is saved on this device only.</p>
+        <div class="chal-filters" id="chal-filters"></div>
+        <div id="challenge-progress" class="chal-progress"></div>
+        <div id="challenge-list" class="challenge-list"></div>
+      </div>
+    </section>
+
+    <!-- SETTINGS -->
+    <section class="view" id="view-settings">
+      <div class="page">
+        <h1>Settings</h1>
+        <div class="settings">
+          <div class="set-row"><span>Theme</span>
+            <select id="set-theme" class="field compact"><option value="light">Light</option><option value="dark">Dark</option></select></div>
+          <div class="set-row"><span>Editor font size</span>
+            <select id="set-font" class="field compact"><option value="13">Small</option><option value="14">Medium</option><option value="16">Large</option></select></div>
+          <div class="set-row"><span>Word wrap in editors</span><input type="checkbox" id="set-wrap" /></div>
+          <div class="set-row"><span>Animations</span><input type="checkbox" id="set-anim" /></div>
+          <div class="set-row"><button class="mini danger" id="set-reset">Reset settings</button></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Lesson modal -->
+  <div id="lesson-modal" class="lesson-modal hidden" role="dialog" aria-modal="true" aria-label="Lesson">
+    <div class="lesson-modal-box">
+      <button id="lesson-close" class="lesson-close" aria-label="Close">×</button>
+      <div id="lesson-view" class="lesson-view"></div>
+    </div>
+  </div>
+
+  <!-- Search palette -->
+  <div id="palette" class="palette hidden" role="dialog" aria-modal="true" aria-label="Search">
+    <div class="palette-box">
+      <input type="text" id="palette-input" class="palette-input" placeholder="Search operations, lessons, challenges…" />
+      <ul id="palette-results" class="palette-results"></ul>
+    </div>
+  </div>
+
+  <div id="toast" class="toast hidden"></div>
+
+  <script src="assets/lib.js"></script>
+  <script src="assets/crypto-extra.js"></script>
+  <script src="assets/data.js"></script>
+  <script src="assets/app.js"></script>
+</body>
+</html>
