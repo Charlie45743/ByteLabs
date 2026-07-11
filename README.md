@@ -102,6 +102,10 @@ browser treats it as a secure context — SHA hashing, HMAC, and PBKDF2 rely on 
 Crypto API, which only runs in secure contexts. (Argon2id and BLAKE2b are pure
 JavaScript and work regardless.)
 
+## License
+
+MIT — see [LICENSE](LICENSE). Use it, modify it, ship it, just keep the copyright notice.
+
 ## Files
 
     index.html              markup and layout
