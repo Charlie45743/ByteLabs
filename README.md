@@ -106,7 +106,11 @@ regardless.)
 
 ## License
 
-MIT — see [LICENSE](LICENSE). Use it, modify it, ship it, just keep the copyright notice.
+MIT — see [LICENSE](LICENSE). You're free to use, modify, and redistribute this,
+including commercially, as long as you **give credit**: keep the copyright notice
+("Copyright (c) 2026 Charlie45743") in any copy or substantial portion of the code, and
+credit **Charlie45743** as the original author if you publish or deploy something built
+from it.
 
 ## Files
 
