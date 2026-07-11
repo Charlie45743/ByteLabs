@@ -66,6 +66,31 @@ but still breakable with enough text.</p>
       quiz: { q: "What restores ROT13 text?", options: ["A secret key", "Applying ROT13 again", "Base64 decode"], answer: 1 }
     },
     {
+      id: "transposition", title: "Transposition ciphers",
+      body: `
+<h3>Transposition ciphers</h3>
+<p>Every cipher in the last lesson — Caesar, Atbash, Vigenère — is a <strong>substitution</strong> cipher: it
+replaces each letter with a different one. A <strong>transposition</strong> cipher does the opposite: every
+original letter stays exactly as it is, but their <em>positions</em> get scrambled.</p>
+<h4>Rail Fence cipher</h4>
+<p>Write the message in a zigzag down and up across a fixed number of "rails," then read each rail off left to
+right. <code>ATTACKATDAWN</code> written across 3 rails and read off becomes <code>ACDTAKTANTAW</code> — same
+12 letters, same letter counts, totally different order.</p>
+<h4>Why this defeats frequency analysis</h4>
+<p>The next lesson shows how substitution ciphers fall to letter-frequency analysis, because the letter
+<code>E</code> still shows up as often as it does in English — just disguised as a different symbol. A
+transposition cipher doesn't have that weakness at all: the letter counts are <em>identical</em> to the
+plaintext, since nothing was substituted. It has to be broken a different way — by trying the small number of
+plausible rail counts, or by looking for patterns in where common letter pairs land.</p>
+<h4>Combining both</h4>
+<p>Historical field ciphers, and parts of modern block ciphers, often combine substitution and transposition —
+each covers the weakness the other has.</p>
+<h4>Try it</h4>
+<p>The demo below runs Rail Fence Encode. Try changing the rail count.</p>`,
+      demo: { type: "railfence" },
+      quiz: { q: "What does a transposition cipher change about the plaintext?", options: ["The letters themselves", "The order the letters appear in", "The character encoding (e.g. ASCII to UTF-8)"], answer: 1 }
+    },
+    {
       id: "encryption", title: "What is Encryption?",
       body: `
 <h3>What is Encryption?</h3>
@@ -401,6 +426,13 @@ homograph attack, and it has been used for real phishing campaigns.</p>
 <h4>How to actually tell them apart</h4>
 <p>You can't, by eye. You need to inspect the underlying code points — exactly what the Character Inspector in
 Analyse does. Two visually-identical characters will show different <code>U+</code> values.</p>
+<h4>Punycode: how this actually reaches DNS</h4>
+<p>Domain names are ASCII-only under the hood, so browsers convert any non-ASCII label to an ASCII-Compatible
+Encoding called <strong>Punycode</strong> (RFC 3492) before sending it over the wire —
+<code>münchen.de</code> becomes <code>xn--mnchen-3ya.de</code>. Try the To/From Punycode operations in The
+Lab. Interestingly, browsers deliberately do <em>not</em> expose an automatic Punycode-to-Unicode decode in
+script-visible APIs — doing so would make it trivially easy for a page to silently redisplay a spoofed
+<code>xn--</code> domain as convincing-looking Unicode.</p>
 <h4>Normalization</h4>
 <p>Unicode also allows the <em>same</em> character to be encoded multiple ways (an "é" as one code point, or
 as "e" plus a separate accent mark). <strong>Normalization</strong> (NFC/NFD forms) picks one canonical
@@ -548,13 +580,16 @@ but suitable for verifying integrity against a determined attacker.</p>
     { id: "c37", level: "medium", title: "Modular addition", prompt: "ADD (mod 256) the key 'ab' to the text below and give the hex result.", task: "Go", answer: "a8d1", hint: "Use ADD (mod 256) with key 'ab'." },
     { id: "c38", level: "medium", title: "AND spells a word", prompt: "Bitwise-AND these two words together with key 'mask', then decode the hex result back to text.", task: "lock", answer: "lack", hint: "Use AND with key 'mask', then From Hex on the result." },
     { id: "c39", level: "hard", title: "Break the single-byte key", prompt: "This was encrypted with a single-byte XOR key. Recover the message.", task: "624a4a5b0f4e5b0f5b474a0f40434b0f4d5d464b484a0f5b40414648475b", answer: "Meet at the old bridge tonight", hint: "Use XOR Brute Force, input is Hex — check the top-ranked result." },
-    { id: "c40", level: "hard", title: "Brute force the shift", prompt: "Use the Caesar Brute Force tool to recover this message — don't work it out by hand.", task: "xgvkrimbhg dxxil hnk wtmt ltyx ykhf ikrbgz xrxl tgw vnkbhnl tmmtvdxkl", answer: "encryption keeps our data safe from prying eyes and curious attackers", hint: "Use Caesar Brute Force and check the top-ranked line." }
+    { id: "c40", level: "hard", title: "Brute force the shift", prompt: "Use the Caesar Brute Force tool to recover this message — don't work it out by hand.", task: "xgvkrimbhg dxxil hnk wtmt ltyx ykhf ikrbgz xrxl tgw vnkbhnl tmmtvdxkl", answer: "encryption keeps our data safe from prying eyes and curious attackers", hint: "Use Caesar Brute Force and check the top-ranked line." },
+    { id: "c41", level: "medium", title: "Rail Fence", prompt: "This was encoded with Rail Fence, 3 rails. Decode it.", task: "ACDTAKTANTAW", answer: "ATTACKATDAWN", hint: "Use Rail Fence Decode with Rails set to 3." },
+    { id: "c42", level: "easy", title: "Base85", prompt: "Decode this Base85 (Ascii85) string.", task: "Ao(mg", answer: "flag", hint: "Use From Base85." },
+    { id: "c43", level: "medium", title: "Internationalized domain", prompt: "Decode this Punycode domain back to Unicode.", task: "xn--mnchen-3ya.de", answer: "münchen.de", hint: "Use From Punycode." }
   ];
 
   // Order lessons follow on the progression map (each unlocks the next).
   const LESSON_ORDER = [
     "base64", "hex", "unicode", "mojibake", "homoglyphs", "url", "base32", "base58",
-    "ciphers", "frequency", "xor", "bitwise", "bruteforce", "hashing", "checksums", "hmac",
+    "ciphers", "transposition", "frequency", "xor", "bitwise", "bruteforce", "hashing", "checksums", "hmac",
     "encryption", "aes", "rsa", "signatures", "keyexchange", "tls",
     "salt", "kdf", "cracking", "strength-practice", "jwt", "regex", "entropy"
   ];

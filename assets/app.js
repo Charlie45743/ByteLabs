@@ -19,6 +19,10 @@
     { id: "base32-decode", name: "From Base32", cat: "Encoding", run: (s) => CL.bytesToText(CL.base32Decode(s)), about: "Decodes Base32 back into text." },
     { id: "base58-encode", name: "To Base58", cat: "Encoding", run: (s) => CL.base58Encode(CL.utf8Bytes(s)), about: "Base58 (Bitcoin alphabet) — like Base64 but drops easily confused characters.", example: { in: "hello world", out: "StV1DL6CwTryKyV" } },
     { id: "base58-decode", name: "From Base58", cat: "Encoding", run: (s) => CL.bytesToText(CL.base58Decode(s)), about: "Decodes Base58 back into text." },
+    { id: "base85-encode", name: "To Base85", cat: "Encoding", run: (s) => CL.base85Encode(CL.utf8Bytes(s)), about: "Base85 (Ascii85) — packs 4 bytes into 5 printable characters, denser than Base64. Used in Adobe PostScript/PDF and git binary patches.", example: { in: "Man ", out: "9jqo^" } },
+    { id: "base85-decode", name: "From Base85", cat: "Encoding", run: (s) => CL.bytesToText(CL.base85Decode(s)), about: "Decodes Base85 (Ascii85) back into text." },
+    { id: "punycode-encode", name: "To Punycode", cat: "Encoding", run: (s) => CL.punycodeEncode(s), about: "Encodes a domain name to ASCII-Compatible Encoding (RFC 3492), the way browsers actually send internationalized domains over DNS. Only non-ASCII dot-separated labels get an xn-- prefix.", example: { in: "münchen.de", out: "xn--mnchen-3ya.de" } },
+    { id: "punycode-decode", name: "From Punycode", cat: "Encoding", run: (s) => CL.punycodeDecode(s), about: "Decodes an xn-- Punycode domain back to Unicode. Note: real browsers deliberately do NOT do this automatically in script-visible APIs — it's exactly the kind of conversion that enables homoglyph domain spoofing, see the Learn lesson on that.", example: { in: "xn--mnchen-3ya.de", out: "münchen.de" } },
     { id: "to-hexdump", name: "To Hexdump", cat: "Encoding", run: (s) => CL.toHexdump(CL.utf8Bytes(s)), about: "xxd-style dump with byte offsets, hex and an ASCII column." },
     { id: "from-hexdump", name: "From Hexdump", cat: "Encoding", run: (s) => CL.bytesToText(CL.fromHexdump(s)), about: "Rebuilds text from a hexdump, ignoring offsets and the ASCII column." },
     { id: "hex-encode", name: "To Hex", cat: "Encoding", run: (s) => CL.bytesToHex(CL.utf8Bytes(s), true), about: "Shows each byte as two hex digits.", example: { in: "A", out: "41" } },
@@ -50,6 +54,8 @@
     { id: "a1z26-decode", name: "A1Z26 Decode", cat: "Ciphers", run: (s) => CL.a1z26Decode(s), about: "Numbers back into letters." },
     { id: "vigenere-encode", name: "Vigenère Encode", cat: "Ciphers", params: [{ name: "key", label: "Key", type: "text", def: "KEY" }], run: (s, p) => CL.vigenereEncode(s, p.key), about: "Shifts each letter by a repeating keyword.", example: { in: "ATTACK", out: "KXRKGI" } },
     { id: "vigenere-decode", name: "Vigenère Decode", cat: "Ciphers", params: [{ name: "key", label: "Key", type: "text", def: "KEY" }], run: (s, p) => CL.vigenereDecode(s, p.key), about: "Reverses a Vigenère cipher with the same key." },
+    { id: "railfence-encode", name: "Rail Fence Encode", cat: "Ciphers", params: [{ name: "rails", label: "Rails", type: "number", def: 3 }], run: (s, p) => CL.railFenceEncode(s, parseInt(p.rails, 10) || 2), about: "A transposition cipher — writes the text in a zigzag across N rails, then reads each rail off in order. Unlike every other cipher here, it scrambles position rather than substituting letters, so letter frequencies stay unchanged.", example: { in: "WEAREDISCOVEREDFLEEATONCE", out: "WECRLTEERDSOEEFEAOCAIVDEN" } },
+    { id: "railfence-decode", name: "Rail Fence Decode", cat: "Ciphers", params: [{ name: "rails", label: "Rails", type: "number", def: 3 }], run: (s, p) => CL.railFenceDecode(s, parseInt(p.rails, 10) || 2), about: "Reverses a Rail Fence cipher — you need the same rail count used to encode." },
     { id: "xor", name: "XOR", cat: "Ciphers", params: [{ name: "key", label: "Key", type: "text", def: "key" }, { name: "mode", label: "Direction", type: "select", def: "enc", options: [{ v: "enc", t: "Text → Hex" }, { v: "dec", t: "Hex → Text" }] }], run: (s, p) => (p.mode === "dec" ? CL.xorFromHex(s, p.key) : CL.xorHexOut(s, p.key)), about: "XORs bytes with a repeating key. Encrypt text to hex, or decrypt hex back to text." },
     { id: "caesar-brute", name: "Caesar Brute Force", cat: "Ciphers", run: (s) => {
         const results = CL.caesarBruteForce(s, 26);
@@ -639,7 +645,7 @@
   }
   function closeLesson() { $("#lesson-modal").classList.add("hidden"); }
 
-  const DEMO_FIELD2 = { xor: "Key", vigenere: "Key", caesar: "Shift", regex: "Pattern (regex)" };
+  const DEMO_FIELD2 = { xor: "Key", vigenere: "Key", caesar: "Shift", regex: "Pattern (regex)", railfence: "Rails" };
   function buildDemo(view, demo) {
     const wrap = document.createElement("div"); wrap.className = "demo";
     wrap.innerHTML = "<h4>Try it yourself</h4>";
@@ -649,7 +655,7 @@
     if (DEMO_FIELD2[demo.type]) {
       const lab = document.createElement("label"); lab.className = "lbl"; lab.textContent = DEMO_FIELD2[demo.type]; wrap.appendChild(lab);
       in2 = document.createElement("input"); in2.className = "field mono";
-      in2.value = demo.type === "caesar" ? "3" : demo.type === "regex" ? "\\d+" : "key";
+      in2.value = demo.type === "caesar" || demo.type === "railfence" ? "3" : demo.type === "regex" ? "\\d+" : "key";
       wrap.appendChild(in2);
     }
     const outLbl = document.createElement("label"); outLbl.className = "lbl"; outLbl.textContent = "Result"; wrap.appendChild(outLbl);
@@ -674,6 +680,7 @@
       case "crc": return "CRC-32: " + CL.crc32(CL.utf8Bytes(v));
       case "xor": return CL.xorHexOut(v, k);
       case "vigenere": return CL.vigenereEncode(v, k);
+      case "railfence": return CL.railFenceEncode(v, parseInt(k, 10) || 2);
       case "regex": { const m = v.match(new RegExp(k, "g")); return m ? m.join("\n") : "(no matches)"; }
       case "jwt": return JSON.stringify(CL.parseJwt(v.trim()).payload, null, 2);
       case "hash": return hasSubtle ? await CL.shaHex("SHA-256", CL.utf8Bytes(v)) : CL.md5(CL.utf8Bytes(v)) + " (MD5)";

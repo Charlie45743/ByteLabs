@@ -24,16 +24,18 @@ them, and removed individually. Heavy operations (Argon2id, PBKDF2) are marked "
 and use an explicit Compute button instead of running on every keystroke, so typing
 never stutters.
 
-95 operations across 7 categories:
+101 operations across 7 categories:
 
-- **Encoding (29)** — Base64, Base64 URL-safe, Base32, Base58, hex, hexdump, binary,
-  decimal, octal, URL encoding, HTML entities, `\u` escapes, JSON string escapes, Morse
-  code, and NATO phonetic spelling — each with both an encode and a decode direction.
-- **Ciphers (11)** — ROT13, ROT47, Caesar (with adjustable shift), Atbash, A1Z26,
-  Vigenère, and XOR, plus two **brute-force tools**: XOR Brute Force and Caesar Brute
-  Force, which try every possible key/shift and rank the results by how much they read
-  like actual English (letter-frequency statistics plus common-word matching), showing
-  a ranked shortlist rather than a single guess.
+- **Encoding (33)** — Base64, Base64 URL-safe, Base32, Base58, Base85, hex, hexdump,
+  binary, decimal, octal, URL encoding, HTML entities, `\u` escapes, JSON string
+  escapes, Morse code, NATO phonetic spelling, and Punycode/IDN (RFC 3492, for
+  internationalized domain names) — each with both an encode and a decode direction.
+- **Ciphers (13)** — ROT13, ROT47, Caesar (with adjustable shift), Atbash, A1Z26,
+  Vigenère, Rail Fence (a transposition cipher — scrambles position instead of
+  substituting letters), and XOR, plus two **brute-force tools**: XOR Brute Force and
+  Caesar Brute Force, which try every possible key/shift and rank the results by how
+  much they read like actual English (letter-frequency statistics plus common-word
+  matching), showing a ranked shortlist rather than a single guess.
 - **Bitwise (9)** — AND, OR, NOT, ADD and SUB (mod 256), bit shifts, and bit rotates,
   each working with a repeating key where relevant.
 - **Hashing (12)** — MD5, SHA-1/256/384/512, CRC-32, HMAC-SHA256/512, BLAKE2b-256/512,
@@ -62,21 +64,22 @@ and a hash comparison tool.
 
 ### Learn
 
-A locked progression of **29 lessons** — Duolingo-style: finish one to unlock the next.
-Covers encoding (Base64, hex, Unicode, URL encoding, mojibake, homoglyph attacks),
-classical ciphers and how to break them with frequency analysis, bitwise operations,
-brute-forcing, hashing versus checksums, HMAC, symmetric and asymmetric encryption
-(AES, RSA, digital signatures, key exchange, TLS), password security (salting, key
-derivation with PBKDF2/Argon2, how cracking actually works, judging real-world
-password strength), JWTs, regular expressions, and entropy. Most lessons include a
-live interactive demo and end with a short quiz.
+A locked progression of **30 lessons** — Duolingo-style: finish one to unlock the next.
+Covers encoding (Base64, hex, Unicode, URL encoding, mojibake, homoglyph attacks,
+Punycode/IDN), classical substitution ciphers and transposition ciphers and how to
+break them with frequency analysis, bitwise operations, brute-forcing, hashing versus
+checksums, HMAC, symmetric and asymmetric encryption (AES, RSA, digital signatures,
+key exchange, TLS), password security (salting, key derivation with PBKDF2/Argon2,
+how cracking actually works, judging real-world password strength), JWTs, regular
+expressions, and entropy. Most lessons include a live interactive demo and end with a
+short quiz.
 
 ### Challenges
 
-**40 practice puzzles** across easy/medium/hard (14/16/10), solvable using the
-operations in The Lab — decode a hidden message, break a cipher, compute a hash, spot
-an email in a sentence, or actually run the brute-force tools instead of working
-something out by hand. Progress is saved on your device only.
+**43 practice puzzles** across easy/medium/hard, solvable using the operations in The
+Lab — decode a hidden message, break a cipher, compute a hash, spot an email in a
+sentence, or actually run the brute-force tools instead of working something out by
+hand. Progress is saved on your device only.
 
 ### Settings
 

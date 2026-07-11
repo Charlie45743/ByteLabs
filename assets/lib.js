@@ -375,6 +375,44 @@
   function vigenereEncode(s, k) { return vigenere(s, k, 1); }
   function vigenereDecode(s, k) { return vigenere(s, k, -1); }
 
+  // ----- Rail Fence cipher (transposition, not substitution) -----
+  function railFenceEncode(str, rails) {
+    const n = Math.max(2, parseInt(rails, 10) || 2);
+    const chars = Array.from(str);
+    const period = 2 * (n - 1);
+    const rows = Array.from({ length: n }, () => []);
+    for (let i = 0; i < chars.length; i++) {
+      const pos = i % period;
+      const row = pos < n ? pos : period - pos;
+      rows[row].push(chars[i]);
+    }
+    return rows.map((r) => r.join("")).join("");
+  }
+  function railFenceDecode(str, rails) {
+    const n = Math.max(2, parseInt(rails, 10) || 2);
+    const chars = Array.from(str);
+    const len = chars.length;
+    const period = 2 * (n - 1);
+    const rowOf = new Array(len);
+    for (let i = 0; i < len; i++) {
+      const pos = i % period;
+      rowOf[i] = pos < n ? pos : period - pos;
+    }
+    const rowLengths = new Array(n).fill(0);
+    for (let i = 0; i < len; i++) rowLengths[rowOf[i]]++;
+    const rowStart = new Array(n);
+    let acc = 0;
+    for (let r = 0; r < n; r++) { rowStart[r] = acc; acc += rowLengths[r]; }
+    const rowPos = new Array(n).fill(0);
+    const out = new Array(len);
+    for (let i = 0; i < len; i++) {
+      const r = rowOf[i];
+      out[i] = chars[rowStart[r] + rowPos[r]];
+      rowPos[r]++;
+    }
+    return out.join("");
+  }
+
   // ----- XOR (repeating key) -----
   function xorHexOut(str, key) {
     const data = utf8Bytes(str), k = utf8Bytes(key || "");
@@ -507,6 +545,146 @@
     const out = []; for (let i = 0; i < zeros; i++) out.push(0);
     for (let i = bytes.length - 1; i >= 0; i--) out.push(bytes[i]);
     return new Uint8Array(out);
+  }
+
+  // ----- Base85 (Ascii85) -----
+  function base85Encode(bytes) {
+    let out = "";
+    for (let i = 0; i < bytes.length; i += 4) {
+      const chunk = bytes.subarray(i, i + 4);
+      const padLen = 4 - chunk.length;
+      const padded = new Uint8Array(4);
+      padded.set(chunk);
+      let n = ((padded[0] << 24) | (padded[1] << 16) | (padded[2] << 8) | padded[3]) >>> 0;
+      if (n === 0 && padLen === 0) { out += "z"; continue; }
+      const digits = [0, 0, 0, 0, 0];
+      for (let d = 4; d >= 0; d--) { digits[d] = n % 85; n = Math.floor(n / 85); }
+      let group = digits.map((d) => String.fromCharCode(d + 33)).join("");
+      if (padLen > 0) group = group.slice(0, 5 - padLen);
+      out += group;
+    }
+    return out;
+  }
+  function base85Decode(str) {
+    const clean = str.replace(/<~|~>|\s/g, "");
+    const bytesOut = [];
+    let i = 0;
+    while (i < clean.length) {
+      if (clean[i] === "z") { bytesOut.push(0, 0, 0, 0); i++; continue; }
+      let group = clean.slice(i, i + 5);
+      const padLen = 5 - group.length;
+      if (padLen > 0) group = group.padEnd(5, "u");
+      let n = 0;
+      for (let k = 0; k < 5; k++) {
+        const code = group.charCodeAt(k) - 33;
+        if (code < 0 || code > 84) throw new Error("Invalid Base85 character: " + group[k]);
+        n = n * 85 + code;
+      }
+      n = n >>> 0;
+      const b = [(n >>> 24) & 255, (n >>> 16) & 255, (n >>> 8) & 255, n & 255];
+      for (let k = 0; k < 4 - padLen; k++) bytesOut.push(b[k]);
+      i += 5 - padLen;
+    }
+    return new Uint8Array(bytesOut);
+  }
+
+  // ----- Punycode (RFC 3492 bootstring, applied per dot-separated label like real IDNs) -----
+  const PUNY_BASE = 36, PUNY_TMIN = 1, PUNY_TMAX = 26, PUNY_SKEW = 38, PUNY_DAMP = 700, PUNY_INITIAL_BIAS = 72, PUNY_INITIAL_N = 128;
+  function punyAdapt(delta, numpoints, firsttime) {
+    delta = firsttime ? Math.floor(delta / PUNY_DAMP) : Math.floor(delta / 2);
+    delta += Math.floor(delta / numpoints);
+    let k = 0;
+    while (delta > Math.floor(((PUNY_BASE - PUNY_TMIN) * PUNY_TMAX) / 2)) {
+      delta = Math.floor(delta / (PUNY_BASE - PUNY_TMIN));
+      k += PUNY_BASE;
+    }
+    return k + Math.floor(((PUNY_BASE - PUNY_TMIN + 1) * delta) / (delta + PUNY_SKEW));
+  }
+  function punyDigitToBasic(d) { return d < 26 ? d + 97 : d - 26 + 48; }
+  function punyBasicToDigit(cp) {
+    if (cp >= 48 && cp <= 57) return cp - 48 + 26;
+    if (cp >= 97 && cp <= 122) return cp - 97;
+    if (cp >= 65 && cp <= 90) return cp - 65;
+    return -1;
+  }
+  function bootstringEncode(input) {
+    const codePoints = Array.from(input).map((c) => c.codePointAt(0));
+    let n = PUNY_INITIAL_N, delta = 0, bias = PUNY_INITIAL_BIAS;
+    const basic = codePoints.filter((c) => c < 0x80);
+    let output = basic.map((c) => String.fromCodePoint(c)).join("");
+    let h = basic.length;
+    const b = basic.length;
+    if (b > 0) output += "-";
+    while (h < codePoints.length) {
+      let m = Infinity;
+      for (const c of codePoints) if (c >= n && c < m) m = c;
+      delta += (m - n) * (h + 1);
+      n = m;
+      for (const c of codePoints) {
+        if (c < n) delta++;
+        if (c === n) {
+          let q = delta;
+          for (let k = PUNY_BASE; ; k += PUNY_BASE) {
+            const t = k <= bias ? PUNY_TMIN : k >= bias + PUNY_TMAX ? PUNY_TMAX : k - bias;
+            if (q < t) break;
+            output += String.fromCharCode(punyDigitToBasic(t + ((q - t) % (PUNY_BASE - t))));
+            q = Math.floor((q - t) / (PUNY_BASE - t));
+          }
+          output += String.fromCharCode(punyDigitToBasic(q));
+          bias = punyAdapt(delta, h + 1, h === b);
+          delta = 0;
+          h++;
+        }
+      }
+      delta++;
+      n++;
+    }
+    return output;
+  }
+  function bootstringDecode(input) {
+    let n = PUNY_INITIAL_N, i = 0, bias = PUNY_INITIAL_BIAS;
+    const lastDelim = input.lastIndexOf("-");
+    const output = [];
+    let inputIdx = 0;
+    if (lastDelim > 0) {
+      for (let k = 0; k < lastDelim; k++) {
+        const cp = input.charCodeAt(k);
+        if (cp >= 0x80) throw new Error("Invalid Punycode: non-ASCII character before the last hyphen.");
+        output.push(cp);
+      }
+      inputIdx = lastDelim + 1;
+    }
+    while (inputIdx < input.length) {
+      const oldi = i;
+      let w = 1;
+      for (let k = PUNY_BASE; ; k += PUNY_BASE) {
+        if (inputIdx >= input.length) throw new Error("Invalid Punycode: unexpected end of input.");
+        const digit = punyBasicToDigit(input.charCodeAt(inputIdx++));
+        if (digit === -1) throw new Error("Invalid Punycode: bad digit character.");
+        i += digit * w;
+        const t = k <= bias ? PUNY_TMIN : k >= bias + PUNY_TMAX ? PUNY_TMAX : k - bias;
+        if (digit < t) break;
+        w *= PUNY_BASE - t;
+      }
+      bias = punyAdapt(i - oldi, output.length + 1, oldi === 0);
+      n += Math.floor(i / (output.length + 1));
+      i %= output.length + 1;
+      output.splice(i, 0, n);
+      i++;
+    }
+    return output.map((cp) => String.fromCodePoint(cp)).join("");
+  }
+  function punycodeEncode(str) {
+    return str.split(".").map(function (label) {
+      if (/^[\x00-\x7f]*$/.test(label)) return label;
+      return "xn--" + bootstringEncode(label);
+    }).join(".");
+  }
+  function punycodeDecode(str) {
+    return str.split(".").map(function (label) {
+      if (!/^xn--/i.test(label)) return label;
+      return bootstringDecode(label.slice(4));
+    }).join(".");
   }
 
   // ----- Hexdump (xxd style) -----
@@ -702,8 +880,9 @@
   window.CL = {
     utf8Bytes, bytesToText, bytesToBase64, base64ToBytes, bytesToBase64Url, base64UrlToBytes,
     bytesToHex, hexToBytes, bytesToBinary, binaryToBytes, base32Encode, base32Decode, base58Encode, base58Decode,
+    base85Encode, base85Decode, punycodeEncode, punycodeDecode,
     toHexdump, fromHexdump, htmlEncode, htmlDecode, caesar, atbash, rot47, a1z26Encode, a1z26Decode,
-    vigenereEncode, vigenereDecode, xorHexOut, xorFromHex, decimalEncode, decimalDecode,
+    vigenereEncode, vigenereDecode, railFenceEncode, railFenceDecode, xorHexOut, xorFromHex, decimalEncode, decimalDecode,
     octalEncode, octalDecode, unicodeEscape, unicodeUnescape, natoEncode, morseEncode, morseDecode,
     stripAccents, jsonEscape, jsonUnescape, changeCase, changeBase, letterFrequency, extract, dateToUnix, unixToDate,
     convertLineEndings, stripHtmlTags, wordWrap, inspectChars, byteHistogram,
