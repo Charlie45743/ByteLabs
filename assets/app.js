@@ -623,25 +623,72 @@
     return "locked";
   }
   function lockSvg() { return '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>'; }
+  function checkSvg() { return '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 12.5l5 5 10-11"/></svg>'; }
 
   function renderMap() {
     const map = $("#lesson-map"); if (!map) return;
     const order = CL_DATA.LESSON_ORDER, done = lessonProgress();
     const total = order.length, completed = order.filter((id) => done[id]).length;
+    const pct = total ? Math.round((completed / total) * 100) : 0;
     $("#lesson-progress").innerHTML =
-      `<div class="lp-bar"><span style="width:${total ? (completed / total * 100) : 0}%"></span></div>` +
-      `<div class="lp-text">${completed} of ${total} lessons complete</div>`;
+      `<div class="lp-bar"><span style="width:${pct}%"></span></div>` +
+      `<div class="lp-text">${completed} of ${total} lessons complete` + (completed ? ` · ${pct}%` : "") + `</div>`;
     map.innerHTML = "";
-    order.forEach((id, i) => {
-      const lesson = CL_DATA.LESSONS.find((l) => l.id === id);
-      const state = lessonState(i, done);
-      const node = document.createElement("button");
-      node.className = "map-node " + state + " pos-" + (i % 4);
-      node.disabled = state === "locked";
-      const icon = state === "done" ? "✓" : state === "locked" ? lockSvg() : (i + 1);
-      node.innerHTML = `<span class="node-circle">${icon}</span><span class="node-label">${escapeHtml(lesson.title)}</span>`;
-      if (state !== "locked") node.addEventListener("click", () => openLesson(id));
-      map.appendChild(node);
+    const sections = CL_DATA.LESSON_SECTIONS || [{ title: "", ids: order }];
+    let idx = 0;
+    sections.forEach((sec) => {
+      const secDone = sec.ids.filter((id) => done[id]).length;
+      const head = document.createElement("div");
+      head.className = "map-section" + (secDone === sec.ids.length ? " complete" : "");
+      head.innerHTML = `<span class="map-section-title">${escapeHtml(sec.title)}</span><span class="map-section-count">${secDone === sec.ids.length ? checkSvg() : secDone + " / " + sec.ids.length}</span>`;
+      map.appendChild(head);
+      const seg = document.createElement("div");
+      seg.className = "map-seg";
+      sec.ids.forEach((id) => {
+        const i = idx++;
+        const lesson = CL_DATA.LESSONS.find((l) => l.id === id);
+        const state = lessonState(i, done);
+        const node = document.createElement("button");
+        node.className = "map-node " + state + " pos-" + (i % 4);
+        node.disabled = state === "locked";
+        const icon = state === "done" ? checkSvg() : state === "locked" ? lockSvg() : (i + 1);
+        node.innerHTML =
+          (state === "current" ? '<span class="node-start">START</span>' : "") +
+          `<span class="node-circle">${icon}</span><span class="node-label">${escapeHtml(lesson.title)}</span>`;
+        if (state !== "locked") node.addEventListener("click", () => openLesson(id));
+        seg.appendChild(node);
+      });
+      map.appendChild(seg);
+    });
+    requestAnimationFrame(drawMapPaths);
+  }
+
+  // Draws the winding dotted trail behind each section's nodes. Positions come from
+  // the live layout, so this must re-run after render, on resize, and when the Learn
+  // view becomes visible (a hidden view measures as 0x0).
+  function drawMapPaths() {
+    $$(".map-seg").forEach((seg) => {
+      const old = $(".map-path", seg); if (old) old.remove();
+      const nodes = $$(".map-node", seg);
+      if (nodes.length < 2) return;
+      const segRect = seg.getBoundingClientRect();
+      if (!segRect.width || !segRect.height) return;
+      const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      svg.setAttribute("class", "map-path");
+      svg.setAttribute("viewBox", `0 0 ${segRect.width} ${segRect.height}`);
+      const pts = nodes.map((n) => {
+        const c = $(".node-circle", n).getBoundingClientRect();
+        return { x: c.left + c.width / 2 - segRect.left, y: c.top + c.height / 2 - segRect.top, done: n.classList.contains("done"), current: n.classList.contains("current") };
+      });
+      for (let i = 0; i < pts.length - 1; i++) {
+        const a = pts[i], b = pts[i + 1];
+        const midY = (a.y + b.y) / 2;
+        const p = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        p.setAttribute("d", `M ${a.x} ${a.y} C ${a.x} ${midY}, ${b.x} ${midY}, ${b.x} ${b.y}`);
+        p.setAttribute("class", "map-link" + (a.done && (b.done || b.current) ? " walked" : ""));
+        svg.appendChild(p);
+      }
+      seg.insertBefore(svg, seg.firstChild);
     });
   }
 
@@ -695,6 +742,9 @@
       case "columnar": return CL.columnarEncode(v, k);
       case "qp": return CL.qpEncode(v);
       case "ipv4": return CL.ipToInt(v);
+      case "hexdump": return CL.toHexdump(CL.utf8Bytes(v));
+      case "base85": return CL.base85Encode(CL.utf8Bytes(v));
+      case "unixtime": return CL.dateToUnix(v);
       case "regex": { const m = v.match(new RegExp(k, "g")); return m ? m.join("\n") : "(no matches)"; }
       case "jwt": return JSON.stringify(CL.parseJwt(v.trim()).payload, null, 2);
       case "hash": return hasSubtle ? await CL.shaHex("SHA-256", CL.utf8Bytes(v)) : CL.md5(CL.utf8Bytes(v)) + " (MD5)";
@@ -732,6 +782,8 @@
     renderMap();
     $("#lesson-close").addEventListener("click", closeLesson);
     $("#lesson-modal").addEventListener("click", (e) => { if (e.target.id === "lesson-modal") closeLesson(); });
+    let mapResizeT;
+    window.addEventListener("resize", () => { clearTimeout(mapResizeT); mapResizeT = setTimeout(drawMapPaths, 120); });
   }
 
   // -------------------------------------------------------------------------
@@ -745,7 +797,9 @@
     const levels = ["all", "easy", "medium", "hard"];
     const fbox = $("#chal-filters");
     levels.forEach((lv) => {
-      const b = document.createElement("button"); b.textContent = lv[0].toUpperCase() + lv.slice(1); if (lv === chalFilter) b.classList.add("active");
+      const b = document.createElement("button"); b.dataset.level = lv;
+      b.innerHTML = `${lv[0].toUpperCase() + lv.slice(1)}<span class="chip-count"></span>`;
+      if (lv === chalFilter) b.classList.add("active");
       b.addEventListener("click", () => { chalFilter = lv; $$("#chal-filters button").forEach((x) => x.classList.remove("active")); b.classList.add("active"); renderChallenges(); });
       fbox.appendChild(b);
     });
@@ -754,12 +808,22 @@
   function renderChallenges() {
     const wrap = $("#challenge-list"); const done = loadDone(); wrap.innerHTML = "";
     const all = CL_DATA.CHALLENGES;
-    $("#challenge-progress").textContent = `${Object.keys(done).filter((k) => done[k]).length} of ${all.length} solved`;
+    const solved = all.filter((c) => done[c.id]).length;
+    const pct = all.length ? Math.round((solved / all.length) * 100) : 0;
+    $("#challenge-progress").innerHTML =
+      `<div class="lp-bar"><span style="width:${pct}%"></span></div>` +
+      `<div class="lp-text">${solved} of ${all.length} solved` + (solved ? ` · ${pct}%` : "") + `</div>`;
+    $$("#chal-filters button").forEach((b) => {
+      const lv = b.dataset.level;
+      const pool = lv === "all" ? all : all.filter((c) => c.level === lv);
+      const n = pool.filter((c) => done[c.id]).length;
+      $(".chip-count", b).textContent = `${n}/${pool.length}`;
+    });
     all.filter((c) => chalFilter === "all" || c.level === chalFilter).forEach((c) => {
-      const card = document.createElement("div"); card.className = "challenge" + (done[c.id] ? " done" : "");
+      const card = document.createElement("div"); card.className = "challenge lv-" + c.level + (done[c.id] ? " done" : "");
       card.innerHTML = `
-        <div class="chal-top"><h3>${c.title}</h3>
-          <span class="tag ${c.level}">${c.level}${done[c.id] ? '</span> <span class="badge">solved' : ""}</span></div>
+        <div class="chal-top"><h3>${c.title}</h3><span class="chal-tags">
+          ${done[c.id] ? '<span class="badge">' + checkSvg() + " solved</span>" : ""}<span class="tag ${c.level}">${c.level}</span></span></div>
         <div class="prompt">${c.prompt}</div>
         <div class="task">${escapeHtml(c.task)}</div>
         <input class="field mono" placeholder="your answer…" />

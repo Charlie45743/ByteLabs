@@ -69,20 +69,23 @@ and a hash comparison tool.
 
 ### Learn
 
-A locked progression of **33 lessons** — Duolingo-style: finish one to unlock the next.
-Covers encoding (Base64, hex, Unicode, URL encoding, mojibake, homoglyph attacks,
-Punycode/IDN, Quoted-Printable/MIME email encoding), classical substitution and
-transposition ciphers (including keyword-based Columnar Transposition) and how to
-break them with frequency analysis, bitwise operations, brute-forcing, hashing versus
-checksums, HMAC, symmetric and asymmetric encryption (AES, RSA, digital signatures,
-key exchange, TLS), password security (salting, key derivation with PBKDF2/Argon2,
-how cracking actually works, judging real-world password strength), JWTs, IPv4
-addressing, regular expressions, and entropy. Most lessons include a live interactive
-demo and end with a short quiz.
+A locked progression of **38 lessons** along a winding Duolingo-style path — finish
+one to unlock the next — grouped into seven named units: Encodings, Classical
+ciphers, Bits & XOR, Hashing & integrity, Encryption, Passwords & secrets, and Data
+in practice. Covers encoding (Base64, hex, reading hexdumps, Unicode, URL encoding,
+mojibake, homoglyph attacks, Punycode/IDN, Quoted-Printable/MIME, encoding
+efficiency up to Base85, Morse and variable-length codes), classical substitution
+and transposition ciphers (including keyword-based Columnar Transposition) and how
+to break them with frequency analysis, XOR and the one-time pad, bitwise operations,
+brute-forcing, hashing versus checksums, HMAC, symmetric and asymmetric encryption
+(AES, RSA, digital signatures, key exchange, TLS), password security (salting, key
+derivation with PBKDF2/Argon2, how cracking actually works, judging real-world
+password strength), JWTs, IPv4 addressing, Unix time, regular expressions, and
+entropy. Most lessons include a live interactive demo and end with a short quiz.
 
 ### Challenges
 
-**51 practice puzzles** across easy/medium/hard, solvable using the operations in The
+**60 practice puzzles** across easy/medium/hard, solvable using the operations in The
 Lab — decode a hidden message, break a cipher, compute a hash, spot an email in a
 sentence, or actually run the brute-force tools instead of working something out by
 hand. Progress is saved on your device only.

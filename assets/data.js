@@ -34,6 +34,27 @@ so hex is a compact way to show raw bytes.</p>
       quiz: { q: "How many hex digits are one byte?", options: ["One", "Two", "Eight"], answer: 1 }
     },
     {
+      id: "hexdump", title: "Reading a hexdump",
+      body: `
+<h3>Reading a hexdump</h3>
+<p>A hexdump is how you look at raw bytes when you don't know (or don't trust) what a file claims to be.
+It's the classic three-column layout that tools like <code>xxd</code> and every hex editor use.</p>
+<h4>The three columns</h4>
+<p><strong>Offset</strong> (left): the position of the row's first byte, in hex — row two starts at
+<code>00000010</code>, which is byte 16, because each row shows 16 bytes.
+<strong>Hex</strong> (middle): the 16 byte values.
+<strong>ASCII</strong> (right): the same bytes rendered as text, with a <code>.</code> for anything unprintable.</p>
+<h4>Why the ASCII column matters</h4>
+<p>Human-readable strings jump out of the right-hand column even in the middle of binary data — that's how you
+spot embedded text, file signatures like <code>PNG</code> or <code>PK</code>, URLs inside malware samples, or
+leftover secrets in a binary. Reading the ASCII column of a hexdump is often the fastest first look a security
+analyst takes at an unknown file.</p>
+<h4>Try it</h4>
+<p>The demo below shows your text as a hexdump. Type more than 16 characters to see the offset column count up.</p>`,
+      demo: { type: "hexdump" },
+      quiz: { q: "In a hexdump, what does the leftmost column show?", options: ["A checksum of the row", "The position (offset) of the row's first byte", "The row's ASCII text"], answer: 1 }
+    },
+    {
       id: "hashing", title: "What is Hashing?",
       body: `
 <h3>What is Hashing?</h3>
@@ -337,6 +358,31 @@ from long, random, never-reused keys.</p>`,
       quiz: { q: "What does XOR with the same key twice do?", options: ["Doubles the encryption", "Returns the original data", "Deletes the data"], answer: 1 }
     },
     {
+      id: "otp", title: "The one-time pad",
+      body: `
+<h3>The one and only unbreakable cipher</h3>
+<p>The previous lesson said XOR's strength comes from "long, random, never-reused keys." Push that to the
+limit and you get the <strong>one-time pad</strong>: a truly random key <em>as long as the message itself</em>,
+used exactly once. It is the only cipher with a mathematical proof of perfect secrecy — with a properly used
+pad, the ciphertext gives an attacker literally zero information, no matter how much computing power they have.</p>
+<h4>Why it's perfect</h4>
+<p>For any ciphertext, <em>every</em> possible plaintext of the same length is equally likely — there's some
+key that would produce each one. "ATTACK AT DAWN" and "RETREAT AT TEN" are indistinguishable. There's nothing
+to brute-force because every guess is equally consistent with what you see.</p>
+<h4>Why almost nobody uses it</h4>
+<p>The key must be truly random, as long as all the traffic you'll ever send, delivered to the other side in
+secret, and never reused. If you can securely deliver a key that big… you could have just delivered the
+message. And <strong>reuse is fatal</strong>: XORing two ciphertexts that share a pad cancels the key out
+entirely, leaving one message XORed with the other — this exact mistake broke the Soviet VENONA traffic.</p>
+<h4>What we use instead</h4>
+<p>Stream ciphers keep the XOR but generate the "pad" from a short key using a deterministic algorithm —
+trading perfect secrecy for practicality, which is the basis of everything in the Encryption section ahead.</p>
+<h4>Try it</h4>
+<p>The demo XORs your text with a key. Imagine the key being random and message-length — that's the pad.</p>`,
+      demo: { type: "xor" },
+      quiz: { q: "What breaks a one-time pad?", options: ["Enough computing power", "Reusing the pad for a second message", "Messages longer than 100 bytes"], answer: 1 }
+    },
+    {
       id: "bitwise", title: "AND, OR, NOT, shifts & rotates",
       body: `
 <h3>The other bitwise operations</h3>
@@ -554,6 +600,51 @@ number), but for short identifiers that's fine.</p>`,
       quiz: { q: "Why does Base58 drop characters like 0 and O?", options: ["To save space", "To avoid look-alike typos", "For encryption"], answer: 1 }
     },
     {
+      id: "density", title: "Encoding efficiency: hex to Base85",
+      body: `
+<h3>How dense can a text encoding get?</h3>
+<p>Every "binary-to-text" encoding pays a size tax — it represents 8-bit bytes using a smaller, safer alphabet,
+so the output is always longer than the input. How much longer depends on the alphabet size.</p>
+<h4>The ladder</h4>
+<p><strong>Binary</strong> (2 symbols): 8× the size — one character per bit.
+<strong>Hex</strong> (16 symbols): 2× — two characters per byte.
+<strong>Base32</strong> (32 symbols): 1.6× — 8 characters per 5 bytes.
+<strong>Base64</strong> (64 symbols): 1.33× — 4 characters per 3 bytes.
+<strong>Base85</strong> (85 symbols): 1.25× — 5 characters per 4 bytes.</p>
+<h4>Why not always use the densest?</h4>
+<p>Bigger alphabets need riskier characters. Base85 uses quotes, backslashes and angle brackets — characters
+that break JSON strings, URLs and HTML if you paste them in raw. Base64 is the sweet spot for most uses:
+dense enough, and its alphabet survives almost everywhere. Base85 shows up where the container is trusted,
+like PostScript/PDF internals and git's binary patches.</p>
+<h4>The theoretical wall</h4>
+<p>You can't do much better: with only ~94 printable ASCII characters available, roughly 1.22× is the floor.
+Base85 is nearly optimal — everything after it is diminishing returns.</p>
+<h4>Try it</h4>
+<p>The demo encodes your text as Base85. Compare its length with the Base64 of the same text in The Lab.</p>`,
+      demo: { type: "base85" },
+      quiz: { q: "Why isn't Base85 used everywhere Base64 is?", options: ["It's much slower to compute", "Its alphabet includes characters that break JSON, URLs and HTML", "It's proprietary"], answer: 1 }
+    },
+    {
+      id: "morse", title: "Morse code & variable-length codes",
+      body: `
+<h3>Morse code & variable-length codes</h3>
+<p>Morse code (1830s) is one of the earliest digital encodings — every letter becomes a pattern of short and
+long signals. It's still worth understanding because it introduced an idea modern compression relies on.</p>
+<h4>Frequent letters get short codes</h4>
+<p><code>E</code>, the most common English letter, is a single dot. <code>T</code> is a single dash. Rare
+letters like <code>Q</code> get four symbols. Giving the most frequent symbols the shortest codes minimises
+the average message length — the exact principle behind Huffman coding, which sits inside ZIP, JPEG and MP3
+files today.</p>
+<h4>The catch with variable-length codes</h4>
+<p>If codes have different lengths, how do you know where one letter ends? Morse solves it with pauses —
+a short gap between letters, a longer one between words (shown as <code>/</code> here). Huffman coding solves
+it more cleverly: no code is a prefix of any other, so the boundaries are unambiguous without any separator.</p>
+<h4>Try it</h4>
+<p>The demo encodes your text as Morse. Notice how <code>E</code> and <code>T</code> practically disappear.</p>`,
+      demo: { type: "morse" },
+      quiz: { q: "Why does Morse give E a single dot?", options: ["It was easiest to remember", "Frequent letters get short codes to shorten messages overall", "Dots were cheaper to send than dashes"], answer: 1 }
+    },
+    {
       id: "networking", title: "IPv4 addresses under the hood",
       body: `
 <h3>IPv4 addresses under the hood</h3>
@@ -574,6 +665,31 @@ to be, which is the whole reason IPv6 (128-bit addresses) exists.</p>
 <p>The demo below converts an IPv4 address to its integer form.</p>`,
       demo: { type: "ipv4" },
       quiz: { q: "What is a dotted-quad IPv4 address really, under the hood?", options: ["Four unrelated numbers", "A single 32-bit unsigned integer, split into 4 bytes for readability", "A hash of the hostname"], answer: 1 }
+    },
+    {
+      id: "unixtime", title: "Unix time",
+      body: `
+<h3>Unix time</h3>
+<p>Most computer systems don't store dates as year/month/day. They count the seconds since one fixed instant:
+<strong>midnight UTC, 1 January 1970</strong> — the "Unix epoch." Right now the count is somewhere past
+1.7 billion.</p>
+<h4>Why a single number wins</h4>
+<p>Comparing two dates becomes comparing two integers. "Three days from now" is just <code>+ 259200</code>.
+There are no time zones, months of different lengths, or daylight-saving jumps inside the number itself —
+all of that mess is applied only at the last moment, when a timestamp is <em>displayed</em> to a human in
+their local zone.</p>
+<h4>Where you'll meet it</h4>
+<p>Log files, JWT expiry claims (<code>exp</code>, <code>iat</code> — you saw these in the JWT lesson),
+file metadata, cookies, APIs. When something shows a date of <em>1 January 1970</em>, you're looking at a
+timestamp of zero — usually a bug where "no value" got rendered as a date.</p>
+<h4>The year-2038 problem</h4>
+<p>Old systems store the count as a signed 32-bit integer, which tops out at 2,147,483,647 — that second
+arrives on <strong>19 January 2038</strong>, when such systems overflow to a negative number and read it as
+1901. Modern 64-bit timestamps push the limit billions of years out.</p>
+<h4>Try it</h4>
+<p>The demo converts a date (try <code>2024-06-15</code>) to its Unix timestamp.</p>`,
+      demo: { type: "unixtime" },
+      quiz: { q: "What is Unix time?", options: ["Hours since the year 2000", "Seconds since midnight UTC on 1 Jan 1970", "The server's local wall-clock time"], answer: 1 }
     },
     {
       id: "regex", title: "Regular expressions",
@@ -664,16 +780,31 @@ but suitable for verifying integrity against a determined attacker.</p>
     { id: "c48", level: "easy", title: "Color format", prompt: "Convert this hex color to its RGB form.", task: "#663399", answer: "rgb(102, 51, 153)", hint: "Use Color Converter, convert to RGB." },
     { id: "c49", level: "easy", title: "IP to integer", prompt: "Convert this IPv4 address to its 32-bit integer form.", task: "10.0.0.1", answer: "167772161", hint: "Use IPv4 to Integer." },
     { id: "c50", level: "easy", title: "Integer to IP", prompt: "Convert this integer back to dotted-quad IPv4 form.", task: "2130706433", answer: "127.0.0.1", hint: "Use Integer to IPv4." },
-    { id: "c51", level: "hard", title: "Two layers, new encodings", prompt: "This was Quoted-Printable encoded, then Base64-encoded. Peel both layers.", task: "Y2FmPUMzPUE5ID0zRCAxMDAlIHNlY3VyZQ==", answer: "café = 100% secure", hint: "From Base64, then From Quoted-Printable." }
+    { id: "c51", level: "hard", title: "Two layers, new encodings", prompt: "This was Quoted-Printable encoded, then Base64-encoded. Peel both layers.", task: "Y2FmPUMzPUE5ID0zRCAxMDAlIHNlY3VyZQ==", answer: "café = 100% secure", hint: "From Base64, then From Quoted-Printable." },
+    { id: "c52", level: "easy", title: "Date to timestamp", prompt: "Convert this date to a Unix timestamp (seconds).", task: "2024-01-01", answer: "1704067200", hint: "Use Date to Unix Time." },
+    { id: "c53", level: "easy", title: "Find the address", prompt: "Extract the IPv4 address from this sentence.", task: "The server at 10.20.30.40 stopped responding", answer: "10.20.30.40", hint: "Use Extract, mode IPv4 addresses." },
+    { id: "c54", level: "easy", title: "HSL to hex", prompt: "Convert this HSL color to its hex form.", task: "hsl(120, 100%, 25%)", answer: "#008000", hint: "Use Color Converter, convert to Hex." },
+    { id: "c55", level: "medium", title: "Encode to Base85", prompt: "Type the Base85 (Ascii85) encoding of the word below.", task: "byte", answer: "@X3',", hint: "Use To Base85 on 'byte'." },
+    { id: "c56", level: "medium", title: "Into Gray code", prompt: "Give the hex Gray code of the text below.", task: "hi", answer: "5c5d", hint: "Use To Gray Code." },
+    { id: "c57", level: "medium", title: "Vigenère, forward", prompt: "Encrypt this with a Vigenère cipher, keyword BYTE.", task: "ATTACKATDAWN", answer: "BRMEDITXEYPR", hint: "Use Vigenère Encode with key BYTE." },
+    { id: "c58", level: "medium", title: "ROT13 in Base32", prompt: "This was ROT13'd, then Base32-encoded. Peel both layers.", task: "MZZHAZLSM4======", answer: "secret", hint: "From Base32 first, then ROT13." },
+    { id: "c59", level: "hard", title: "Four rails", prompt: "Decode this Rail Fence ciphertext — it used 4 rails.", task: "DTTTEDHSWADFNEAALUKEELS", answer: "DEFENDTHEEASTWALLATDUSK", hint: "Rail Fence Decode with Rails set to 4." },
+    { id: "c60", level: "hard", title: "Shifted, then dumped", prompt: "This message was Caesar-shifted by 7, then hex-encoded. Recover the original.", task: "74 6c 6c 61 20 68 61 20 61 6f 6c 20 75 76 79 61 6f 20 6e 68 61 6c", answer: "meet at the north gate", hint: "From Hex first, then Caesar with shift -7 (or 19)." }
   ];
 
   // Order lessons follow on the progression map (each unlocks the next).
-  const LESSON_ORDER = [
-    "base64", "hex", "unicode", "mojibake", "homoglyphs", "url", "mime", "base32", "base58",
-    "ciphers", "transposition", "columnar", "frequency", "xor", "bitwise", "bruteforce", "hashing", "checksums", "hmac",
-    "encryption", "aes", "rsa", "signatures", "keyexchange", "tls",
-    "salt", "kdf", "cracking", "strength-practice", "jwt", "networking", "regex", "entropy"
+  // Sections group the path into named units on the Learn map. Their ids, flattened
+  // in order, ARE the lesson order — the unlock chain runs straight through them.
+  const LESSON_SECTIONS = [
+    { title: "Encodings", ids: ["base64", "hex", "hexdump", "unicode", "mojibake", "homoglyphs", "url", "mime", "base32", "base58", "density", "morse"] },
+    { title: "Classical ciphers", ids: ["ciphers", "transposition", "columnar", "frequency"] },
+    { title: "Bits & XOR", ids: ["xor", "otp", "bitwise", "bruteforce"] },
+    { title: "Hashing & integrity", ids: ["hashing", "checksums", "hmac"] },
+    { title: "Encryption", ids: ["encryption", "aes", "rsa", "signatures", "keyexchange", "tls"] },
+    { title: "Passwords & secrets", ids: ["salt", "kdf", "cracking", "strength-practice"] },
+    { title: "Data in practice", ids: ["jwt", "networking", "unixtime", "regex", "entropy"] }
   ];
+  const LESSON_ORDER = LESSON_SECTIONS.reduce((acc, s) => acc.concat(s.ids), []);
 
-  window.CL_DATA = { LESSONS, CHALLENGES, LESSON_ORDER };
+  window.CL_DATA = { LESSONS, CHALLENGES, LESSON_ORDER, LESSON_SECTIONS };
 })();

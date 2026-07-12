@@ -64,7 +64,8 @@ body {
   margin: 0; font-family: var(--ui); font-size: 14px; color: var(--text); background: var(--bg);
   -webkit-font-smoothing: antialiased;
 }
-.no-anim * { transition: none !important; }
+.no-anim * { transition: none !important; animation: none !important; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 button { font-family: inherit; color: inherit; cursor: pointer; }
 
 /* ---------- Scrollbars ---------- */
@@ -279,8 +280,8 @@ kbd {
 .lesson-list button { width: 100%; text-align: left; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; font-size: 13.5px; color: var(--text); transition: border-color .12s; }
 .lesson-list button:hover, .lesson-list button.active { border-color: var(--text); }
 .lesson-view { line-height: 1.65; font-size: 14px; }
-.lesson-view h3 { margin-top: 0; font-size: 18px; }
-.lesson-view h4 { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .4px; margin: 20px 0 6px; }
+.lesson-view h3 { margin-top: 0; font-size: 19px; letter-spacing: -.2px; padding-bottom: 12px; border-bottom: 1px solid var(--border); margin-bottom: 14px; }
+.lesson-view h4 { color: var(--lime); font-size: 12px; font-weight: 650; text-transform: uppercase; letter-spacing: .5px; margin: 20px 0 6px; }
 .lesson-view code, .mono-inline { font-family: var(--mono); background: var(--bg-soft); border: 1px solid var(--border); padding: 1px 5px; border-radius: 5px; font-size: 12.5px; }
 .demo { background: var(--bg-soft); border: 1px solid var(--border); border-radius: 10px; padding: 15px; margin: 16px 0; }
 .demo .row { margin: 0; }
@@ -292,26 +293,38 @@ kbd {
 .quiz-opt.wrong { border-color: var(--danger); }
 
 /* ---------- Challenges ---------- */
-.chal-filters { display: flex; gap: 6px; margin: 16px 0 4px; flex-wrap: wrap; }
-.chal-filters button { background: var(--panel); border: 1px solid var(--border-strong); border-radius: 20px; padding: 5px 13px; font-size: 12.5px; color: var(--muted); transition: border-color .12s, color .12s; }
+.chal-filters { display: flex; gap: 6px; margin: 16px 0 10px; flex-wrap: wrap; }
+.chal-filters button { display: inline-flex; align-items: center; gap: 7px; background: var(--panel); border: 1px solid var(--border-strong); border-radius: 20px; padding: 5px 13px; font-size: 12.5px; color: var(--muted); transition: border-color .12s, color .12s; }
 .chal-filters button:hover { border-color: var(--text); color: var(--text); }
 .chal-filters button.active { background: var(--text); color: var(--bg); border-color: var(--text); }
-.chal-progress { font-size: 12.5px; color: var(--muted); margin: 6px 0 14px; }
+.chal-filters .chip-count { font-size: 10.5px; color: var(--faint); background: var(--sel); border-radius: 12px; padding: 1px 7px; }
+.chal-filters button.active .chip-count { color: var(--bg); background: rgba(255,255,255,.18); }
+:root[data-theme="dark"] .chal-filters button.active .chip-count { background: rgba(0,0,0,.22); }
+.chal-progress { margin: 6px 0 18px; max-width: 380px; }
 .challenge-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; }
-.challenge { border: 1px solid var(--border); background: var(--panel); border-radius: 12px; padding: 17px; box-shadow: var(--shadow); transition: transform .14s, box-shadow .14s, border-color .14s; }
+.challenge { position: relative; border: 1px solid var(--border); background: var(--panel); border-radius: 12px; padding: 17px 17px 17px 20px; box-shadow: var(--shadow); transition: transform .14s, box-shadow .14s, border-color .14s; overflow: hidden; }
+.challenge::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--border-strong); }
+.challenge.lv-easy::before { background: var(--ok); }
+.challenge.lv-medium::before { background: #d9b34a; }
+.challenge.lv-hard::before { background: var(--danger); }
 .challenge:hover { transform: translateY(-2px); box-shadow: var(--shadow-lift); border-color: var(--border-strong); }
-.challenge.done { border-color: var(--ok); }
-.challenge.done:hover { border-color: var(--ok); }
+.challenge.done { border-color: var(--lime); }
+.challenge.done::before { background: var(--lime-bright); }
+.challenge.done:hover { border-color: var(--lime); }
+.challenge.done .task { opacity: .6; }
+.chal-tags { display: inline-flex; align-items: center; gap: 6px; flex: 0 0 auto; }
 .challenge .chal-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
 .challenge h3 { margin: 0; font-size: 14.5px; }
 .challenge .prompt { color: var(--muted); font-size: 13px; line-height: 1.5; margin-bottom: 10px; }
 .challenge .task { font-family: var(--mono); background: var(--bg-soft); border: 1px solid var(--border); border-radius: 8px; padding: 9px 11px; font-size: 12.5px; margin-bottom: 10px; word-break: break-all; }
 .challenge .feedback { font-size: 12.5px; margin-top: 8px; min-height: 18px; }
-.tag { font-size: 10.5px; text-transform: uppercase; letter-spacing: .4px; padding: 2px 8px; border-radius: 20px; border: 1px solid var(--border-strong); color: var(--muted); }
-.tag.easy { color: var(--ok); border-color: var(--ok); }
-.tag.medium { color: #b8860b; border-color: #d9b34a; }
-.tag.hard { color: var(--danger); border-color: var(--danger); }
-.badge { font-size: 10.5px; color: var(--ok); border: 1px solid var(--ok); border-radius: 20px; padding: 1px 8px; }
+.tag { font-size: 10.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .4px; padding: 2.5px 9px; border-radius: 20px; border: 1px solid transparent; color: var(--muted); background: var(--sel); }
+.tag.easy { color: var(--ok); background: rgba(47,138,91,.1); }
+.tag.medium { color: #b8860b; background: rgba(217,179,74,.14); }
+.tag.hard { color: var(--danger); background: rgba(214,69,69,.1); }
+:root[data-theme="dark"] .tag.medium { color: #e2b93d; }
+.badge { display: inline-flex; align-items: center; gap: 4px; font-size: 10.5px; font-weight: 600; color: #16230b; background: var(--lime-bright); border-radius: 20px; padding: 2.5px 9px; }
+.badge svg { width: 11px; height: 11px; }
 
 /* ---------- Settings ---------- */
 .settings { margin-top: 16px; max-width: 440px; }
@@ -331,23 +344,58 @@ kbd {
 /* ---------- Lessons map ---------- */
 .learn-page { max-width: 720px; }
 .lesson-progress { margin: 14px 0 6px; }
-.lp-bar { height: 8px; border-radius: 5px; background: var(--sel); overflow: hidden; }
-.lp-bar span { display: block; height: 100%; background: var(--lime-bright); border-radius: 5px; transition: width .3s; }
+.lp-bar { height: 9px; border-radius: 6px; background: var(--sel); overflow: hidden; }
+.lp-bar span { display: block; height: 100%; background: linear-gradient(90deg, var(--lime), var(--lime-bright)); border-radius: 6px; transition: width .3s; }
 .lp-text { font-size: 12.5px; color: var(--muted); margin-top: 6px; }
-.lesson-map { display: flex; flex-direction: column; gap: 12px; padding: 22px 0 60px; }
-.map-node { display: flex; flex-direction: column; align-items: center; gap: 7px; background: none; border: none; padding: 0; width: 140px; }
+.lesson-map { display: flex; flex-direction: column; padding: 10px 0 60px; }
+
+/* Section (unit) headers along the path */
+.map-section {
+  display: flex; align-items: center; gap: 12px; margin: 26px 0 4px;
+  font-size: 11.5px; font-weight: 650; text-transform: uppercase; letter-spacing: .7px; color: var(--muted);
+}
+.map-section::before, .map-section::after { content: ""; height: 1px; background: var(--border); flex: 1 1 auto; }
+.map-section-title { flex: 0 0 auto; }
+.map-section-count { flex: 0 0 auto; font-weight: 500; color: var(--faint); letter-spacing: 0; display: inline-flex; align-items: center; }
+.map-section.complete .map-section-title { color: var(--lime); }
+.map-section.complete .map-section-count { color: var(--lime); }
+.map-section.complete .map-section-count svg { width: 14px; height: 14px; }
+.map-section.complete::before, .map-section.complete::after { background: var(--lime-soft); }
+
+/* A section's segment of the path; the SVG trail sits behind the nodes */
+.map-seg { position: relative; display: flex; flex-direction: column; gap: 18px; padding: 16px 0; }
+.map-path { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; }
+.map-link { fill: none; stroke: var(--border-strong); stroke-width: 3; stroke-linecap: round; stroke-dasharray: 0.5 9; }
+.map-link.walked { stroke: var(--lime-bright); }
+
+.map-node { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; gap: 7px; background: none; border: none; padding: 0; width: 150px; }
 .map-node.pos-0 { align-self: center; }
-.map-node.pos-1 { align-self: flex-start; margin-left: 14%; }
+.map-node.pos-1 { align-self: flex-start; margin-left: 17%; }
 .map-node.pos-2 { align-self: center; }
-.map-node.pos-3 { align-self: flex-end; margin-right: 14%; }
-.node-circle { width: 62px; height: 62px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 650; border: 3px solid var(--border-strong); background: var(--panel); color: var(--muted); box-shadow: var(--shadow); transition: transform .12s; }
+.map-node.pos-3 { align-self: flex-end; margin-right: 17%; }
+.node-circle {
+  width: 64px; height: 64px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  font-size: 20px; font-weight: 650; border: 3px solid var(--border-strong); background: var(--panel);
+  color: var(--muted); box-shadow: var(--shadow), inset 0 -4px 0 rgba(0,0,0,.05); transition: transform .12s, box-shadow .12s;
+}
 .map-node:not(.locked) { cursor: pointer; }
-.map-node:not(.locked):hover .node-circle { transform: translateY(-3px); }
-.map-node.current .node-circle { border-color: var(--lime); color: var(--lime); box-shadow: 0 0 0 4px var(--lime-soft); }
-.map-node.done .node-circle { border-color: var(--lime-bright); background: var(--lime-bright); color: #16230b; }
-.map-node.locked .node-circle { background: var(--sel); color: var(--faint); }
-.map-node .node-label { font-size: 12px; color: var(--muted); text-align: center; line-height: 1.35; max-width: 140px; }
+.map-node:not(.locked):hover .node-circle { transform: translateY(-3px); box-shadow: var(--shadow-lift), inset 0 -4px 0 rgba(0,0,0,.05); }
+.map-node.current .node-circle { border-color: var(--lime); color: var(--lime); animation: node-halo 2.2s ease-in-out infinite; }
+@keyframes node-halo {
+  0%, 100% { box-shadow: 0 0 0 4px var(--lime-soft), var(--shadow); }
+  50% { box-shadow: 0 0 0 9px var(--lime-soft), var(--shadow); }
+}
+.node-start {
+  font-size: 10px; font-weight: 700; letter-spacing: 1px; color: var(--lime);
+  background: var(--panel); border: 1.5px solid var(--lime); border-radius: 20px; padding: 2px 9px;
+  animation: start-bob 1.6s ease-in-out infinite;
+}
+@keyframes start-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+.map-node.done .node-circle { border-color: var(--lime-bright); background: var(--lime-bright); color: #16230b; box-shadow: var(--shadow), inset 0 -4px 0 rgba(0,0,0,.12); }
+.map-node.locked .node-circle { background: var(--sel); color: var(--faint); border-color: var(--border); box-shadow: none; }
+.map-node .node-label { font-size: 12px; color: var(--muted); text-align: center; line-height: 1.35; max-width: 150px; }
 .map-node.current .node-label, .map-node.done .node-label { color: var(--text); font-weight: 500; }
+.map-node.locked .node-label { color: var(--faint); }
 
 /* ---------- Lesson modal ---------- */
 .lesson-modal { position: fixed; inset: 0; z-index: 55; background: rgba(0,0,0,.4); display: flex; align-items: center; justify-content: center; padding: 24px; }
