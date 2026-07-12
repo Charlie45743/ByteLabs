@@ -638,30 +638,74 @@
   ];
   function unitIcon(i) { return `<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${UNIT_ICONS[i % UNIT_ICONS.length]}</svg>`; }
 
-  // The ByteLabs mascot — a bubbling flask, echoing the flask icon in the logo and Lab nav.
+  // The ByteLabs mascot — Byte, a bubbling flask, echoing the flask icon in the logo and Lab nav.
   function mascotSvg(mood) {
-    const mouth = mood === "done" ? '<path d="M42 74 Q50 82 58 74" stroke="#16230b" stroke-width="3" fill="none" stroke-linecap="round"/>'
-      : mood === "start" ? '<path d="M43 75 Q50 80 57 75" stroke="#16230b" stroke-width="3" fill="none" stroke-linecap="round"/>'
-      : '<path d="M44 76 Q50 79 56 76" stroke="#16230b" stroke-width="2.5" fill="none" stroke-linecap="round"/>';
+    const ink = "#16230b";
+    const mouth = mood === "done" ? `<path d="M41 75 Q50 85 59 75" stroke="${ink}" stroke-width="3" fill="none" stroke-linecap="round"/>`
+      : mood === "start" ? `<path d="M42 76 Q50 81 58 76" stroke="${ink}" stroke-width="3" fill="none" stroke-linecap="round"/>`
+      : `<path d="M44 77 Q50 80 56 77" stroke="${ink}" stroke-width="2.5" fill="none" stroke-linecap="round"/>`;
     const eyes = mood === "done"
-      ? '<path d="M41 66 Q44 62 47 66" stroke="#16230b" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M53 66 Q56 62 59 66" stroke="#16230b" stroke-width="2.6" fill="none" stroke-linecap="round"/>'
-      : '<circle cx="44" cy="67" r="2.4" fill="#16230b"/><circle cx="56" cy="67" r="2.4" fill="#16230b"/>';
+      ? `<path d="M40 65 Q44 60 48 65" stroke="${ink}" stroke-width="2.8" fill="none" stroke-linecap="round"/><path d="M52 65 Q56 60 60 65" stroke="${ink}" stroke-width="2.8" fill="none" stroke-linecap="round"/>`
+      : `<circle cx="44" cy="66" r="2.6" fill="${ink}"/><circle cx="44" cy="65" r=".9" fill="#fff"/><circle cx="56" cy="66" r="2.6" fill="${ink}"/><circle cx="56" cy="65" r=".9" fill="#fff"/>`;
+    // Arms are simple rounded limbs so the pose can flip between a wave and a two-armed cheer
+    // without redrawing the body. Hands are small filled circles at each path's end.
+    const arms = mood === "done"
+      ? `<line x1="23" y1="75" x2="4" y2="48" stroke="var(--muted)" stroke-width="4" stroke-linecap="round"/>
+         <circle cx="4" cy="48" r="4.5" fill="var(--panel)" stroke="var(--muted)" stroke-width="2.5"/>
+         <line x1="77" y1="75" x2="96" y2="48" stroke="var(--muted)" stroke-width="4" stroke-linecap="round"/>
+         <circle cx="96" cy="48" r="4.5" fill="var(--panel)" stroke="var(--muted)" stroke-width="2.5"/>`
+      : `<line x1="24" y1="77" x2="11" y2="94" stroke="var(--muted)" stroke-width="4" stroke-linecap="round"/>
+         <circle cx="11" cy="94" r="4.5" fill="var(--panel)" stroke="var(--muted)" stroke-width="2.5"/>
+         <g class="mascot-wave">
+           <line x1="76" y1="77" x2="93" y2="57" stroke="var(--muted)" stroke-width="4" stroke-linecap="round"/>
+           <circle cx="93" cy="57" r="4.5" fill="var(--panel)" stroke="var(--muted)" stroke-width="2.5"/>
+         </g>`;
+    const sparkles = mood === "done"
+      ? `<g class="mascot-sparkle" fill="var(--lime-bright)"><path d="M16 20l1.6 4.4L22 26l-4.4 1.6L16 32l-1.6-4.4L10 26l4.4-1.6z"/><path d="M84 30l1.1 3 3 1.1-3 1.1-1.1 3-1.1-3-3-1.1 3-1.1z"/></g>`
+      : "";
     return `
 <svg class="mascot-svg mood-${mood}" viewBox="0 0 100 112" width="88" height="99" fill="none">
+  ${sparkles}
   <g class="mascot-bubbles">
     <circle cx="47" cy="22" r="2.2" fill="var(--lime-soft)" stroke="var(--lime)" stroke-width="1.3"/>
     <circle cx="53" cy="17" r="1.5" fill="var(--lime-soft)" stroke="var(--lime)" stroke-width="1.3"/>
   </g>
+  ${arms}
   <path class="mascot-glass" d="M42 6 L42 30 L18 82 Q12 94 24 94 L76 94 Q88 94 82 82 L58 30 L58 6 Z"
     fill="var(--panel)" stroke="var(--border-strong)" stroke-width="2.5" stroke-linejoin="round"/>
   <path d="M38 6 H62" stroke="var(--border-strong)" stroke-width="2.5" stroke-linecap="round"/>
   <path class="mascot-liquid" d="M27 58 Q35 52 44 58 T62 58 L79.5 79.5 Q86 92 76 92 L24 92 Q14 92 20.5 79.5 Z"
     fill="var(--lime-bright)"/>
+  <ellipse cx="38" cy="73" rx="3.4" ry="2.2" fill="#ff9fc2" opacity=".55"/>
+  <ellipse cx="62" cy="73" rx="3.4" ry="2.2" fill="#ff9fc2" opacity=".55"/>
   ${eyes}
   ${mouth}
   <ellipse cx="34" cy="82" rx="3.2" ry="2.2" fill="#ffffff" opacity=".5"/>
 </svg>`;
   }
+  // Retro theme gets its own 8-bit sprite version of Byte — same silhouette idea,
+  // rebuilt from chunky stacked blocks instead of curves.
+  function pixelMascotSvg(mood) {
+    const glass = "var(--panel)", glassLine = "var(--border-strong)", liquid = "var(--lime-bright)", ink = "#04220a";
+    const rows = [
+      { y: 0, x: 40, w: 16 }, { y: 8, x: 40, w: 16 }, { y: 16, x: 40, w: 16 },
+      { y: 24, x: 32, w: 32 }, { y: 32, x: 24, w: 48 },
+      { y: 40, x: 16, w: 64, liquid: true }, { y: 48, x: 16, w: 64, liquid: true },
+      { y: 56, x: 8, w: 80, liquid: true }, { y: 64, x: 8, w: 80, liquid: true },
+      { y: 72, x: 8, w: 80, liquid: true }, { y: 80, x: 8, w: 80, liquid: true }
+    ];
+    const body = rows.map((r) => `<rect x="${r.x}" y="${r.y}" width="${r.w}" height="8" fill="${r.liquid ? liquid : glass}" stroke="${glassLine}" stroke-width="2"/>`).join("");
+    const eyes = mood === "done"
+      ? `<rect x="30" y="50" width="12" height="4" fill="${ink}"/><rect x="54" y="50" width="12" height="4" fill="${ink}"/>`
+      : `<rect x="32" y="48" width="8" height="8" fill="${ink}"/><rect x="56" y="48" width="8" height="8" fill="${ink}"/>`;
+    const mouth = mood === "done" || mood === "start"
+      ? `<rect x="28" y="60" width="40" height="6" fill="${ink}"/>`
+      : `<rect x="40" y="60" width="16" height="4" fill="${ink}"/>`;
+    const shine = `<rect x="20" y="64" width="8" height="8" fill="var(--lime)" opacity=".55"/>`;
+    const sparkle = mood === "done" ? `<g fill="var(--lime-bright)"><rect x="2" y="14" width="6" height="6"/><rect x="88" y="26" width="4" height="4"/></g>` : "";
+    return `<svg class="mascot-svg pixel mood-${mood}" viewBox="0 0 96 88" width="80" height="73" shape-rendering="crispEdges">${sparkle}${body}${shine}${eyes}${mouth}</svg>`;
+  }
+
   const MASCOT_MSG = {
     empty: "Hey, I'm Byte! Pick a lesson below and let's get started.",
     start: (title) => `You're on a roll — next up: <strong>${escapeHtml(title)}</strong>`,
@@ -671,8 +715,10 @@
     const box = $("#learn-mascot"); if (!box) return;
     const mood = pct >= 100 ? "done" : completed > 0 ? "start" : "idle";
     const msg = pct >= 100 ? MASCOT_MSG.done : completed > 0 && nextTitle ? MASCOT_MSG.start(nextTitle) : MASCOT_MSG.empty;
+    const theme = (loadSettings().theme) || "light";
+    const figure = theme === "retro" ? pixelMascotSvg(mood) : mascotSvg(mood);
     box.innerHTML = `
-      <div class="mascot-figure">${mascotSvg(mood)}</div>
+      <div class="mascot-figure">${figure}</div>
       <div class="mascot-bubble"><p>${msg}</p></div>`;
   }
 
@@ -760,7 +806,7 @@
   }
   function closeLesson() { $("#lesson-modal").classList.add("hidden"); }
 
-  const DEMO_FIELD2 = { xor: "Key", vigenere: "Key", caesar: "Shift", regex: "Pattern (regex)", railfence: "Rails", columnar: "Keyword" };
+  const DEMO_FIELD2 = { xor: "Key", vigenere: "Key", caesar: "Shift", regex: "Pattern (regex)", railfence: "Rails", columnar: "Keyword", bitmask: "Mask (hex byte)" };
   function buildDemo(view, demo) {
     const wrap = document.createElement("div"); wrap.className = "demo";
     wrap.innerHTML = "<h4>Try it yourself</h4>";
@@ -770,7 +816,7 @@
     if (DEMO_FIELD2[demo.type]) {
       const lab = document.createElement("label"); lab.className = "lbl"; lab.textContent = DEMO_FIELD2[demo.type]; wrap.appendChild(lab);
       in2 = document.createElement("input"); in2.className = "field mono";
-      in2.value = demo.type === "caesar" || demo.type === "railfence" ? "3" : demo.type === "columnar" ? "ZEBRAS" : demo.type === "regex" ? "\\d+" : "key";
+      in2.value = demo.type === "caesar" || demo.type === "railfence" ? "3" : demo.type === "columnar" ? "ZEBRAS" : demo.type === "regex" ? "\\d+" : demo.type === "bitmask" ? "0f" : "key";
       wrap.appendChild(in2);
     }
     const outLbl = document.createElement("label"); outLbl.className = "lbl"; outLbl.textContent = "Result"; wrap.appendChild(outLbl);
@@ -804,6 +850,7 @@
       case "unixtime": return CL.dateToUnix(v);
       case "endian": return CL.endianSwap(v.replace(/\s/g, ""));
       case "datauri": return "data:text/plain;base64," + CL.bytesToBase64(CL.utf8Bytes(v));
+      case "bitmask": { const mask = parseInt(k, 16) || 0; return Array.from(CL.utf8Bytes(v)).map((b) => (b & mask).toString(2).padStart(8, "0")).join(" "); }
       case "regex": { const m = v.match(new RegExp(k, "g")); return m ? m.join("\n") : "(no matches)"; }
       case "jwt": return JSON.stringify(CL.parseJwt(v.trim()).payload, null, 2);
       case "hash": return hasSubtle ? await CL.shaHex("SHA-256", CL.utf8Bytes(v)) : CL.md5(CL.utf8Bytes(v)) + " (MD5)";
@@ -924,6 +971,7 @@
     $$(".editor").forEach((e) => e.classList.toggle("wrap", s.wrap));
     document.body.classList.toggle("no-anim", !s.anim);
     $("#set-theme").value = s.theme; $("#set-font").value = s.font; $("#set-wrap").checked = s.wrap; $("#set-anim").checked = s.anim;
+    if ($("#learn-mascot")) renderMap();
   }
   function initSettings() {
     applySettings(loadSettings());

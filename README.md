@@ -70,23 +70,24 @@ and a hash comparison tool.
 
 ### Learn
 
-A locked progression of **43 lessons** along a winding, illustrated path — Byte, a
+A locked progression of **48 lessons** along a winding, illustrated path — Byte, a
 bubbling-flask mascot, greets you with your next lesson and cheers you on as you go.
 Lessons are grouped into seven named units, each with its own colored banner and
 progress count: Encodings, Classical ciphers, Bits & XOR, Hashing & integrity,
 Encryption, Passwords & secrets, and Data in practice. Covers encoding (Base64, hex,
-reading hexdumps, Unicode, URL encoding, mojibake, homoglyph attacks, Punycode/IDN,
-Quoted-Printable/MIME, encoding efficiency up to Base85, Morse and variable-length
-codes, data URIs), classical substitution and transposition ciphers (including
-keyword-based Columnar Transposition) and how to break them with frequency analysis,
-XOR and the one-time pad, bitwise operations and endianness, brute-forcing, hashing
-versus checksums, hash collisions and the birthday problem, HMAC, symmetric and
-asymmetric encryption (AES, RSA, digital signatures, key exchange, TLS), password
-security (salting, key derivation with PBKDF2/Argon2, how cracking actually works,
-judging real-world password strength, multi-factor authentication), UUIDs, JWTs,
-IPv4 addressing, Unix time, regular expressions, and entropy. Most lessons include a
-live interactive demo and end with a quiz — some with several questions, all of
-which must be answered correctly to complete the lesson.
+reading hexdumps, Unicode, emoji and UTF-16 surrogate pairs, mojibake, homoglyph
+attacks, Punycode/IDN, Quoted-Printable/MIME, encoding efficiency up to Base85, Morse
+and variable-length codes, data URIs), classical substitution and transposition
+ciphers (including keyword-based Columnar Transposition), Kerckhoffs's principle, and
+how to break ciphers with frequency analysis, XOR and the one-time pad, bitmasks and
+flags, endianness, brute-forcing, hashing versus checksums, hash collisions and the
+birthday problem, Merkle trees, HMAC, symmetric and asymmetric encryption (AES, RSA,
+digital signatures, key exchange, TLS), password security (salting, key derivation
+with PBKDF2/Argon2, how cracking actually works, judging real-world password
+strength, Diceware passphrases, multi-factor authentication), UUIDs, JWTs, IPv4
+addressing, Unix time, regular expressions, and entropy. Most lessons include a live
+interactive demo and end with a quiz — some with several questions, all of which
+must be answered correctly to complete the lesson.
 
 ### Challenges
 
@@ -97,7 +98,9 @@ hand. Progress is saved on your device only.
 
 ### Settings
 
-Theme (light/dark), editor font size, word wrap, and animations — all stored in local
+Three themes — **Light**, **Dark**, and **Retro** (a phosphor-green CRT terminal:
+sharp pixel corners, scanlines, a chunky monospace UI, and Byte redrawn as an 8-bit
+sprite) — plus editor font size, word wrap, and animations, all stored in local
 storage, nothing else.
 
 ## Privacy & security posture

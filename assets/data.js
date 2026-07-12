@@ -357,6 +357,35 @@ class (say, one symbol) barely moves it. If you can only change one thing, make 
       quiz: { q: "Which matters most for real-world password strength?", options: ["Not appearing on a common-password list", "Using at least one number", "Being exactly 8 characters"], answer: 0 }
     },
     {
+      id: "diceware", title: "Passphrases & Diceware",
+      body: `
+<h3>Turning "make it longer" into an actual method</h3>
+<p>The last lesson concluded that length beats complexity, and that a random passphrase of unrelated words
+beats a short "clever" one. Diceware is a concrete, decades-old recipe for generating exactly that — designed
+specifically so the randomness comes from dice, not a human trying to "think random," which people are
+provably bad at.</p>
+<h4>How it works</h4>
+<p>A Diceware word list has exactly 7,776 words (6⁵ — every word maps to a unique sequence of five six-sided
+dice rolls). Roll five dice, look up the word, repeat several times, and string the words together:
+<code>correct horse battery staple</code> is the famous example. Each word contributes about 12.9 bits of
+entropy (log₂ 7776); six words gives roughly 77.5 bits — comfortably beyond what's crackable offline with a
+salted, slow hash from the KDF lesson.</p>
+<h4>Why dice, specifically</h4>
+<p>The security doesn't come from the words being obscure — it comes entirely from the roll being genuinely
+random and the word list being large and public. Picking words "randomly" out of your own head is exactly the
+failure mode from the earlier lessons: human-chosen "randomness" clusters around familiar, guessable patterns,
+the same weakness that makes "P@ssw0rd" a bad password despite looking complex.</p>
+<h4>The trade-off that makes it practical</h4>
+<p>Four or five real words chain together into something you can actually rehearse and type, unlike a random
+string of symbols. That's the whole pitch: comparable or better entropy than a "strong" 12-character random
+password, for less memorization effort — provided the word count is high enough and the roll is truly random.</p>`,
+      demo: { type: "none" },
+      quiz: [
+        { q: "Where does a Diceware passphrase's security actually come from?", options: ["The words being obscure or foreign", "The genuinely random dice roll and the size of the public word list", "Mixing upper and lower case"], answer: 1 },
+        { q: "Why not just pick 'random' words yourself instead of rolling dice?", options: ["It's slower", "Human-chosen 'random' words aren't actually random — they cluster around familiar patterns", "Self-chosen words are always too long"], answer: 1 }
+      ]
+    },
+    {
       id: "mfa", title: "Multi-factor authentication",
       body: `
 <h3>Why a strong password still isn't enough</h3>
@@ -462,6 +491,37 @@ Rotates are a core ingredient inside real hash functions like SHA-256.</p>
 watch the output return to hex of the original text.</p>`,
       demo: { type: "none" },
       quiz: { q: "Why is XOR used for encryption instead of AND or OR?", options: ["XOR is faster to compute", "AND and OR lose information and can't be undone", "AND and OR don't work on bytes"], answer: 1 }
+    },
+    {
+      id: "bitmasks", title: "Bitmasks & flags",
+      body: `
+<h3>Packing 8 yes/no answers into one byte</h3>
+<p>The previous lesson called AND a way to "mask off" specific bits without explaining why you'd want to.
+Here's the real use: storing many independent true/false settings compactly, by giving each one its own bit
+inside a single number — a technique that predates modern computing and is still everywhere.</p>
+<h4>Reading flags with AND</h4>
+<p>Say bit 0 means "readable," bit 1 means "writable," bit 2 means "executable" — exactly how Unix file
+permissions work, one bit group per owner/group/other. To check whether "writable" (bit 1, value
+<code>00000010</code>) is set on some permissions byte, AND the byte with <code>00000010</code>: any result
+other than zero means that bit was on. Everything else in the byte gets zeroed out by the mask, which is
+precisely why it's called a mask.</p>
+<h4>Setting and clearing with OR and AND-NOT</h4>
+<p>To turn a flag <em>on</em> without disturbing the others, OR the value with the flag's bit. To turn one
+<em>off</em>, AND with the inverse of that bit (everything set except the one you want cleared). Both leave
+every other bit exactly as it was — the same "don't disturb what you're not touching" property that makes XOR
+reversible.</p>
+<h4>Where you'll actually see this</h4>
+<p>HTTP method routing, terminal color codes, graphics APIs, and network protocol headers all pack multiple
+boolean options into one integer this way — it's compact, and testing multiple flags at once is a single fast
+AND rather than several separate comparisons.</p>
+<h4>Try it</h4>
+<p>The demo ANDs your text with a hex mask, byte by byte, and shows the binary result — try mask <code>0f</code>
+(keeps only the low 4 bits of each byte) on the letter <code>A</code>.</p>`,
+      demo: { type: "bitmask" },
+      quiz: [
+        { q: "What does ANDing a byte with a mask like 00000010 tell you?", options: ["The byte's total value", "Whether that specific bit is set, with everything else zeroed out", "The byte's ASCII character"], answer: 1 },
+        { q: "Why is packing flags into one byte useful?", options: ["It's required by every programming language", "It's compact, and checking several flags becomes one fast AND instead of several comparisons", "It makes the data encrypted"], answer: 1 }
+      ]
     },
     {
       id: "endianness", title: "Endianness: which end is first?",
@@ -606,6 +666,38 @@ space efficient.</p>`,
       quiz: { q: "How many bytes is a plain ASCII letter in UTF-8?", options: ["One", "Two", "Four"], answer: 0 }
     },
     {
+      id: "surrogates", title: "Emoji & surrogate pairs",
+      body: `
+<h3>Why emoji.length is 2 in JavaScript</h3>
+<p>Type <code>"😀".length</code> into a JavaScript console and it prints <code>2</code> — for one visible
+character. That's not a bug. It's a direct consequence of how JavaScript strings are built, and it trips up
+real code (broken string truncation, mangled character counts) constantly.</p>
+<h4>Two different "how big is a character" questions</h4>
+<p>The Unicode lesson covered UTF-8, which stores each code point as 1–4 <em>bytes</em>. JavaScript strings
+use a completely different internal representation called <strong>UTF-16</strong>, which counts in 16-bit
+<em>code units</em>, not bytes. Most characters fit in one 16-bit unit. 😀 (code point U+1F600) doesn't — it's
+above the range a single 16-bit unit can hold.</p>
+<h4>The fix: surrogate pairs</h4>
+<p>UTF-16 handles code points that don't fit by spending <em>two</em> 16-bit units on them together — a
+"surrogate pair," here <code>D83D DE00</code>. JavaScript's <code>.length</code> counts 16-bit units, so it
+sees two, even though a person sees one emoji. The same emoji in UTF-8 (what actually goes over the network)
+is 4 bytes: <code>F0 9F 98 80</code> — a different number again, because bytes and 16-bit units aren't the
+same unit of measurement.</p>
+<h4>Why this actually bites</h4>
+<p>Code that slices a string by <code>.length</code> to "truncate to 100 characters" can slice a surrogate
+pair in half, corrupting the emoji into two broken replacement characters. The fix is iterating with
+<code>Array.from(str)</code> or a <code>for...of</code> loop, both of which are surrogate-pair aware and
+count 😀 as the single character it visually is.</p>
+<h4>Try it</h4>
+<p>The demo shows the UTF-8 hex bytes of whatever you type — paste an emoji and count 4 bytes for the ones
+outside the Basic Multilingual Plane.</p>`,
+      demo: { type: "hex" },
+      quiz: [
+        { q: "Why does \"😀\".length equal 2 in JavaScript?", options: ["Emoji are always stored twice for redundancy", "JavaScript counts 16-bit UTF-16 code units, and this emoji needs a 2-unit surrogate pair", "It's a bug in the JavaScript spec"], answer: 1 },
+        { q: "What can go wrong when code truncates a string using .length?", options: ["Nothing, it's always safe", "It can slice a surrogate pair in half, corrupting the character", "It becomes case-sensitive"], answer: 1 }
+      ]
+    },
+    {
       id: "mojibake", title: "Mojibake: when encodings collide",
       body: `
 <h3>Why text sometimes turns into gibberish</h3>
@@ -702,6 +794,35 @@ correct letter to recover the shift.</p>
 frequency pattern to exploit.</p>`,
       demo: { type: "frequency" },
       quiz: { q: "Which letter is most common in English text?", options: ["E", "Z", "Q"], answer: 0 }
+    },
+    {
+      id: "kerckhoffs", title: "Kerckhoffs's principle",
+      body: `
+<h3>Why secrecy belongs in the key, not the algorithm</h3>
+<p>Every cipher in this unit has one thing in common: once you know the <em>method</em> — shift letters, swap
+columns, XOR with a repeating key — you can decrypt anything encrypted with it, given the key. That's not a
+flaw specific to weak ciphers. It's supposed to be true of every cipher, including the strongest ones in use
+today.</p>
+<h4>The principle, stated in 1883</h4>
+<p>Auguste Kerckhoffs proposed a rule that still governs cryptography: <strong>a cryptosystem should be secure
+even if everything about it is public knowledge except the key.</strong> AES's algorithm is published, studied,
+and implemented in open-source libraries everywhere. What's secret is only the key.</p>
+<h4>Why "secret algorithm" designs keep failing</h4>
+<p>The tempting alternative — keeping the algorithm itself secret, "security through obscurity" — sounds like
+an extra layer of protection but consistently fails in practice. Algorithms get leaked, reverse-engineered
+from a binary, or reconstructed by observing inputs and outputs. Worse, a secret algorithm never gets tested
+by outside cryptographers, so its weaknesses go undiscovered until an attacker finds them first, not a
+researcher who'd report them.</p>
+<h4>What this means for you</h4>
+<p>Every classical cipher in this unit is "broken" not because you now know a clever trick — it's broken
+because knowing the method (which you now do) plus a modest amount of ciphertext is enough, regardless of key.
+A cipher that only holds up while its method stays secret was never actually secure — which is exactly why
+real systems (AES, RSA, TLS) publish their algorithms and put all their security weight on the key.</p>`,
+      demo: { type: "none" },
+      quiz: [
+        { q: "What does Kerckhoffs's principle say a cryptosystem should rely on for its security?", options: ["Keeping the algorithm secret", "Keeping only the key secret, even if the algorithm is public", "Using the longest possible ciphertext"], answer: 1 },
+        { q: "Why does 'security through obscurity' (secret algorithms) tend to fail?", options: ["Secret algorithms are always slower", "They avoid public scrutiny, so weaknesses go unfound until an attacker exploits them", "They require more computing power"], answer: 1 }
+      ]
     },
     {
       id: "base58", title: "What is Base58?",
@@ -854,6 +975,34 @@ pull emails or IPs out of a block of text.</p>`,
       quiz: { q: "What does \\d match in a regex?", options: ["Any letter", "A single digit", "A space"], answer: 1 }
     },
     {
+      id: "merkletrees", title: "Merkle trees: hashing structured data",
+      body: `
+<h3>Hashing more than one file at once</h3>
+<p>A single SHA-256 hash proves one blob of data hasn't changed. But real systems — Git repositories, download
+managers, blockchains — need to verify thousands of files or transactions at once, and ideally prove that
+<em>one specific piece</em> is unaltered without re-checking everything else. That's what a Merkle tree is for.</p>
+<h4>Building the tree</h4>
+<p>Hash every individual piece of data first (the "leaves"). Then hash each <em>pair</em> of those hashes
+together to get one level up. Keep pairing and hashing up the tree until a single hash remains at the top —
+the <strong>root hash</strong>. That one root hash is a fingerprint of every leaf underneath it, thanks to the
+avalanche effect from the Hashing lesson: change any single leaf, and the change ripples all the way up to a
+completely different root.</p>
+<h4>The payoff: proving one leaf without the rest</h4>
+<p>To prove one specific leaf belongs under a known root, you don't need the whole dataset — just that leaf
+plus the small handful of sibling hashes on the path up to the root (a "Merkle proof"). For a million leaves,
+that's about 20 hashes instead of a million. This is exactly how Git can tell a single file changed inside a
+massive repository, and how lightweight blockchain clients verify a transaction is included in a block without
+downloading the entire chain.</p>
+<h4>Try it</h4>
+<p>The demo hashes your text with SHA-256 — imagine feeding two such hashes back in as the input to the next
+level up, and you've built the bottom of a Merkle tree.</p>`,
+      demo: { type: "hash" },
+      quiz: [
+        { q: "What does a Merkle tree's root hash represent?", options: ["The hash of only the largest file", "A single fingerprint covering every leaf underneath it", "A password for the dataset"], answer: 1 },
+        { q: "Why is a Merkle proof useful?", options: ["It compresses the data", "It proves one leaf belongs to a known root using only a few sibling hashes, not the whole dataset", "It encrypts the leaf"], answer: 1 }
+      ]
+    },
+    {
       id: "checksums", title: "Checksums vs cryptographic hashes",
       body: `
 <h3>Checksums vs cryptographic hashes</h3>
@@ -952,12 +1101,12 @@ but suitable for verifying integrity against a determined attacker.</p>
   // Sections group the path into named units on the Learn map. Their ids, flattened
   // in order, ARE the lesson order — the unlock chain runs straight through them.
   const LESSON_SECTIONS = [
-    { title: "Encodings", ids: ["base64", "hex", "hexdump", "unicode", "mojibake", "homoglyphs", "url", "mime", "base32", "base58", "density", "morse", "datauri"] },
-    { title: "Classical ciphers", ids: ["ciphers", "transposition", "columnar", "frequency"] },
-    { title: "Bits & XOR", ids: ["xor", "otp", "bitwise", "endianness", "bruteforce"] },
-    { title: "Hashing & integrity", ids: ["hashing", "collisions", "checksums", "hmac"] },
+    { title: "Encodings", ids: ["base64", "hex", "hexdump", "unicode", "surrogates", "mojibake", "homoglyphs", "url", "mime", "base32", "base58", "density", "morse", "datauri"] },
+    { title: "Classical ciphers", ids: ["ciphers", "transposition", "columnar", "frequency", "kerckhoffs"] },
+    { title: "Bits & XOR", ids: ["xor", "otp", "bitwise", "bitmasks", "endianness", "bruteforce"] },
+    { title: "Hashing & integrity", ids: ["hashing", "collisions", "merkletrees", "checksums", "hmac"] },
     { title: "Encryption", ids: ["encryption", "aes", "rsa", "signatures", "keyexchange", "tls"] },
-    { title: "Passwords & secrets", ids: ["salt", "kdf", "cracking", "strength-practice", "mfa"] },
+    { title: "Passwords & secrets", ids: ["salt", "kdf", "cracking", "strength-practice", "diceware", "mfa"] },
     { title: "Data in practice", ids: ["uuids", "jwt", "networking", "unixtime", "regex", "entropy"] }
   ];
   const LESSON_ORDER = LESSON_SECTIONS.reduce((acc, s) => acc.concat(s.ids), []);
