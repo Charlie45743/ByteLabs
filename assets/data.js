@@ -69,6 +69,35 @@ analyst takes at an unknown file.</p>
       quiz: { q: "Can you recover text from its SHA-256 hash?", options: ["Yes, by reversing", "No, it is one-way", "Only if short"], answer: 1 }
     },
     {
+      id: "collisions", title: "Hash collisions & the birthday problem",
+      body: `
+<h3>Hash collisions & the birthday problem</h3>
+<p>A hash squeezes unlimited input into a fixed-size output — SHA-256 always produces 256 bits, no matter how
+long the input is. Since there are infinitely more possible inputs than possible outputs, two different
+inputs producing the same hash — a <strong>collision</strong> — is mathematically guaranteed to be possible.
+The question is only how hard one is to find.</p>
+<h4>Why length matters more than you'd guess</h4>
+<p>Naively you might expect needing to try close to 2²⁵⁶ inputs to find a collision. The <strong>birthday
+problem</strong> says otherwise: in a room of just 23 people, there's already a 50% chance two share a
+birthday, out of only 365 possibilities — far fewer people than days. The same math applies to hashes: finding
+<em>any</em> collision only takes roughly the <em>square root</em> of the total output space, about 2¹²⁸
+attempts for a 256-bit hash, not 2²⁵⁶. This is exactly why hash outputs are sized double what you might
+expect for the security level you want.</p>
+<h4>When it's happened for real</h4>
+<p>MD5 (128-bit) and SHA-1 (160-bit) both have practical, demonstrated collision attacks — researchers have
+published two different files with identical hashes for both. That's precisely why the Hashing lesson tells
+you not to trust either for security, even though both are still perfectly fine as accidental-corruption
+checksums.</p>
+<h4>Try it</h4>
+<p>The demo hashes your text with SHA-256. Change one character and watch the entire output change — that
+avalanche effect is what keeps collisions expensive to search for.</p>`,
+      demo: { type: "hash" },
+      quiz: [
+        { q: "What is a hash collision?", options: ["A hash that fails to compute", "Two different inputs producing the same hash output", "A hash shorter than expected"], answer: 1 },
+        { q: "Why does the birthday problem make collisions easier to find than expected?", options: ["It doesn't — it's just a myth", "Finding any collision needs roughly the square root of the output space, not the full space", "Hash functions are actually reversible"], answer: 1 }
+      ]
+    },
+    {
       id: "ciphers", title: "Classic ciphers",
       body: `
 <h3>Classic ciphers</h3>
@@ -328,6 +357,35 @@ class (say, one symbol) barely moves it. If you can only change one thing, make 
       quiz: { q: "Which matters most for real-world password strength?", options: ["Not appearing on a common-password list", "Using at least one number", "Being exactly 8 characters"], answer: 0 }
     },
     {
+      id: "mfa", title: "Multi-factor authentication",
+      body: `
+<h3>Why a strong password still isn't enough</h3>
+<p>Every password lesson so far assumed the password itself is the whole defense. But passwords leak — through
+breaches, phishing, or reuse across sites — no matter how strong they are. <strong>Multi-factor
+authentication (MFA)</strong> means proving your identity with more than one <em>kind</em> of evidence, so a
+leaked password alone isn't enough to get in.</p>
+<h4>The three factor categories</h4>
+<p><strong>Something you know</strong> — a password or PIN. <strong>Something you have</strong> — a phone
+receiving a code, or a hardware key. <strong>Something you are</strong> — a fingerprint or face scan.
+Real MFA combines factors from <em>different</em> categories — a password plus a code is two factors; a
+password plus a security question is arguably still just one, since both are "something you know."</p>
+<h4>Not all second factors are equal</h4>
+<p>SMS codes are better than nothing but are vulnerable to SIM-swap attacks, where an attacker convinces a
+carrier to move your number to their SIM. Authenticator apps (generating a code from a shared secret and the
+current time — a TOTP, time-based one-time password) don't depend on the phone network at all. Hardware
+security keys are stronger still: they cryptographically verify the actual website's identity, which makes
+them resistant to phishing sites that merely relay a code you type in.</p>
+<h4>Where it fits with everything else</h4>
+<p>MFA doesn't replace anything from the Passwords unit — salting, slow key derivation, and strong unique
+passwords still matter just as much. MFA is a second, independent wall: even a perfectly cracked or leaked
+password becomes far less useful to an attacker without it.</p>`,
+      demo: { type: "none" },
+      quiz: [
+        { q: "What makes something genuine multi-factor authentication?", options: ["Two passwords instead of one", "Evidence from more than one factor category (know/have/are)", "A very long password"], answer: 1 },
+        { q: "Why are authenticator-app codes generally stronger than SMS codes?", options: ["They're shorter", "They don't depend on the phone network, which SIM-swap attacks exploit", "They never expire"], answer: 1 }
+      ]
+    },
+    {
       id: "hmac", title: "HMAC & message authentication",
       body: `
 <h3>Proving a message is genuine</h3>
@@ -406,6 +464,35 @@ watch the output return to hex of the original text.</p>`,
       quiz: { q: "Why is XOR used for encryption instead of AND or OR?", options: ["XOR is faster to compute", "AND and OR lose information and can't be undone", "AND and OR don't work on bytes"], answer: 1 }
     },
     {
+      id: "endianness", title: "Endianness: which end is first?",
+      body: `
+<h3>Endianness: which end is first?</h3>
+<p>A number bigger than one byte has to be stored as multiple bytes in some order — and computers have
+historically disagreed about which order.</p>
+<h4>Big-endian vs little-endian</h4>
+<p>The number 0x12345678 (four bytes) can be stored as <code>12 34 56 78</code> — most significant byte
+first, called <strong>big-endian</strong>, the same order you'd read the number aloud — or as
+<code>78 56 34 12</code> — least significant byte first, called <strong>little-endian</strong>. Both encode
+the identical number; only the byte order on disk or on the wire differs.</p>
+<h4>Where each one lives</h4>
+<p>x86 and ARM (in their default mode) — the CPUs in essentially every desktop, laptop and phone — are
+little-endian, so most files and memory dumps you'll ever inspect are too. Network protocols (TCP/IP headers,
+and hence the term "network byte order") standardize on big-endian, so any code that reads a raw socket has to
+explicitly swap byte order to get the CPU's native form.</p>
+<h4>Why this matters for you</h4>
+<p>Reading a hex dump or a binary file format spec and getting a wildly wrong number is almost always an
+endianness mismatch, not a bug in the data itself. File formats document their byte order explicitly for
+exactly this reason — PNG, for instance, mandates big-endian for its integer fields regardless of what CPU
+wrote the file.</p>
+<h4>Try it</h4>
+<p>The demo reverses the byte order of hex you paste in — try <code>12345678</code>.</p>`,
+      demo: { type: "endian" },
+      quiz: [
+        { q: "What does 'little-endian' mean?", options: ["Numbers are stored in a compressed form", "The least significant byte comes first", "The number is signed"], answer: 1 },
+        { q: "Which byte order do network protocols conventionally use?", options: ["Little-endian", "Big-endian", "Whichever the sender's CPU prefers"], answer: 1 }
+      ]
+    },
+    {
       id: "bruteforce", title: "Brute-forcing simple ciphers",
       body: `
 <h3>Letting the computer try everything</h3>
@@ -428,6 +515,38 @@ cryptanalysis tools work the same way: narrow the haystack, then verify.</p>
 answer is almost always in the top few lines.</p>`,
       demo: { type: "none" },
       quiz: { q: "Why do the brute force tools show a ranked list instead of one answer?", options: ["To save computing time", "The scoring is a heuristic and can occasionally be wrong, so a human confirms it", "Because there are always multiple correct answers"], answer: 1 }
+    },
+    {
+      id: "uuids", title: "UUIDs: identifiers without a coordinator",
+      body: `
+<h3>UUIDs: identifiers without a coordinator</h3>
+<p>Databases usually hand out IDs by counting: 1, 2, 3… That works fine with one central database, but breaks
+down the moment two systems need to generate IDs independently and later combine their data without clashing.
+A <strong>UUID</strong> (Universally Unique Identifier) solves this with 128 bits of near-certain uniqueness,
+no coordination required.</p>
+<h4>The shape</h4>
+<p>UUIDs are written as 32 hex digits in five dashed groups —
+<code>3fa85f64-5717-4562-b3fc-2c963f66afa6</code>. One hex digit near the middle encodes the
+<strong>version</strong> (which generation method was used); this lesson focuses on <strong>version 4</strong>,
+the one ByteLabs' generator produces.</p>
+<h4>Why random works here</h4>
+<p>A v4 UUID is 122 random bits (6 bits are fixed to mark the version and variant). The birthday-problem math
+from the hash collisions lesson applies here too: you'd need to generate roughly 2⁶¹ — over 2 billion billion
+— UUIDs before a 50% chance of any collision. In practice, that's treated as "never."</p>
+<h4>Not every version is random</h4>
+<p>Older UUID versions are worth knowing about even though ByteLabs only generates v4: <strong>v1</strong>
+encodes the generating computer's MAC address and a timestamp (unique, but leaks information about the
+machine and when it ran). Newer <strong>v7</strong> UUIDs deliberately put a timestamp first, so they sort
+chronologically — useful as database keys, where pure v4 randomness scatters new rows all over an index and
+hurts performance.</p>
+<h4>Try it</h4>
+<p>Generate a few in the Workbench's Random category (UUID) and paste them side by side — notice the version
+digit stays constant while everything else changes.</p>`,
+      demo: { type: "none" },
+      quiz: [
+        { q: "What problem do UUIDs solve that auto-incrementing IDs can't?", options: ["They're shorter to type", "Independent systems can generate IDs with no coordination and no collisions", "They're easier to remember"], answer: 1 },
+        { q: "Why might a database prefer UUID v7 over v4 for primary keys?", options: ["v7 is shorter", "v7 embeds a timestamp so IDs sort chronologically, which is friendlier to database indexes", "v7 doesn't need randomness at all"], answer: 1 }
+      ]
     },
     {
       id: "jwt", title: "How JWT works",
@@ -645,6 +764,35 @@ it more cleverly: no code is a prefix of any other, so the boundaries are unambi
       quiz: { q: "Why does Morse give E a single dot?", options: ["It was easiest to remember", "Frequent letters get short codes to shorten messages overall", "Dots were cheaper to send than dashes"], answer: 1 }
     },
     {
+      id: "datauri", title: "Data URIs: files hiding in text",
+      body: `
+<h3>Data URIs: files hiding in text</h3>
+<p>Everything in the Encodings unit has been building to a genuinely useful trick: embedding an entire file —
+an image, a font, a small icon — directly inside a URL, a CSS file, or an HTML document, with no separate
+request needed.</p>
+<h4>The format</h4>
+<p>A data URI looks like <code>data:[mime type];base64,[the Base64-encoded bytes]</code>. A tiny red dot PNG
+might become <code>data:image/png;base64,iVBORw0KG...</code>, pasted directly into an <code>&lt;img src&gt;</code>
+or a CSS <code>background-image</code>. The browser decodes it in place — no network round trip.</p>
+<h4>Why Base64, specifically</h4>
+<p>URLs, CSS, and HTML attributes are text formats — raw binary bytes would collide with syntax characters
+(quotes, <code>&amp;</code>, whitespace). Base64's alphabet is exactly the set of characters that survive
+untouched everywhere: this is the same reasoning from the Base64 lesson, just applied to whole files instead
+of short strings.</p>
+<h4>The trade-off</h4>
+<p>Base64 inflates size by about a third (the Encoding efficiency lesson covered why), and inlined data can't
+be cached separately from the page that contains it. It's a good fit for small, page-specific assets — a
+favicon, a tiny sprite — and a poor fit for a large shared image used across a whole site.</p>
+<h4>Try it</h4>
+<p>The demo below wraps your text in a <code>data:</code> URI. Paste the result into a browser's address bar
+to see it "load" as a page.</p>`,
+      demo: { type: "datauri" },
+      quiz: [
+        { q: "What does a data URI let a browser do?", options: ["Fetch a file from a CDN faster", "Embed a whole file's bytes directly in the URL/HTML/CSS text", "Compress a file before download"], answer: 1 },
+        { q: "Why does a data URI use Base64 rather than raw bytes?", options: ["Base64 is smaller", "Raw bytes would collide with the surrounding text syntax", "Base64 is faster to decode"], answer: 1 }
+      ]
+    },
+    {
       id: "networking", title: "IPv4 addresses under the hood",
       body: `
 <h3>IPv4 addresses under the hood</h3>
@@ -789,20 +937,28 @@ but suitable for verifying integrity against a determined attacker.</p>
     { id: "c57", level: "medium", title: "Vigenère, forward", prompt: "Encrypt this with a Vigenère cipher, keyword BYTE.", task: "ATTACKATDAWN", answer: "BRMEDITXEYPR", hint: "Use Vigenère Encode with key BYTE." },
     { id: "c58", level: "medium", title: "ROT13 in Base32", prompt: "This was ROT13'd, then Base32-encoded. Peel both layers.", task: "MZZHAZLSM4======", answer: "secret", hint: "From Base32 first, then ROT13." },
     { id: "c59", level: "hard", title: "Four rails", prompt: "Decode this Rail Fence ciphertext — it used 4 rails.", task: "DTTTEDHSWADFNEAALUKEELS", answer: "DEFENDTHEEASTWALLATDUSK", hint: "Rail Fence Decode with Rails set to 4." },
-    { id: "c60", level: "hard", title: "Shifted, then dumped", prompt: "This message was Caesar-shifted by 7, then hex-encoded. Recover the original.", task: "74 6c 6c 61 20 68 61 20 61 6f 6c 20 75 76 79 61 6f 20 6e 68 61 6c", answer: "meet at the north gate", hint: "From Hex first, then Caesar with shift -7 (or 19)." }
+    { id: "c60", level: "hard", title: "Shifted, then dumped", prompt: "This message was Caesar-shifted by 7, then hex-encoded. Recover the original.", task: "74 6c 6c 61 20 68 61 20 61 6f 6c 20 75 76 79 61 6f 20 6e 68 61 6c", answer: "meet at the north gate", hint: "From Hex first, then Caesar with shift -7 (or 19)." },
+    { id: "c61", level: "medium", title: "Swap the byte order", prompt: "Swap the endianness of this 4-byte hex value.", task: "12345678", answer: "78 56 34 12", hint: "Use Swap Endianness." },
+    { id: "c62", level: "easy", title: "Make a data URI", prompt: "Encode the word below as a plain-text data URI.", task: "hi", answer: "data:text/plain;base64,aGk=", hint: "Base64-encode 'hi', then prefix it with data:text/plain;base64," },
+    { id: "c63", level: "easy", title: "Spell it phonetically", prompt: "Convert the word below to NATO phonetic spelling.", task: "bug", answer: "Bravo Uniform Golf", hint: "Use To NATO Phonetic." },
+    { id: "c64", level: "medium", title: "Octal to binary", prompt: "Convert this octal number to binary.", task: "17", answer: "1111", hint: "Use Change number base, from Octal to Binary." },
+    { id: "c65", level: "easy", title: "Find the number", prompt: "Extract the number hidden in this sentence.", task: "Room 42 is now open", answer: "42", hint: "Use Extract, mode Numbers." },
+    { id: "c66", level: "hard", title: "HMAC-SHA512", prompt: "Enter the HMAC-SHA512 of the message 'hello' using the key 'key'.", task: "message: hello   key: key", answer: "ff06ab36757777815c008d32c8e14a705b4e7bf310351a06a23b612dc4c7433e7757d20525a5593b71020ea2ee162d2311b247e9855862b270122419652c0c92", hint: "Use HMAC-SHA512 with key 'key' on input 'hello'." },
+    { id: "c67", level: "medium", title: "BLAKE2b-256", prompt: "Enter the BLAKE2b-256 hash (hex) of the word below.", task: "hi", answer: "6815cb4aeb1580a91ef673e63ff03bdb6e855c3a896db3f2765e03281a61134a", hint: "Use the BLAKE2b-256 operation." },
+    { id: "c68", level: "easy", title: "Slugify a title", prompt: "Convert this title into a URL-friendly slug.", task: "Byte Labs Rocks!", answer: "byte-labs-rocks", hint: "Use Slugify." }
   ];
 
   // Order lessons follow on the progression map (each unlocks the next).
   // Sections group the path into named units on the Learn map. Their ids, flattened
   // in order, ARE the lesson order — the unlock chain runs straight through them.
   const LESSON_SECTIONS = [
-    { title: "Encodings", ids: ["base64", "hex", "hexdump", "unicode", "mojibake", "homoglyphs", "url", "mime", "base32", "base58", "density", "morse"] },
+    { title: "Encodings", ids: ["base64", "hex", "hexdump", "unicode", "mojibake", "homoglyphs", "url", "mime", "base32", "base58", "density", "morse", "datauri"] },
     { title: "Classical ciphers", ids: ["ciphers", "transposition", "columnar", "frequency"] },
-    { title: "Bits & XOR", ids: ["xor", "otp", "bitwise", "bruteforce"] },
-    { title: "Hashing & integrity", ids: ["hashing", "checksums", "hmac"] },
+    { title: "Bits & XOR", ids: ["xor", "otp", "bitwise", "endianness", "bruteforce"] },
+    { title: "Hashing & integrity", ids: ["hashing", "collisions", "checksums", "hmac"] },
     { title: "Encryption", ids: ["encryption", "aes", "rsa", "signatures", "keyexchange", "tls"] },
-    { title: "Passwords & secrets", ids: ["salt", "kdf", "cracking", "strength-practice"] },
-    { title: "Data in practice", ids: ["jwt", "networking", "unixtime", "regex", "entropy"] }
+    { title: "Passwords & secrets", ids: ["salt", "kdf", "cracking", "strength-practice", "mfa"] },
+    { title: "Data in practice", ids: ["uuids", "jwt", "networking", "unixtime", "regex", "entropy"] }
   ];
   const LESSON_ORDER = LESSON_SECTIONS.reduce((acc, s) => acc.concat(s.ids), []);
 

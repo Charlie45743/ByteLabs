@@ -973,6 +973,11 @@
     }
     return bytesToText(out);
   }
+  // Reverses byte order — converts hex bytes between big-endian and little-endian.
+  function endianSwap(hex) {
+    const bytes = hexToBytes(hex);
+    return bytesToHex(new Uint8Array(Array.from(bytes).reverse()), true);
+  }
 
   // ----- English-likeness scoring, shared by both brute-force tools -----
   // Standard published English letter frequencies (percent), Wikipedia / Cornell CS.
@@ -1064,7 +1069,7 @@
     stripAccents, jsonEscape, jsonUnescape, changeCase, changeBase, letterFrequency, extract, dateToUnix, unixToDate,
     ipToInt, intToIp, convertColor,
     convertLineEndings, stripHtmlTags, wordWrap, inspectChars, byteHistogram,
-    bitAndHex, bitOrHex, bitXorHex, modAddHex, modSubHex, bitNot, bitShift, rotateBits, grayEncodeHex, grayDecodeHex,
+    bitAndHex, bitOrHex, bitXorHex, modAddHex, modSubHex, bitNot, bitShift, rotateBits, grayEncodeHex, grayDecodeHex, endianSwap,
     xorBruteForce, caesarBruteForce, chiSquaredEnglish,
     md5, shaHex, hmacHex, crc32, adler32, entropy, printableRatio, magicBytes, detect, parseJwt, randomBytes, uuid, password, randomIpv4
   };

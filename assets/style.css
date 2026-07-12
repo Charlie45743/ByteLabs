@@ -286,7 +286,10 @@ kbd {
 .demo { background: var(--bg-soft); border: 1px solid var(--border); border-radius: 10px; padding: 15px; margin: 16px 0; }
 .demo .row { margin: 0; }
 .quiz { margin-top: 20px; }
+.quiz-block { margin-bottom: 18px; padding-bottom: 18px; border-bottom: 1px dashed var(--border); }
+.quiz-block:last-of-type { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
 .quiz-q { font-weight: 550; margin-bottom: 9px; }
+.quiz-num { display: inline-block; font-size: 10.5px; font-weight: 700; color: var(--lime); background: var(--lime-soft); border-radius: 20px; padding: 1px 7px; margin-right: 2px; }
 .quiz-opt { display: block; width: 100%; text-align: left; background: var(--panel); border: 1px solid var(--border-strong); border-radius: 8px; padding: 9px 12px; margin-bottom: 7px; font-size: 13px; transition: border-color .12s, transform .12s; }
 .quiz-opt:hover:not(:disabled) { border-color: var(--text); transform: translateX(2px); }
 .quiz-opt.right { border-color: var(--ok); background: rgba(47,138,91,.08); }
@@ -349,18 +352,42 @@ kbd {
 .lp-text { font-size: 12.5px; color: var(--muted); margin-top: 6px; }
 .lesson-map { display: flex; flex-direction: column; padding: 10px 0 60px; }
 
-/* Section (unit) headers along the path */
-.map-section {
-  display: flex; align-items: center; gap: 12px; margin: 26px 0 4px;
-  font-size: 11.5px; font-weight: 650; text-transform: uppercase; letter-spacing: .7px; color: var(--muted);
+/* Duolingo-style unit banners along the path */
+.unit-banner {
+  display: flex; align-items: center; gap: 14px; margin: 28px 0 4px; padding: 14px 18px;
+  background: var(--lime-soft); border-radius: 14px; color: var(--text);
 }
-.map-section::before, .map-section::after { content: ""; height: 1px; background: var(--border); flex: 1 1 auto; }
-.map-section-title { flex: 0 0 auto; }
-.map-section-count { flex: 0 0 auto; font-weight: 500; color: var(--faint); letter-spacing: 0; display: inline-flex; align-items: center; }
-.map-section.complete .map-section-title { color: var(--lime); }
-.map-section.complete .map-section-count { color: var(--lime); }
-.map-section.complete .map-section-count svg { width: 14px; height: 14px; }
-.map-section.complete::before, .map-section.complete::after { background: var(--lime-soft); }
+.lesson-map > .unit-banner:first-child { margin-top: 0; }
+.unit-icon {
+  flex: 0 0 auto; width: 42px; height: 42px; display: flex; align-items: center; justify-content: center;
+  background: var(--panel); border-radius: 50%; color: var(--lime); box-shadow: var(--shadow);
+}
+.unit-copy { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.unit-eyebrow { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; color: var(--lime); }
+.unit-title { font-size: 15px; font-weight: 650; letter-spacing: -.1px; }
+.unit-count { flex: 0 0 auto; font-size: 12.5px; font-weight: 600; color: var(--muted); display: inline-flex; align-items: center; }
+.unit-banner.complete { background: var(--lime-bright); }
+.unit-banner.complete .unit-icon { background: #fff; color: #16230b; box-shadow: none; }
+.unit-banner.complete .unit-eyebrow { color: #2c3d16; }
+.unit-banner.complete .unit-title, .unit-banner.complete .unit-count { color: #16230b; }
+.unit-banner.complete .unit-count svg { width: 16px; height: 16px; }
+
+/* Mascot — a bubbling flask, ByteLabs' answer to a Duolingo-style companion */
+.mascot-card { display: flex; align-items: center; gap: 16px; margin: 18px 0 8px; }
+.mascot-figure { flex: 0 0 auto; }
+.mascot-svg .mascot-bubbles circle { animation: bubble-rise 3s ease-in infinite; transform-origin: center; }
+.mascot-svg .mascot-bubbles circle:nth-child(2) { animation-delay: 1.1s; }
+@keyframes bubble-rise { 0% { transform: translateY(0); opacity: 0; } 15% { opacity: 1; } 100% { transform: translateY(-16px); opacity: 0; } }
+.mascot-bubble {
+  position: relative; flex: 1 1 auto; background: var(--panel); border: 1px solid var(--border-strong);
+  border-radius: 14px; padding: 12px 16px; box-shadow: var(--shadow); font-size: 13.5px; line-height: 1.5;
+}
+.mascot-bubble p { margin: 0; }
+.mascot-bubble::before {
+  content: ""; position: absolute; left: -7px; top: 26px; width: 14px; height: 14px;
+  background: var(--panel); border-left: 1px solid var(--border-strong); border-bottom: 1px solid var(--border-strong);
+  transform: rotate(45deg);
+}
 
 /* A section's segment of the path; the SVG trail sits behind the nodes */
 .map-seg { position: relative; display: flex; flex-direction: column; gap: 18px; padding: 16px 0; }

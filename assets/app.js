@@ -84,6 +84,7 @@
     { id: "bit-rotate-right", name: "Rotate Bits Right", cat: "Bitwise", params: [{ name: "amount", label: "Bits", type: "number", def: 1 }], run: (s, p) => CL.rotateBits(s, parseInt(p.amount, 10) || 0, "right"), about: "Rotates the 8 bits of each byte right independently, output as hex. No bits are lost — Rotate Left by the same amount reverses it." },
     { id: "gray-encode", name: "To Gray Code", cat: "Bitwise", run: (s) => CL.grayEncodeHex(s), about: "Converts each byte to its Gray code, output as hex. Gray code's defining property: incrementing a value by 1 always flips exactly one bit - used in rotary encoders and Karnaugh maps to avoid glitches from multiple bits changing at once.", example: { in: "A", out: "61" } },
     { id: "gray-decode", name: "From Gray Code", cat: "Bitwise", run: (s) => CL.grayDecodeHex(s), about: "Decodes hex Gray code bytes back to the original text." },
+    { id: "endian-swap", name: "Swap Endianness", cat: "Bitwise", run: (s) => CL.endianSwap(s.replace(/\s/g, "")), about: "Reverses byte order — converts hex bytes between big-endian and little-endian. Applying it twice restores the original.", example: { in: "12345678", out: "78 56 34 12" } },
 
     // Hashing
     { id: "md5", name: "MD5", cat: "Hashing", run: (s) => CL.md5(CL.utf8Bytes(s)), about: "128-bit hash. One-way. Broken for security — checksums only.", warn: true },
@@ -625,22 +626,78 @@
   function lockSvg() { return '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>'; }
   function checkSvg() { return '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 12.5l5 5 10-11"/></svg>'; }
 
+  // One small line-icon per lesson unit, drawn in the same stroke style as lockSvg/checkSvg.
+  const UNIT_ICONS = [
+    '<path d="M8 4L4 12l4 8M16 4l4 8-4 8"/>',                                                       // Encodings — code brackets
+    '<circle cx="7.5" cy="16.5" r="3"/><path d="M9.5 14.5L19 5M16 3l3 3M13 6l2 2"/>',                  // Classical ciphers — key
+    '<circle cx="9" cy="12" r="7"/><circle cx="15" cy="12" r="7"/>',                                  // Bits & XOR — overlapping sets
+    '<path d="M9 4L7 20M17 4l-2 16M4 9h16M3 15h16"/>',                                                // Hashing & integrity — hash mark
+    '<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/><circle cx="12" cy="15.3" r="1.3" fill="currentColor" stroke="none"/>', // Encryption — padlock
+    '<circle cx="5" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="10" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="15" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="20" cy="12" r="1.6" fill="currentColor" stroke="none"/>', // Passwords & secrets — dots
+    '<ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/>' // Data in practice — stack
+  ];
+  function unitIcon(i) { return `<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${UNIT_ICONS[i % UNIT_ICONS.length]}</svg>`; }
+
+  // The ByteLabs mascot — a bubbling flask, echoing the flask icon in the logo and Lab nav.
+  function mascotSvg(mood) {
+    const mouth = mood === "done" ? '<path d="M42 74 Q50 82 58 74" stroke="#16230b" stroke-width="3" fill="none" stroke-linecap="round"/>'
+      : mood === "start" ? '<path d="M43 75 Q50 80 57 75" stroke="#16230b" stroke-width="3" fill="none" stroke-linecap="round"/>'
+      : '<path d="M44 76 Q50 79 56 76" stroke="#16230b" stroke-width="2.5" fill="none" stroke-linecap="round"/>';
+    const eyes = mood === "done"
+      ? '<path d="M41 66 Q44 62 47 66" stroke="#16230b" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M53 66 Q56 62 59 66" stroke="#16230b" stroke-width="2.6" fill="none" stroke-linecap="round"/>'
+      : '<circle cx="44" cy="67" r="2.4" fill="#16230b"/><circle cx="56" cy="67" r="2.4" fill="#16230b"/>';
+    return `
+<svg class="mascot-svg mood-${mood}" viewBox="0 0 100 112" width="88" height="99" fill="none">
+  <g class="mascot-bubbles">
+    <circle cx="47" cy="22" r="2.2" fill="var(--lime-soft)" stroke="var(--lime)" stroke-width="1.3"/>
+    <circle cx="53" cy="17" r="1.5" fill="var(--lime-soft)" stroke="var(--lime)" stroke-width="1.3"/>
+  </g>
+  <path class="mascot-glass" d="M42 6 L42 30 L18 82 Q12 94 24 94 L76 94 Q88 94 82 82 L58 30 L58 6 Z"
+    fill="var(--panel)" stroke="var(--border-strong)" stroke-width="2.5" stroke-linejoin="round"/>
+  <path d="M38 6 H62" stroke="var(--border-strong)" stroke-width="2.5" stroke-linecap="round"/>
+  <path class="mascot-liquid" d="M27 58 Q35 52 44 58 T62 58 L79.5 79.5 Q86 92 76 92 L24 92 Q14 92 20.5 79.5 Z"
+    fill="var(--lime-bright)"/>
+  ${eyes}
+  ${mouth}
+  <ellipse cx="34" cy="82" rx="3.2" ry="2.2" fill="#ffffff" opacity=".5"/>
+</svg>`;
+  }
+  const MASCOT_MSG = {
+    empty: "Hey, I'm Byte! Pick a lesson below and let's get started.",
+    start: (title) => `You're on a roll — next up: <strong>${escapeHtml(title)}</strong>`,
+    done: "You've cleared every lesson. Legendary work."
+  };
+  function renderMascot(pct, completed, nextTitle) {
+    const box = $("#learn-mascot"); if (!box) return;
+    const mood = pct >= 100 ? "done" : completed > 0 ? "start" : "idle";
+    const msg = pct >= 100 ? MASCOT_MSG.done : completed > 0 && nextTitle ? MASCOT_MSG.start(nextTitle) : MASCOT_MSG.empty;
+    box.innerHTML = `
+      <div class="mascot-figure">${mascotSvg(mood)}</div>
+      <div class="mascot-bubble"><p>${msg}</p></div>`;
+  }
+
   function renderMap() {
     const map = $("#lesson-map"); if (!map) return;
     const order = CL_DATA.LESSON_ORDER, done = lessonProgress();
     const total = order.length, completed = order.filter((id) => done[id]).length;
     const pct = total ? Math.round((completed / total) * 100) : 0;
+    const nextLesson = CL_DATA.LESSONS.find((l) => l.id === order[completed]);
     $("#lesson-progress").innerHTML =
       `<div class="lp-bar"><span style="width:${pct}%"></span></div>` +
       `<div class="lp-text">${completed} of ${total} lessons complete` + (completed ? ` · ${pct}%` : "") + `</div>`;
+    renderMascot(pct, completed, nextLesson && nextLesson.title);
     map.innerHTML = "";
     const sections = CL_DATA.LESSON_SECTIONS || [{ title: "", ids: order }];
     let idx = 0;
-    sections.forEach((sec) => {
+    sections.forEach((sec, si) => {
       const secDone = sec.ids.filter((id) => done[id]).length;
+      const secComplete = secDone === sec.ids.length;
       const head = document.createElement("div");
-      head.className = "map-section" + (secDone === sec.ids.length ? " complete" : "");
-      head.innerHTML = `<span class="map-section-title">${escapeHtml(sec.title)}</span><span class="map-section-count">${secDone === sec.ids.length ? checkSvg() : secDone + " / " + sec.ids.length}</span>`;
+      head.className = "unit-banner" + (secComplete ? " complete" : "");
+      head.innerHTML = `
+        <span class="unit-icon">${unitIcon(si)}</span>
+        <span class="unit-copy"><span class="unit-eyebrow">Unit ${si + 1}</span><span class="unit-title">${escapeHtml(sec.title)}</span></span>
+        <span class="unit-count">${secComplete ? checkSvg() : secDone + " / " + sec.ids.length}</span>`;
       map.appendChild(head);
       const seg = document.createElement("div");
       seg.className = "map-seg";
@@ -745,6 +802,8 @@
       case "hexdump": return CL.toHexdump(CL.utf8Bytes(v));
       case "base85": return CL.base85Encode(CL.utf8Bytes(v));
       case "unixtime": return CL.dateToUnix(v);
+      case "endian": return CL.endianSwap(v.replace(/\s/g, ""));
+      case "datauri": return "data:text/plain;base64," + CL.bytesToBase64(CL.utf8Bytes(v));
       case "regex": { const m = v.match(new RegExp(k, "g")); return m ? m.join("\n") : "(no matches)"; }
       case "jwt": return JSON.stringify(CL.parseJwt(v.trim()).payload, null, 2);
       case "hash": return hasSubtle ? await CL.shaHex("SHA-256", CL.utf8Bytes(v)) : CL.md5(CL.utf8Bytes(v)) + " (MD5)";
@@ -752,18 +811,30 @@
     }
   }
 
+  // lesson.quiz may be a single { q, options, answer } (legacy) or an array of them —
+  // multi-question lessons require every question answered correctly to complete.
   function buildQuiz(view, lesson) {
-    const q = document.createElement("div"); q.className = "quiz";
-    q.innerHTML = `<h4>Check your understanding</h4><div class="quiz-q">${escapeHtml(lesson.quiz.q)}</div>`;
-    lesson.quiz.options.forEach((opt, i) => {
-      const b = document.createElement("button"); b.className = "quiz-opt"; b.textContent = opt;
-      b.addEventListener("click", () => {
-        if (i === lesson.quiz.answer) { $$(".quiz-opt", q).forEach((x) => (x.disabled = true)); b.classList.add("right"); completeLesson(lesson.id, q); }
-        else { b.classList.add("wrong"); b.disabled = true; }
+    const questions = Array.isArray(lesson.quiz) ? lesson.quiz : [lesson.quiz];
+    const wrap = document.createElement("div"); wrap.className = "quiz";
+    wrap.innerHTML = `<h4>Check your understanding</h4>`;
+    let solved = 0;
+    questions.forEach((qq, qi) => {
+      const block = document.createElement("div"); block.className = "quiz-block";
+      block.innerHTML = `<div class="quiz-q">${questions.length > 1 ? `<span class="quiz-num">${qi + 1}/${questions.length}</span> ` : ""}${escapeHtml(qq.q)}</div>`;
+      qq.options.forEach((opt, i) => {
+        const b = document.createElement("button"); b.className = "quiz-opt"; b.textContent = opt;
+        b.addEventListener("click", () => {
+          if (i === qq.answer) {
+            $$(".quiz-opt", block).forEach((x) => (x.disabled = true));
+            b.classList.add("right");
+            if (!block.dataset.solved) { block.dataset.solved = "1"; solved++; if (solved === questions.length) completeLesson(lesson.id, wrap); }
+          } else { b.classList.add("wrong"); b.disabled = true; }
+        });
+        block.appendChild(b);
       });
-      q.appendChild(b);
+      wrap.appendChild(block);
     });
-    view.appendChild(q);
+    view.appendChild(wrap);
   }
   function completeLesson(id, q) {
     const p = lessonProgress(); const firstTime = !p[id]; p[id] = true; saveLessonProgress(p);

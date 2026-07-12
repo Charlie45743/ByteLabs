@@ -24,7 +24,7 @@ them, and removed individually. Heavy operations (Argon2id, PBKDF2) are marked "
 and use an explicit Compute button instead of running on every keystroke, so typing
 never stutters.
 
-112 operations across 7 categories:
+113 operations across 7 categories:
 
 - **Encoding (35)** — Base64, Base64 URL-safe, Base32, Base58, Base85, hex, hexdump,
   binary, decimal, octal, URL encoding, HTML entities, `\u` escapes, JSON string
@@ -38,8 +38,9 @@ never stutters.
   possible key/shift and rank the results by how much they read like actual English
   (letter-frequency statistics plus common-word matching), showing a ranked shortlist
   rather than a single guess.
-- **Bitwise (11)** — AND, OR, NOT, ADD and SUB (mod 256), bit shifts, bit rotates, and
-  Gray code, each working with a repeating key where relevant.
+- **Bitwise (12)** — AND, OR, NOT, ADD and SUB (mod 256), bit shifts, bit rotates, Gray
+  code, and Swap Endianness (reverses byte order between big- and little-endian), each
+  working with a repeating key where relevant.
 - **Hashing (13)** — MD5, SHA-1/256/384/512, CRC-32, Adler-32, HMAC-SHA256/512,
   BLAKE2b-256/512, PBKDF2, and Argon2id. BLAKE2b and Argon2id are implemented from
   scratch in pure JavaScript directly from their RFC specifications (RFC 7693 and
@@ -69,23 +70,27 @@ and a hash comparison tool.
 
 ### Learn
 
-A locked progression of **38 lessons** along a winding Duolingo-style path — finish
-one to unlock the next — grouped into seven named units: Encodings, Classical
-ciphers, Bits & XOR, Hashing & integrity, Encryption, Passwords & secrets, and Data
-in practice. Covers encoding (Base64, hex, reading hexdumps, Unicode, URL encoding,
-mojibake, homoglyph attacks, Punycode/IDN, Quoted-Printable/MIME, encoding
-efficiency up to Base85, Morse and variable-length codes), classical substitution
-and transposition ciphers (including keyword-based Columnar Transposition) and how
-to break them with frequency analysis, XOR and the one-time pad, bitwise operations,
-brute-forcing, hashing versus checksums, HMAC, symmetric and asymmetric encryption
-(AES, RSA, digital signatures, key exchange, TLS), password security (salting, key
-derivation with PBKDF2/Argon2, how cracking actually works, judging real-world
-password strength), JWTs, IPv4 addressing, Unix time, regular expressions, and
-entropy. Most lessons include a live interactive demo and end with a short quiz.
+A locked progression of **43 lessons** along a winding, illustrated path — Byte, a
+bubbling-flask mascot, greets you with your next lesson and cheers you on as you go.
+Lessons are grouped into seven named units, each with its own colored banner and
+progress count: Encodings, Classical ciphers, Bits & XOR, Hashing & integrity,
+Encryption, Passwords & secrets, and Data in practice. Covers encoding (Base64, hex,
+reading hexdumps, Unicode, URL encoding, mojibake, homoglyph attacks, Punycode/IDN,
+Quoted-Printable/MIME, encoding efficiency up to Base85, Morse and variable-length
+codes, data URIs), classical substitution and transposition ciphers (including
+keyword-based Columnar Transposition) and how to break them with frequency analysis,
+XOR and the one-time pad, bitwise operations and endianness, brute-forcing, hashing
+versus checksums, hash collisions and the birthday problem, HMAC, symmetric and
+asymmetric encryption (AES, RSA, digital signatures, key exchange, TLS), password
+security (salting, key derivation with PBKDF2/Argon2, how cracking actually works,
+judging real-world password strength, multi-factor authentication), UUIDs, JWTs,
+IPv4 addressing, Unix time, regular expressions, and entropy. Most lessons include a
+live interactive demo and end with a quiz — some with several questions, all of
+which must be answered correctly to complete the lesson.
 
 ### Challenges
 
-**60 practice puzzles** across easy/medium/hard, solvable using the operations in The
+**68 practice puzzles** across easy/medium/hard, solvable using the operations in The
 Lab — decode a hidden message, break a cipher, compute a hash, spot an email in a
 sentence, or actually run the brute-force tools instead of working something out by
 hand. Progress is saved on your device only.
