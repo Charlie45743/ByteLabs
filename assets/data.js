@@ -116,6 +116,36 @@ but still breakable with enough text.</p>
       quiz: { q: "What restores ROT13 text?", options: ["A secret key", "Applying ROT13 again", "Base64 decode"], answer: 1 }
     },
     {
+      id: "beaufortlesson", title: "The Beaufort cipher: encryption that undoes itself",
+      body: `
+<h3>A one-letter change with a big consequence</h3>
+<p>Vigenère computes each ciphertext letter as <code>plaintext + key</code> (wrapping at 26). The
+<strong>Beaufort cipher</strong>, from the same era, flips one sign: <code>key − plaintext</code>. That tiny
+formula change produces a cipher with a genuinely different property from everything else in this unit.</p>
+<h4>Reciprocal, like Atbash — but keyed</h4>
+<p>Atbash is reciprocal (apply it twice, get the original back) but has no key — anyone can decrypt it, which
+makes it useless for real secrecy. Vigenère has a key but needs a separate decode step (subtract instead of
+add). Beaufort gets <em>both</em>: run the exact same operation with the same key a second time, and you're
+back to the plaintext — because subtracting <code>key − (key − plaintext)</code> algebraically simplifies
+back to <code>plaintext</code>. One button, one key, works both directions.</p>
+<h4>Why that mattered before computers</h4>
+<p>A cipher machine or a soldier in the field only needs to implement <em>one</em> procedure instead of two
+mirror-image ones — encrypting and decrypting use identical steps. That reciprocal property is exactly why
+later rotor machines (including versions of the Enigma family) were built around reciprocal substitution:
+it halves the operational complexity of running the system correctly under pressure.</p>
+<h4>Same weakness as Vigenère, though</h4>
+<p>Reciprocal doesn't mean stronger — Beaufort has the identical key-length weakness as Vigenère, breakable
+with the same frequency-analysis approach from a few lessons ago once you know (or guess) the key length.</p>
+<h4>Try it</h4>
+<p>The demo runs Beaufort with a key. Encrypt some text, then run the <em>output</em> back through with the
+same key — you'll land exactly back on the original.</p>`,
+      demo: { type: "beaufort" },
+      quiz: [
+        { q: "What single change turns Vigenère's formula into Beaufort's?", options: ["Using a longer key", "Computing key − plaintext instead of plaintext + key", "Shifting by 13 instead of the key"], answer: 1 },
+        { q: "What does 'reciprocal' mean for a cipher like Beaufort?", options: ["It has no key at all", "The same operation with the same key both encrypts and decrypts", "It can only encrypt numbers"], answer: 1 }
+      ]
+    },
+    {
       id: "transposition", title: "Transposition ciphers",
       body: `
 <h3>Transposition ciphers</h3>
@@ -524,6 +554,38 @@ AND rather than several separate comparisons.</p>
       ]
     },
     {
+      id: "hamming", title: "Hamming weight & error detection",
+      body: `
+<h3>Counting bits to catch transmission errors</h3>
+<p>The number of 1-bits in a value is called its <strong>Hamming weight</strong> — a byte like
+<code>01000001</code> ('A') has a Hamming weight of 2. It sounds like a trivial thing to count, but it's the
+foundation of how computers notice when a bit flips in transit.</p>
+<h4>The simplest version: a parity bit</h4>
+<p>Add one extra bit to a message, set so the <em>total</em> number of 1-bits (message plus parity) is always
+even. If a single bit flips anywhere in transit — a noisy cable, a cosmic ray hitting RAM — the total flips
+from even to odd, and the receiving end can tell <em>something</em> broke just by checking the Hamming weight's
+parity. This is exactly why it's called a parity bit.</p>
+<h4>The catch: detecting isn't correcting</h4>
+<p>A single parity bit tells you a bit flipped, but not <em>which</em> one — there's no way to fix it, only to
+ask for the data again. Getting from "detect" to "correct" needs more than one parity bit, arranged so their
+overlapping coverage of the data bits pins down the exact flipped position — the idea behind
+<strong>Hamming codes</strong> (Richard Hamming, 1950), the namesake of Hamming weight. A Hamming(7,4) code
+spends 3 parity bits to protect 4 data bits and can pinpoint and correct any single flipped bit automatically.</p>
+<h4>Where this runs today</h4>
+<p>ECC RAM in servers uses Hamming-code-family error correction to silently fix single-bit memory errors
+before they corrupt a running program. RAID storage, QR codes, and deep-space communication (where re-sending
+a message can mean a multi-hour round trip) all lean on the same core idea: spend a few extra bits now to
+avoid needing a perfect, error-free channel.</p>
+<h4>Try it</h4>
+<p>The demo counts the set bits in your text, byte by byte, plus a running total — the exact number a parity
+scheme checks.</p>`,
+      demo: { type: "popcount" },
+      quiz: [
+        { q: "What does a single parity bit let you do?", options: ["Correct any error automatically", "Detect that a single bit flipped, without knowing which one", "Compress the message"], answer: 1 },
+        { q: "What's the key difference a Hamming code adds over a single parity bit?", options: ["It encrypts the data", "Multiple overlapping parity bits let you pinpoint and correct the exact flipped bit", "It makes the message shorter"], answer: 1 }
+      ]
+    },
+    {
       id: "endianness", title: "Endianness: which end is first?",
       body: `
 <h3>Endianness: which end is first?</h3>
@@ -865,6 +927,33 @@ Base85 is nearly optimal — everything after it is diminishing returns.</p>
       quiz: { q: "Why isn't Base85 used everywhere Base64 is?", options: ["It's much slower to compute", "Its alphabet includes characters that break JSON, URLs and HTML", "It's proprietary"], answer: 1 }
     },
     {
+      id: "base45lesson", title: "Base45: encoding tuned for QR codes",
+      body: `
+<h3>A denser encoding that's still the wrong choice</h3>
+<p>The last lesson ranked encodings purely by output size and crowned Base85 the winner. Base45 (RFC 9285)
+breaks that ranking on purpose — it's <em>less</em> dense than Base85 (2 bytes become 3 characters, a 1.5×
+expansion, worse than Base85's 1.25×) and is still the right tool for one very specific, very common job:
+data inside a QR code, including EU Digital COVID Certificates.</p>
+<h4>Why "smaller text" isn't the metric that matters here</h4>
+<p>QR codes don't store text — they store modules (the black/white squares), and different QR "modes" pack
+different alphabets into those modules at different densities. <strong>Byte mode</strong> spends a full 8 bits
+per character, accepting any alphabet. <strong>Alphanumeric mode</strong> restricts the alphabet to 45
+specific characters chosen so that <em>two</em> of them pack into just 11 bits (45×45 = 2,025, comfortably
+under 2¹¹ = 2,048) — noticeably denser than byte mode's 16 bits for the same two characters.</p>
+<h4>The actual trade-off</h4>
+<p>Base45's alphabet was picked to be exactly QR alphanumeric mode's 45-character set. So a Base45 string,
+once inside a QR code, uses alphanumeric mode's tighter packing — even though the Base45 <em>text itself</em>
+is bigger than Base85 would produce. Optimizing for "smallest string" and optimizing for "smallest QR code"
+are different goals, and Base45 is built for the second one.</p>
+<h4>Try it</h4>
+<p>The demo encodes your text as Base45 — compare its output length with Base85's on the same input in The Lab.</p>`,
+      demo: { type: "base45" },
+      quiz: [
+        { q: "Is Base45's text output smaller or larger than Base85's for the same input?", options: ["Smaller — Base45 is always denser", "Larger — 1.5× expansion versus Base85's 1.25×", "Identical"], answer: 1 },
+        { q: "Why is Base45 still the right choice for QR codes despite that?", options: ["Its alphabet matches QR alphanumeric mode, which packs those specific 45 characters more densely than byte mode", "QR codes can't store Base85's characters at all", "It's faster to compute"], answer: 0 }
+      ]
+    },
+    {
       id: "morse", title: "Morse code & variable-length codes",
       body: `
 <h3>Morse code & variable-length codes</h3>
@@ -934,6 +1023,37 @@ to be, which is the whole reason IPv6 (128-bit addresses) exists.</p>
 <p>The demo below converts an IPv4 address to its integer form.</p>`,
       demo: { type: "ipv4" },
       quiz: { q: "What is a dotted-quad IPv4 address really, under the hood?", options: ["Four unrelated numbers", "A single 32-bit unsigned integer, split into 4 bytes for readability", "A hash of the hostname"], answer: 1 }
+    },
+    {
+      id: "subnetting", title: "Subnetting: splitting a network into pieces",
+      body: `
+<h3>Splitting one network into many</h3>
+<p>The last lesson showed that an IPv4 address is a single 32-bit integer, and that a subnet is really "these
+high bits must match." Subnetting is the practical technique built on exactly that fact: carving one big
+address block into smaller ones by moving the dividing line between "network" and "host" bits.</p>
+<h4>CIDR notation</h4>
+<p><code>192.168.1.0/24</code> means the first 24 bits are the fixed network portion, leaving 8 bits (2⁸ = 256
+addresses) for hosts. Two of those are reserved — the all-zero <strong>network address</strong>
+(<code>.0</code>, names the network itself) and the all-one <strong>broadcast address</strong> (<code>.255</code>,
+reaches every host at once) — leaving 254 usable addresses for actual devices.</p>
+<h4>Moving the line</h4>
+<p>Push the prefix from <code>/24</code> to <code>/25</code> and you've taken one bit away from the host
+portion and given it to the network portion: 128 addresses instead of 256, but now there are <em>two</em>
+independent /25 blocks (<code>192.168.1.0/25</code> and <code>192.168.1.128/25</code>) where there used to be
+one /24. Every extra bit of prefix halves the block size and doubles the number of blocks — the same doubling
+pattern that shows up anywhere binary is involved.</p>
+<h4>Why bother splitting</h4>
+<p>Separate subnets can sit behind separate routers, get separate firewall rules, and contain broadcast
+traffic to a smaller group instead of flooding an entire building's network with it — an office might split
+one address range into per-floor or per-department subnets for exactly these reasons.</p>
+<h4>Try it</h4>
+<p>The demo below computes the network address, broadcast address, and usable host range for a CIDR block —
+try <code>192.168.1.10/24</code>, then compare it against <code>192.168.1.10/26</code>.</p>`,
+      demo: { type: "subnet" },
+      quiz: [
+        { q: "In 192.168.1.0/24, what does the /24 mean?", options: ["24 devices are connected", "The first 24 bits are the fixed network portion", "The subnet is 24 years old"], answer: 1 },
+        { q: "What happens to a subnet's size when you move its prefix from /24 to /25?", options: ["It doubles", "It stays the same", "It halves, and the freed bit creates a second independent block"], answer: 2 }
+      ]
     },
     {
       id: "unixtime", title: "Unix time",
@@ -1025,89 +1145,97 @@ but suitable for verifying integrity against a determined attacker.</p>
 
   const CHALLENGES = [
     // Easy
-    { id: "c1", level: "easy", title: "Decode Base64", prompt: "Decode this Base64 text.", task: "Qnl0ZUxhYnM=", answer: "ByteLabs", hint: "Use From Base64." },
-    { id: "c2", level: "easy", title: "Encode to Base64", prompt: "Type the Base64 encoding of the word below.", task: "hello", answer: "aGVsbG8=", hint: "Use To Base64 on 'hello'." },
-    { id: "c3", level: "easy", title: "Read the hex", prompt: "These bytes spell a word. Decode the hex.", task: "6f70656e", answer: "open", hint: "Use From Hex." },
-    { id: "c4", level: "easy", title: "Break ROT13", prompt: "Decode this ROT13 message.", task: "Frperg", answer: "Secret", hint: "ROT13 again reverses it." },
-    { id: "c5", level: "easy", title: "Binary to text", prompt: "Decode this 8-bit binary.", task: "01001000 01101001", answer: "Hi", hint: "Use From Binary." },
-    { id: "c6", level: "easy", title: "Morse code", prompt: "Decode this Morse code.", task: ".... . .-.. .-.. ---", answer: "HELLO", hint: "Use From Morse (result is upper case)." },
-    { id: "c7", level: "easy", title: "URL decode", prompt: "Decode this URL-encoded string.", task: "a%20b%26c", answer: "a b&c", hint: "Use URL Decode." },
-    { id: "c8", level: "easy", title: "Atbash", prompt: "Decode this Atbash-ciphered word.", task: "Gvhg", answer: "Test", hint: "Atbash is its own inverse." },
+    { id: "c1", cat: "Encoding", level: "easy", title: "Decode Base64", prompt: "Decode this Base64 text.", task: "Qnl0ZUxhYnM=", answer: "ByteLabs", hint: "Use From Base64." },
+    { id: "c2", cat: "Encoding", level: "easy", title: "Encode to Base64", prompt: "Type the Base64 encoding of the word below.", task: "hello", answer: "aGVsbG8=", hint: "Use To Base64 on 'hello'." },
+    { id: "c3", cat: "Encoding", level: "easy", title: "Read the hex", prompt: "These bytes spell a word. Decode the hex.", task: "6f70656e", answer: "open", hint: "Use From Hex." },
+    { id: "c4", cat: "Ciphers", level: "easy", title: "Break ROT13", prompt: "Decode this ROT13 message.", task: "Frperg", answer: "Secret", hint: "ROT13 again reverses it." },
+    { id: "c5", cat: "Encoding", level: "easy", title: "Binary to text", prompt: "Decode this 8-bit binary.", task: "01001000 01101001", answer: "Hi", hint: "Use From Binary." },
+    { id: "c6", cat: "Encoding", level: "easy", title: "Morse code", prompt: "Decode this Morse code.", task: ".... . .-.. .-.. ---", answer: "HELLO", hint: "Use From Morse (result is upper case)." },
+    { id: "c7", cat: "Encoding", level: "easy", title: "URL decode", prompt: "Decode this URL-encoded string.", task: "a%20b%26c", answer: "a b&c", hint: "Use URL Decode." },
+    { id: "c8", cat: "Ciphers", level: "easy", title: "Atbash", prompt: "Decode this Atbash-ciphered word.", task: "Gvhg", answer: "Test", hint: "Atbash is its own inverse." },
     // Medium
-    { id: "c9", level: "medium", title: "Base32", prompt: "Decode this Base32 text.", task: "JBSWY3DPEE======", answer: "Hello!", hint: "Use From Base32." },
-    { id: "c10", level: "medium", title: "Caesar shift 5", prompt: "This was Caesar-shifted by 5. Recover the text.", task: "Mjqqt", answer: "Hello", hint: "Caesar with shift 21 (or -5)." },
-    { id: "c11", level: "medium", title: "Vigenère", prompt: "Decode with the keyword LEMON.", task: "LXFOPVEFRNHR", answer: "ATTACKATDAWN", hint: "Use Vigenère Decode, key LEMON." },
-    { id: "c12", level: "medium", title: "Decimal codes", prompt: "Decode these decimal character codes.", task: "72 101 108 108 111", answer: "Hello", hint: "Use From Decimal." },
-    { id: "c13", level: "medium", title: "ROT47", prompt: "Decode this ROT47 string.", task: "qJE6{23D", answer: "ByteLabs", hint: "ROT47 again reverses it." },
-    { id: "c14", level: "medium", title: "A1Z26", prompt: "Decode these letter-position numbers.", task: "3 1 20", answer: "cat", hint: "Use A1Z26 Decode (A=1)." },
+    { id: "c9", cat: "Encoding", level: "medium", title: "Base32", prompt: "Decode this Base32 text.", task: "JBSWY3DPEE======", answer: "Hello!", hint: "Use From Base32." },
+    { id: "c10", cat: "Ciphers", level: "medium", title: "Caesar shift 5", prompt: "This was Caesar-shifted by 5. Recover the text.", task: "Mjqqt", answer: "Hello", hint: "Caesar with shift 21 (or -5)." },
+    { id: "c11", cat: "Ciphers", level: "medium", title: "Vigenère", prompt: "Decode with the keyword LEMON.", task: "LXFOPVEFRNHR", answer: "ATTACKATDAWN", hint: "Use Vigenère Decode, key LEMON." },
+    { id: "c12", cat: "Encoding", level: "medium", title: "Decimal codes", prompt: "Decode these decimal character codes.", task: "72 101 108 108 111", answer: "Hello", hint: "Use From Decimal." },
+    { id: "c13", cat: "Ciphers", level: "medium", title: "ROT47", prompt: "Decode this ROT47 string.", task: "qJE6{23D", answer: "ByteLabs", hint: "ROT47 again reverses it." },
+    { id: "c14", cat: "Ciphers", level: "medium", title: "A1Z26", prompt: "Decode these letter-position numbers.", task: "3 1 20", answer: "cat", hint: "Use A1Z26 Decode (A=1)." },
     // Hard
-    { id: "c15", level: "hard", title: "SHA-256", prompt: "Enter the SHA-256 hash (hex) of the word below.", task: "test", answer: "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08", hint: "Put 'test' through SHA-256." },
-    { id: "c16", level: "hard", title: "MD5", prompt: "Enter the MD5 hash of the word below.", task: "hello", answer: "5d41402abc4b2a76b9719d911017c592", hint: "Put 'hello' through MD5." },
-    { id: "c17", level: "hard", title: "XOR with a key", prompt: "This hex was XORed with the key 'cle'. Recover the message.", task: "221811020f0e430d114308041402", answer: "Attack at dawn", hint: "Use XOR, direction Hex → Text, key cle." },
-    { id: "c18", level: "hard", title: "CRC-32", prompt: "Enter the CRC-32 checksum (hex) of the word below.", task: "hello", answer: "3610a686", hint: "Use the CRC-32 operation." },
-    { id: "c19", level: "hard", title: "Two layers", prompt: "This was Hex-encoded, then Base64-encoded. Peel both layers.", task: "NjMgNjEgNzQ=", answer: "cat", hint: "From Base64, then From Hex." },
-    { id: "c20", level: "medium", title: "Base64 URL", prompt: "Decode this URL-safe Base64 token.", task: "ZmxhZ3t5MHVfZ290X2l0fQ", answer: "flag{y0u_got_it}", hint: "Use From Base64 URL." },
-    { id: "c21", level: "medium", title: "Reverse & Base64", prompt: "The text was reversed, then Base64-encoded. Recover it.", task: "Ym9C", answer: "Bob", hint: "From Base64, then Reverse text." },
-    { id: "c22", level: "hard", title: "HMAC", prompt: "Enter the HMAC-SHA256 of the message 'hello' using the key 'secret'.", task: "message: hello   key: secret", answer: "88aab3ede8d3adf94d26ab90d3bafd4a2083070c3bcce9c014ee04a443847c0b", hint: "Use HMAC-SHA256 with key 'secret' on input 'hello'." },
-    { id: "c23", level: "medium", title: "Base58", prompt: "Decode this Base58 string.", task: "StV1DL6CwTryKyV", answer: "hello world", hint: "Use From Base58." },
-    { id: "c24", level: "easy", title: "Change base", prompt: "Convert this hexadecimal number to decimal.", task: "ff", answer: "255", hint: "Change number base, from Hex to Decimal." },
-    { id: "c25", level: "hard", title: "SHA-1", prompt: "Enter the SHA-1 hash (hex) of the word below.", task: "abc", answer: "a9993e364706816aba3e25717850c26c9cd0d89d", hint: "Put 'abc' through SHA-1." },
-    { id: "c26", level: "easy", title: "Read a hexdump", prompt: "Decode the text hidden in this hexdump.", task: "00000000: 4869 21                                  Hi!", answer: "Hi!", hint: "Use From Hexdump." },
-    { id: "c27", level: "easy", title: "Spell it out", prompt: "Convert the word below to NATO phonetic spelling.", task: "cat", answer: "Charlie Alpha Tango", hint: "Use To NATO Phonetic." },
-    { id: "c28", level: "medium", title: "Octal codes", prompt: "Decode these octal character codes.", task: "107 157", answer: "Go", hint: "Use From Octal." },
-    { id: "c29", level: "medium", title: "Unicode escapes", prompt: "Decode this \\u-escaped string.", task: "\\u0053\\u0065\\u0063", answer: "Sec", hint: "Use From \\u Escapes." },
-    { id: "c30", level: "medium", title: "Strip the tags", prompt: "Remove the HTML tags, keeping just the text.", task: "<p>Nice <b>work</b></p>", answer: "Nice work", hint: "Use Strip HTML tags." },
-    { id: "c31", level: "medium", title: "Find the email", prompt: "Extract the email address hidden in this sentence.", task: "Contact us at hello@example.com for info", answer: "hello@example.com", hint: "Use Extract, mode Email addresses." },
-    { id: "c32", level: "easy", title: "Change of base", prompt: "Convert this binary number to hexadecimal.", task: "1010", answer: "a", hint: "Use Change number base, From Binary, To Hex." },
-    { id: "c33", level: "hard", title: "Crack the shift", prompt: "This sentence was Caesar-shifted by an unknown amount. Use letter frequency to find the shift and recover the text.", task: "aol xbpjr iyvdu mve qbtwz vcly aol shgf kvn dopsl aopurpun hivba jyfwavnyhwof", answer: "the quick brown fox jumps over the lazy dog while thinking about cryptography", hint: "Run Letter frequency on the ciphertext, compare to normal English letter frequency, then try Caesar with that shift." },
-    { id: "c34", level: "medium", title: "Base32 again", prompt: "Decode this Base32 string.", task: "OB2XU6TMMU======", answer: "puzzle", hint: "Use From Base32." },
-    { id: "c35", level: "easy", title: "Flip every bit", prompt: "Apply bitwise NOT to the character below and give the hex result.", task: "0", answer: "cf", hint: "Use the NOT operation." },
-    { id: "c36", level: "easy", title: "Rotate a byte", prompt: "Rotate the bits of this single character left by 2 and give the hex result.", task: "@", answer: "01", hint: "Use Rotate Bits Left, amount 2. '@' is byte 0x40." },
-    { id: "c37", level: "medium", title: "Modular addition", prompt: "ADD (mod 256) the key 'ab' to the text below and give the hex result.", task: "Go", answer: "a8d1", hint: "Use ADD (mod 256) with key 'ab'." },
-    { id: "c38", level: "medium", title: "AND spells a word", prompt: "Bitwise-AND these two words together with key 'mask', then decode the hex result back to text.", task: "lock", answer: "lack", hint: "Use AND with key 'mask', then From Hex on the result." },
-    { id: "c39", level: "hard", title: "Break the single-byte key", prompt: "This was encrypted with a single-byte XOR key. Recover the message.", task: "624a4a5b0f4e5b0f5b474a0f40434b0f4d5d464b484a0f5b40414648475b", answer: "Meet at the old bridge tonight", hint: "Use XOR Brute Force, input is Hex — check the top-ranked result." },
-    { id: "c40", level: "hard", title: "Brute force the shift", prompt: "Use the Caesar Brute Force tool to recover this message — don't work it out by hand.", task: "xgvkrimbhg dxxil hnk wtmt ltyx ykhf ikrbgz xrxl tgw vnkbhnl tmmtvdxkl", answer: "encryption keeps our data safe from prying eyes and curious attackers", hint: "Use Caesar Brute Force and check the top-ranked line." },
-    { id: "c41", level: "medium", title: "Rail Fence", prompt: "This was encoded with Rail Fence, 3 rails. Decode it.", task: "ACDTAKTANTAW", answer: "ATTACKATDAWN", hint: "Use Rail Fence Decode with Rails set to 3." },
-    { id: "c42", level: "easy", title: "Base85", prompt: "Decode this Base85 (Ascii85) string.", task: "Ao(mg", answer: "flag", hint: "Use From Base85." },
-    { id: "c43", level: "medium", title: "Internationalized domain", prompt: "Decode this Punycode domain back to Unicode.", task: "xn--mnchen-3ya.de", answer: "münchen.de", hint: "Use From Punycode." },
-    { id: "c44", level: "hard", title: "Columnar transposition", prompt: "Decode this Columnar Transposition ciphertext using the keyword PUZZLE.", task: "ENMDMAIETGEMHTIT", answer: "MEETMEATMIDNIGHT", hint: "Use Columnar Transposition Decode, keyword PUZZLE." },
-    { id: "c45", level: "medium", title: "Quoted-Printable", prompt: "Decode this Quoted-Printable string.", task: "50% off caf=C3=A9 orders", answer: "50% off café orders", hint: "Use From Quoted-Printable." },
-    { id: "c46", level: "easy", title: "Adler-32", prompt: "Enter the Adler-32 checksum (hex) of the word below.", task: "hello", answer: "062c0215", hint: "Use the Adler-32 operation." },
-    { id: "c47", level: "medium", title: "Gray code", prompt: "Decode these Gray-coded hex bytes.", task: "6468", answer: "GO", hint: "Use From Gray Code." },
-    { id: "c48", level: "easy", title: "Color format", prompt: "Convert this hex color to its RGB form.", task: "#663399", answer: "rgb(102, 51, 153)", hint: "Use Color Converter, convert to RGB." },
-    { id: "c49", level: "easy", title: "IP to integer", prompt: "Convert this IPv4 address to its 32-bit integer form.", task: "10.0.0.1", answer: "167772161", hint: "Use IPv4 to Integer." },
-    { id: "c50", level: "easy", title: "Integer to IP", prompt: "Convert this integer back to dotted-quad IPv4 form.", task: "2130706433", answer: "127.0.0.1", hint: "Use Integer to IPv4." },
-    { id: "c51", level: "hard", title: "Two layers, new encodings", prompt: "This was Quoted-Printable encoded, then Base64-encoded. Peel both layers.", task: "Y2FmPUMzPUE5ID0zRCAxMDAlIHNlY3VyZQ==", answer: "café = 100% secure", hint: "From Base64, then From Quoted-Printable." },
-    { id: "c52", level: "easy", title: "Date to timestamp", prompt: "Convert this date to a Unix timestamp (seconds).", task: "2024-01-01", answer: "1704067200", hint: "Use Date to Unix Time." },
-    { id: "c53", level: "easy", title: "Find the address", prompt: "Extract the IPv4 address from this sentence.", task: "The server at 10.20.30.40 stopped responding", answer: "10.20.30.40", hint: "Use Extract, mode IPv4 addresses." },
-    { id: "c54", level: "easy", title: "HSL to hex", prompt: "Convert this HSL color to its hex form.", task: "hsl(120, 100%, 25%)", answer: "#008000", hint: "Use Color Converter, convert to Hex." },
-    { id: "c55", level: "medium", title: "Encode to Base85", prompt: "Type the Base85 (Ascii85) encoding of the word below.", task: "byte", answer: "@X3',", hint: "Use To Base85 on 'byte'." },
-    { id: "c56", level: "medium", title: "Into Gray code", prompt: "Give the hex Gray code of the text below.", task: "hi", answer: "5c5d", hint: "Use To Gray Code." },
-    { id: "c57", level: "medium", title: "Vigenère, forward", prompt: "Encrypt this with a Vigenère cipher, keyword BYTE.", task: "ATTACKATDAWN", answer: "BRMEDITXEYPR", hint: "Use Vigenère Encode with key BYTE." },
-    { id: "c58", level: "medium", title: "ROT13 in Base32", prompt: "This was ROT13'd, then Base32-encoded. Peel both layers.", task: "MZZHAZLSM4======", answer: "secret", hint: "From Base32 first, then ROT13." },
-    { id: "c59", level: "hard", title: "Four rails", prompt: "Decode this Rail Fence ciphertext — it used 4 rails.", task: "DTTTEDHSWADFNEAALUKEELS", answer: "DEFENDTHEEASTWALLATDUSK", hint: "Rail Fence Decode with Rails set to 4." },
-    { id: "c60", level: "hard", title: "Shifted, then dumped", prompt: "This message was Caesar-shifted by 7, then hex-encoded. Recover the original.", task: "74 6c 6c 61 20 68 61 20 61 6f 6c 20 75 76 79 61 6f 20 6e 68 61 6c", answer: "meet at the north gate", hint: "From Hex first, then Caesar with shift -7 (or 19)." },
-    { id: "c61", level: "medium", title: "Swap the byte order", prompt: "Swap the endianness of this 4-byte hex value.", task: "12345678", answer: "78 56 34 12", hint: "Use Swap Endianness." },
-    { id: "c62", level: "easy", title: "Make a data URI", prompt: "Encode the word below as a plain-text data URI.", task: "hi", answer: "data:text/plain;base64,aGk=", hint: "Base64-encode 'hi', then prefix it with data:text/plain;base64," },
-    { id: "c63", level: "easy", title: "Spell it phonetically", prompt: "Convert the word below to NATO phonetic spelling.", task: "bug", answer: "Bravo Uniform Golf", hint: "Use To NATO Phonetic." },
-    { id: "c64", level: "medium", title: "Octal to binary", prompt: "Convert this octal number to binary.", task: "17", answer: "1111", hint: "Use Change number base, from Octal to Binary." },
-    { id: "c65", level: "easy", title: "Find the number", prompt: "Extract the number hidden in this sentence.", task: "Room 42 is now open", answer: "42", hint: "Use Extract, mode Numbers." },
-    { id: "c66", level: "hard", title: "HMAC-SHA512", prompt: "Enter the HMAC-SHA512 of the message 'hello' using the key 'key'.", task: "message: hello   key: key", answer: "ff06ab36757777815c008d32c8e14a705b4e7bf310351a06a23b612dc4c7433e7757d20525a5593b71020ea2ee162d2311b247e9855862b270122419652c0c92", hint: "Use HMAC-SHA512 with key 'key' on input 'hello'." },
-    { id: "c67", level: "medium", title: "BLAKE2b-256", prompt: "Enter the BLAKE2b-256 hash (hex) of the word below.", task: "hi", answer: "6815cb4aeb1580a91ef673e63ff03bdb6e855c3a896db3f2765e03281a61134a", hint: "Use the BLAKE2b-256 operation." },
-    { id: "c68", level: "easy", title: "Slugify a title", prompt: "Convert this title into a URL-friendly slug.", task: "Byte Labs Rocks!", answer: "byte-labs-rocks", hint: "Use Slugify." }
+    { id: "c15", cat: "Hashing", level: "hard", title: "SHA-256", prompt: "Enter the SHA-256 hash (hex) of the word below.", task: "test", answer: "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08", hint: "Put 'test' through SHA-256." },
+    { id: "c16", cat: "Hashing", level: "hard", title: "MD5", prompt: "Enter the MD5 hash of the word below.", task: "hello", answer: "5d41402abc4b2a76b9719d911017c592", hint: "Put 'hello' through MD5." },
+    { id: "c17", cat: "Ciphers", level: "hard", title: "XOR with a key", prompt: "This hex was XORed with the key 'cle'. Recover the message.", task: "221811020f0e430d114308041402", answer: "Attack at dawn", hint: "Use XOR, direction Hex → Text, key cle." },
+    { id: "c18", cat: "Hashing", level: "hard", title: "CRC-32", prompt: "Enter the CRC-32 checksum (hex) of the word below.", task: "hello", answer: "3610a686", hint: "Use the CRC-32 operation." },
+    { id: "c19", cat: "Encoding", level: "hard", title: "Two layers", prompt: "This was Hex-encoded, then Base64-encoded. Peel both layers.", task: "NjMgNjEgNzQ=", answer: "cat", hint: "From Base64, then From Hex." },
+    { id: "c20", cat: "Encoding", level: "medium", title: "Base64 URL", prompt: "Decode this URL-safe Base64 token.", task: "ZmxhZ3t5MHVfZ290X2l0fQ", answer: "flag{y0u_got_it}", hint: "Use From Base64 URL." },
+    { id: "c21", cat: "Text", level: "medium", title: "Reverse & Base64", prompt: "The text was reversed, then Base64-encoded. Recover it.", task: "Ym9C", answer: "Bob", hint: "From Base64, then Reverse text." },
+    { id: "c22", cat: "Hashing", level: "hard", title: "HMAC", prompt: "Enter the HMAC-SHA256 of the message 'hello' using the key 'secret'.", task: "message: hello   key: secret", answer: "88aab3ede8d3adf94d26ab90d3bafd4a2083070c3bcce9c014ee04a443847c0b", hint: "Use HMAC-SHA256 with key 'secret' on input 'hello'." },
+    { id: "c23", cat: "Encoding", level: "medium", title: "Base58", prompt: "Decode this Base58 string.", task: "StV1DL6CwTryKyV", answer: "hello world", hint: "Use From Base58." },
+    { id: "c24", cat: "Data", level: "easy", title: "Change base", prompt: "Convert this hexadecimal number to decimal.", task: "ff", answer: "255", hint: "Change number base, from Hex to Decimal." },
+    { id: "c25", cat: "Hashing", level: "hard", title: "SHA-1", prompt: "Enter the SHA-1 hash (hex) of the word below.", task: "abc", answer: "a9993e364706816aba3e25717850c26c9cd0d89d", hint: "Put 'abc' through SHA-1." },
+    { id: "c26", cat: "Encoding", level: "easy", title: "Read a hexdump", prompt: "Decode the text hidden in this hexdump.", task: "00000000: 4869 21                                  Hi!", answer: "Hi!", hint: "Use From Hexdump." },
+    { id: "c27", cat: "Encoding", level: "easy", title: "Spell it out", prompt: "Convert the word below to NATO phonetic spelling.", task: "cat", answer: "Charlie Alpha Tango", hint: "Use To NATO Phonetic." },
+    { id: "c28", cat: "Encoding", level: "medium", title: "Octal codes", prompt: "Decode these octal character codes.", task: "107 157", answer: "Go", hint: "Use From Octal." },
+    { id: "c29", cat: "Encoding", level: "medium", title: "Unicode escapes", prompt: "Decode this \\u-escaped string.", task: "\\u0053\\u0065\\u0063", answer: "Sec", hint: "Use From \\u Escapes." },
+    { id: "c30", cat: "Text", level: "medium", title: "Strip the tags", prompt: "Remove the HTML tags, keeping just the text.", task: "<p>Nice <b>work</b></p>", answer: "Nice work", hint: "Use Strip HTML tags." },
+    { id: "c31", cat: "Data", level: "medium", title: "Find the email", prompt: "Extract the email address hidden in this sentence.", task: "Contact us at hello@example.com for info", answer: "hello@example.com", hint: "Use Extract, mode Email addresses." },
+    { id: "c32", cat: "Data", level: "easy", title: "Change of base", prompt: "Convert this binary number to hexadecimal.", task: "1010", answer: "a", hint: "Use Change number base, From Binary, To Hex." },
+    { id: "c33", cat: "Ciphers", level: "hard", title: "Crack the shift", prompt: "This sentence was Caesar-shifted by an unknown amount. Use letter frequency to find the shift and recover the text.", task: "aol xbpjr iyvdu mve qbtwz vcly aol shgf kvn dopsl aopurpun hivba jyfwavnyhwof", answer: "the quick brown fox jumps over the lazy dog while thinking about cryptography", hint: "Run Letter frequency on the ciphertext, compare to normal English letter frequency, then try Caesar with that shift." },
+    { id: "c34", cat: "Encoding", level: "medium", title: "Base32 again", prompt: "Decode this Base32 string.", task: "OB2XU6TMMU======", answer: "puzzle", hint: "Use From Base32." },
+    { id: "c35", cat: "Bitwise", level: "easy", title: "Flip every bit", prompt: "Apply bitwise NOT to the character below and give the hex result.", task: "0", answer: "cf", hint: "Use the NOT operation." },
+    { id: "c36", cat: "Bitwise", level: "easy", title: "Rotate a byte", prompt: "Rotate the bits of this single character left by 2 and give the hex result.", task: "@", answer: "01", hint: "Use Rotate Bits Left, amount 2. '@' is byte 0x40." },
+    { id: "c37", cat: "Bitwise", level: "medium", title: "Modular addition", prompt: "ADD (mod 256) the key 'ab' to the text below and give the hex result.", task: "Go", answer: "a8d1", hint: "Use ADD (mod 256) with key 'ab'." },
+    { id: "c38", cat: "Bitwise", level: "medium", title: "AND spells a word", prompt: "Bitwise-AND these two words together with key 'mask', then decode the hex result back to text.", task: "lock", answer: "lack", hint: "Use AND with key 'mask', then From Hex on the result." },
+    { id: "c39", cat: "Ciphers", level: "hard", title: "Break the single-byte key", prompt: "This was encrypted with a single-byte XOR key. Recover the message.", task: "624a4a5b0f4e5b0f5b474a0f40434b0f4d5d464b484a0f5b40414648475b", answer: "Meet at the old bridge tonight", hint: "Use XOR Brute Force, input is Hex — check the top-ranked result." },
+    { id: "c40", cat: "Ciphers", level: "hard", title: "Brute force the shift", prompt: "Use the Caesar Brute Force tool to recover this message — don't work it out by hand.", task: "xgvkrimbhg dxxil hnk wtmt ltyx ykhf ikrbgz xrxl tgw vnkbhnl tmmtvdxkl", answer: "encryption keeps our data safe from prying eyes and curious attackers", hint: "Use Caesar Brute Force and check the top-ranked line." },
+    { id: "c41", cat: "Ciphers", level: "medium", title: "Rail Fence", prompt: "This was encoded with Rail Fence, 3 rails. Decode it.", task: "ACDTAKTANTAW", answer: "ATTACKATDAWN", hint: "Use Rail Fence Decode with Rails set to 3." },
+    { id: "c42", cat: "Encoding", level: "easy", title: "Base85", prompt: "Decode this Base85 (Ascii85) string.", task: "Ao(mg", answer: "flag", hint: "Use From Base85." },
+    { id: "c43", cat: "Encoding", level: "medium", title: "Internationalized domain", prompt: "Decode this Punycode domain back to Unicode.", task: "xn--mnchen-3ya.de", answer: "münchen.de", hint: "Use From Punycode." },
+    { id: "c44", cat: "Ciphers", level: "hard", title: "Columnar transposition", prompt: "Decode this Columnar Transposition ciphertext using the keyword PUZZLE.", task: "ENMDMAIETGEMHTIT", answer: "MEETMEATMIDNIGHT", hint: "Use Columnar Transposition Decode, keyword PUZZLE." },
+    { id: "c45", cat: "Encoding", level: "medium", title: "Quoted-Printable", prompt: "Decode this Quoted-Printable string.", task: "50% off caf=C3=A9 orders", answer: "50% off café orders", hint: "Use From Quoted-Printable." },
+    { id: "c46", cat: "Hashing", level: "easy", title: "Adler-32", prompt: "Enter the Adler-32 checksum (hex) of the word below.", task: "hello", answer: "062c0215", hint: "Use the Adler-32 operation." },
+    { id: "c47", cat: "Bitwise", level: "medium", title: "Gray code", prompt: "Decode these Gray-coded hex bytes.", task: "6468", answer: "GO", hint: "Use From Gray Code." },
+    { id: "c48", cat: "Data", level: "easy", title: "Color format", prompt: "Convert this hex color to its RGB form.", task: "#663399", answer: "rgb(102, 51, 153)", hint: "Use Color Converter, convert to RGB." },
+    { id: "c49", cat: "Data", level: "easy", title: "IP to integer", prompt: "Convert this IPv4 address to its 32-bit integer form.", task: "10.0.0.1", answer: "167772161", hint: "Use IPv4 to Integer." },
+    { id: "c50", cat: "Data", level: "easy", title: "Integer to IP", prompt: "Convert this integer back to dotted-quad IPv4 form.", task: "2130706433", answer: "127.0.0.1", hint: "Use Integer to IPv4." },
+    { id: "c51", cat: "Encoding", level: "hard", title: "Two layers, new encodings", prompt: "This was Quoted-Printable encoded, then Base64-encoded. Peel both layers.", task: "Y2FmPUMzPUE5ID0zRCAxMDAlIHNlY3VyZQ==", answer: "café = 100% secure", hint: "From Base64, then From Quoted-Printable." },
+    { id: "c52", cat: "Data", level: "easy", title: "Date to timestamp", prompt: "Convert this date to a Unix timestamp (seconds).", task: "2024-01-01", answer: "1704067200", hint: "Use Date to Unix Time." },
+    { id: "c53", cat: "Data", level: "easy", title: "Find the address", prompt: "Extract the IPv4 address from this sentence.", task: "The server at 10.20.30.40 stopped responding", answer: "10.20.30.40", hint: "Use Extract, mode IPv4 addresses." },
+    { id: "c54", cat: "Data", level: "easy", title: "HSL to hex", prompt: "Convert this HSL color to its hex form.", task: "hsl(120, 100%, 25%)", answer: "#008000", hint: "Use Color Converter, convert to Hex." },
+    { id: "c55", cat: "Encoding", level: "medium", title: "Encode to Base85", prompt: "Type the Base85 (Ascii85) encoding of the word below.", task: "byte", answer: "@X3',", hint: "Use To Base85 on 'byte'." },
+    { id: "c56", cat: "Bitwise", level: "medium", title: "Into Gray code", prompt: "Give the hex Gray code of the text below.", task: "hi", answer: "5c5d", hint: "Use To Gray Code." },
+    { id: "c57", cat: "Ciphers", level: "medium", title: "Vigenère, forward", prompt: "Encrypt this with a Vigenère cipher, keyword BYTE.", task: "ATTACKATDAWN", answer: "BRMEDITXEYPR", hint: "Use Vigenère Encode with key BYTE." },
+    { id: "c58", cat: "Ciphers", level: "medium", title: "ROT13 in Base32", prompt: "This was ROT13'd, then Base32-encoded. Peel both layers.", task: "MZZHAZLSM4======", answer: "secret", hint: "From Base32 first, then ROT13." },
+    { id: "c59", cat: "Ciphers", level: "hard", title: "Four rails", prompt: "Decode this Rail Fence ciphertext — it used 4 rails.", task: "DTTTEDHSWADFNEAALUKEELS", answer: "DEFENDTHEEASTWALLATDUSK", hint: "Rail Fence Decode with Rails set to 4." },
+    { id: "c60", cat: "Ciphers", level: "hard", title: "Shifted, then dumped", prompt: "This message was Caesar-shifted by 7, then hex-encoded. Recover the original.", task: "74 6c 6c 61 20 68 61 20 61 6f 6c 20 75 76 79 61 6f 20 6e 68 61 6c", answer: "meet at the north gate", hint: "From Hex first, then Caesar with shift -7 (or 19)." },
+    { id: "c61", cat: "Bitwise", level: "medium", title: "Swap the byte order", prompt: "Swap the endianness of this 4-byte hex value.", task: "12345678", answer: "78 56 34 12", hint: "Use Swap Endianness." },
+    { id: "c62", cat: "Encoding", level: "easy", title: "Make a data URI", prompt: "Encode the word below as a plain-text data URI.", task: "hi", answer: "data:text/plain;base64,aGk=", hint: "Base64-encode 'hi', then prefix it with data:text/plain;base64," },
+    { id: "c63", cat: "Encoding", level: "easy", title: "Spell it phonetically", prompt: "Convert the word below to NATO phonetic spelling.", task: "bug", answer: "Bravo Uniform Golf", hint: "Use To NATO Phonetic." },
+    { id: "c64", cat: "Data", level: "medium", title: "Octal to binary", prompt: "Convert this octal number to binary.", task: "17", answer: "1111", hint: "Use Change number base, from Octal to Binary." },
+    { id: "c65", cat: "Data", level: "easy", title: "Find the number", prompt: "Extract the number hidden in this sentence.", task: "Room 42 is now open", answer: "42", hint: "Use Extract, mode Numbers." },
+    { id: "c66", cat: "Hashing", level: "hard", title: "HMAC-SHA512", prompt: "Enter the HMAC-SHA512 of the message 'hello' using the key 'key'.", task: "message: hello   key: key", answer: "ff06ab36757777815c008d32c8e14a705b4e7bf310351a06a23b612dc4c7433e7757d20525a5593b71020ea2ee162d2311b247e9855862b270122419652c0c92", hint: "Use HMAC-SHA512 with key 'key' on input 'hello'." },
+    { id: "c67", cat: "Hashing", level: "medium", title: "BLAKE2b-256", prompt: "Enter the BLAKE2b-256 hash (hex) of the word below.", task: "hi", answer: "6815cb4aeb1580a91ef673e63ff03bdb6e855c3a896db3f2765e03281a61134a", hint: "Use the BLAKE2b-256 operation." },
+    { id: "c68", cat: "Text", level: "easy", title: "Slugify a title", prompt: "Convert this title into a URL-friendly slug.", task: "Byte Labs Rocks!", answer: "byte-labs-rocks", hint: "Use Slugify." },
+    { id: "c69", cat: "Encoding", level: "easy", title: "Encode to Base45", prompt: "Type the Base45 (RFC 9285) encoding of the word below.", task: "flag", answer: "U.C5EC", hint: "Use To Base45." },
+    { id: "c70", cat: "Ciphers", level: "medium", title: "Beaufort, forward", prompt: "Encrypt this with a Beaufort cipher, keyword KEY.", task: "MEETATNOON", answer: "YAUREFXQKX", hint: "Use Beaufort Cipher with key KEY." },
+    { id: "c71", cat: "Bitwise", level: "easy", title: "Count the bits", prompt: "How many bits (total) are set in the text below?", task: "A", answer: "2", hint: "Use Count Set Bits and read the total." },
+    { id: "c72", cat: "Bitwise", level: "easy", title: "Mirror the bits", prompt: "Reverse the bit order of this single character and give the hex result.", task: "A", answer: "82", hint: "Use Reverse Bits." },
+    { id: "c73", cat: "Data", level: "medium", title: "Find the broadcast address", prompt: "What is the broadcast address of this network?", task: "172.16.0.5/28", answer: "172.16.0.15", hint: "Use Subnet Info." },
+    { id: "c74", cat: "Bitwise", level: "easy", title: "Swap two bytes", prompt: "Swap the endianness of this 2-byte hex value.", task: "abcd", answer: "cd ab", hint: "Use Swap Endianness." },
+    { id: "c75", cat: "Encoding", level: "medium", title: "Decode Base45", prompt: "Decode this Base45 (RFC 9285) string.", task: "7I87WENT93KC", answer: "ByteLabs", hint: "Use From Base45." },
+    { id: "c76", cat: "Ciphers", level: "hard", title: "Break the Beaufort", prompt: "This was encrypted with a Beaufort cipher, keyword SHIELD. Recover the message — remember Beaufort is reciprocal.", task: "PDDAYAOQ", answer: "DEFENDER", hint: "Use Beaufort Cipher again with the same key SHIELD — it decrypts itself." }
   ];
 
   // Order lessons follow on the progression map (each unlocks the next).
   // Sections group the path into named units on the Learn map. Their ids, flattened
   // in order, ARE the lesson order — the unlock chain runs straight through them.
   const LESSON_SECTIONS = [
-    { title: "Encodings", ids: ["base64", "hex", "hexdump", "unicode", "surrogates", "mojibake", "homoglyphs", "url", "mime", "base32", "base58", "density", "morse", "datauri"] },
-    { title: "Classical ciphers", ids: ["ciphers", "transposition", "columnar", "frequency", "kerckhoffs"] },
-    { title: "Bits & XOR", ids: ["xor", "otp", "bitwise", "bitmasks", "endianness", "bruteforce"] },
+    { title: "Encodings", ids: ["base64", "hex", "hexdump", "unicode", "surrogates", "mojibake", "homoglyphs", "url", "mime", "base32", "base58", "density", "base45lesson", "morse", "datauri"] },
+    { title: "Classical ciphers", ids: ["ciphers", "beaufortlesson", "transposition", "columnar", "frequency", "kerckhoffs"] },
+    { title: "Bits & XOR", ids: ["xor", "otp", "bitwise", "bitmasks", "hamming", "endianness", "bruteforce"] },
     { title: "Hashing & integrity", ids: ["hashing", "collisions", "merkletrees", "checksums", "hmac"] },
     { title: "Encryption", ids: ["encryption", "aes", "rsa", "signatures", "keyexchange", "tls"] },
     { title: "Passwords & secrets", ids: ["salt", "kdf", "cracking", "strength-practice", "diceware", "mfa"] },
-    { title: "Data in practice", ids: ["uuids", "jwt", "networking", "unixtime", "regex", "entropy"] }
+    { title: "Data in practice", ids: ["uuids", "jwt", "networking", "subnetting", "unixtime", "regex", "entropy"] }
   ];
   const LESSON_ORDER = LESSON_SECTIONS.reduce((acc, s) => acc.concat(s.ids), []);
 

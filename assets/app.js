@@ -21,6 +21,8 @@
     { id: "base58-decode", name: "From Base58", cat: "Encoding", run: (s) => CL.bytesToText(CL.base58Decode(s)), about: "Decodes Base58 back into text." },
     { id: "base85-encode", name: "To Base85", cat: "Encoding", run: (s) => CL.base85Encode(CL.utf8Bytes(s)), about: "Base85 (Ascii85) — packs 4 bytes into 5 printable characters, denser than Base64. Used in Adobe PostScript/PDF and git binary patches.", example: { in: "Man ", out: "9jqo^" } },
     { id: "base85-decode", name: "From Base85", cat: "Encoding", run: (s) => CL.bytesToText(CL.base85Decode(s)), about: "Decodes Base85 (Ascii85) back into text." },
+    { id: "base45-encode", name: "To Base45", cat: "Encoding", run: (s) => CL.base45Encode(CL.utf8Bytes(s)), about: "RFC 9285 - the encoding behind EU Digital COVID Certificate QR codes. Packs 2 bytes into 3 characters from an alphabet chosen to be efficient inside QR codes.", example: { in: "AB", out: "BB8" } },
+    { id: "base45-decode", name: "From Base45", cat: "Encoding", run: (s) => CL.bytesToText(CL.base45Decode(s)), about: "Decodes Base45 (RFC 9285) back into text." },
     { id: "punycode-encode", name: "To Punycode", cat: "Encoding", run: (s) => CL.punycodeEncode(s), about: "Encodes a domain name to ASCII-Compatible Encoding (RFC 3492), the way browsers actually send internationalized domains over DNS. Only non-ASCII dot-separated labels get an xn-- prefix.", example: { in: "münchen.de", out: "xn--mnchen-3ya.de" } },
     { id: "punycode-decode", name: "From Punycode", cat: "Encoding", run: (s) => CL.punycodeDecode(s), about: "Decodes an xn-- Punycode domain back to Unicode. Note: real browsers deliberately do NOT do this automatically in script-visible APIs — it's exactly the kind of conversion that enables homoglyph domain spoofing, see the Learn lesson on that.", example: { in: "xn--mnchen-3ya.de", out: "münchen.de" } },
     { id: "qp-encode", name: "To Quoted-Printable", cat: "Encoding", run: (s) => CL.qpEncode(s), about: "MIME email encoding (RFC 2045) - keeps ASCII text mostly readable, escapes everything else as =XX hex. The classic alternative to Base64 for email bodies.", example: { in: "100% = good", out: "100% =3D good" } },
@@ -56,6 +58,7 @@
     { id: "a1z26-decode", name: "A1Z26 Decode", cat: "Ciphers", run: (s) => CL.a1z26Decode(s), about: "Numbers back into letters." },
     { id: "vigenere-encode", name: "Vigenère Encode", cat: "Ciphers", params: [{ name: "key", label: "Key", type: "text", def: "KEY" }], run: (s, p) => CL.vigenereEncode(s, p.key), about: "Shifts each letter by a repeating keyword.", example: { in: "ATTACK", out: "KXRKGI" } },
     { id: "vigenere-decode", name: "Vigenère Decode", cat: "Ciphers", params: [{ name: "key", label: "Key", type: "text", def: "KEY" }], run: (s, p) => CL.vigenereDecode(s, p.key), about: "Reverses a Vigenère cipher with the same key." },
+    { id: "beaufort", name: "Beaufort Cipher", cat: "Ciphers", params: [{ name: "key", label: "Key", type: "text", def: "KEY" }], run: (s, p) => CL.beaufort(s, p.key), about: "A Vigenère variant (c = key - plaintext, instead of key + plaintext) that's reciprocal like Atbash - applying it twice with the same key restores the original text.", example: { in: "ATTACKATDAWN", out: "KLFKCOKLVKIL" } },
     { id: "railfence-encode", name: "Rail Fence Encode", cat: "Ciphers", params: [{ name: "rails", label: "Rails", type: "number", def: 3 }], run: (s, p) => CL.railFenceEncode(s, parseInt(p.rails, 10) || 2), about: "A transposition cipher — writes the text in a zigzag across N rails, then reads each rail off in order. Unlike every other cipher here, it scrambles position rather than substituting letters, so letter frequencies stay unchanged.", example: { in: "WEAREDISCOVEREDFLEEATONCE", out: "WECRLTEERDSOEEFEAOCAIVDEN" } },
     { id: "railfence-decode", name: "Rail Fence Decode", cat: "Ciphers", params: [{ name: "rails", label: "Rails", type: "number", def: 3 }], run: (s, p) => CL.railFenceDecode(s, parseInt(p.rails, 10) || 2), about: "Reverses a Rail Fence cipher — you need the same rail count used to encode." },
     { id: "columnar-encode", name: "Columnar Transposition Encode", cat: "Ciphers", params: [{ name: "key", label: "Keyword", type: "text", def: "ZEBRAS" }], run: (s, p) => CL.columnarEncode(s, p.key), about: "A transposition cipher where a keyword's alphabetical letter order sets the order columns are read back in - more key space than Rail Fence.", example: { in: "WEAREDISCOVEREDFLEEATONCE", out: "EVLNACDTESEAROFODEECWIREE" } },
@@ -85,6 +88,8 @@
     { id: "gray-encode", name: "To Gray Code", cat: "Bitwise", run: (s) => CL.grayEncodeHex(s), about: "Converts each byte to its Gray code, output as hex. Gray code's defining property: incrementing a value by 1 always flips exactly one bit - used in rotary encoders and Karnaugh maps to avoid glitches from multiple bits changing at once.", example: { in: "A", out: "61" } },
     { id: "gray-decode", name: "From Gray Code", cat: "Bitwise", run: (s) => CL.grayDecodeHex(s), about: "Decodes hex Gray code bytes back to the original text." },
     { id: "endian-swap", name: "Swap Endianness", cat: "Bitwise", run: (s) => CL.endianSwap(s.replace(/\s/g, "")), about: "Reverses byte order — converts hex bytes between big-endian and little-endian. Applying it twice restores the original.", example: { in: "12345678", out: "78 56 34 12" } },
+    { id: "popcount", name: "Count Set Bits", cat: "Bitwise", run: (s) => CL.popcount(s), about: "Counts the 1-bits in each byte (its Hamming weight) plus a running total - the same count a Bitmask check relies on.", example: { in: "A", out: "2  (total: 2 of 8 bits set)" } },
+    { id: "reverse-bits", name: "Reverse Bits", cat: "Bitwise", run: (s) => CL.reverseBitsHex(s), about: "Mirrors the 8 bits within each byte (bit 0 swaps with bit 7, and so on), output as hex. Its own inverse.", example: { in: "A", out: "82" } },
 
     // Hashing
     { id: "md5", name: "MD5", cat: "Hashing", run: (s) => CL.md5(CL.utf8Bytes(s)), about: "128-bit hash. One-way. Broken for security — checksums only.", warn: true },
@@ -162,6 +167,7 @@
     { id: "unix-decode", name: "Unix Time to Date", cat: "Data", run: (s) => CL.unixToDate(s), about: "Converts a Unix timestamp (seconds) into an ISO date.", example: { in: "0", out: "1970-01-01T00:00:00.000Z" } },
     { id: "ip-to-int", name: "IPv4 to Integer", cat: "Data", run: (s) => CL.ipToInt(s), about: "Converts a dotted-quad IPv4 address into its 32-bit unsigned integer form - how it's actually stored and routed.", example: { in: "192.168.1.1", out: "3232235777" } },
     { id: "int-to-ip", name: "Integer to IPv4", cat: "Data", run: (s) => CL.intToIp(s), about: "Converts a 32-bit unsigned integer back into dotted-quad IPv4 notation.", example: { in: "3232235777", out: "192.168.1.1" } },
+    { id: "subnet-info", name: "Subnet Info", cat: "Data", run: (s) => CL.subnetInfo(s), about: "Enter an address in CIDR form (e.g. 192.168.1.10/24) to get its network address, subnet mask, broadcast address, and usable host range.", example: { in: "192.168.1.10/24", out: "Network:    192.168.1.0/24\nMask:       255.255.255.0\nBroadcast:  192.168.1.255\nUsable:     254 host(s)\nRange:      192.168.1.1 - 192.168.1.254" } },
     { id: "color-convert", name: "Color Converter", cat: "Data", params: [{ name: "to", label: "Convert to", type: "select", def: "rgb", options: [{ v: "hex", t: "Hex" }, { v: "rgb", t: "RGB" }, { v: "hsl", t: "HSL" }] }], run: (s, p) => CL.convertColor(s, p.to), about: "Auto-detects hex (#rrggbb), rgb() or hsl() input and converts to whichever format you pick. Converting through HSL rounds to whole degrees/percent, so round-trips can drift by a shade.", example: { in: "#ff6600", out: "rgb(255, 102, 0)" } },
     { id: "change-base", name: "Change number base", cat: "Data", params: [{ name: "from", label: "From base", type: "select", def: "10", options: [{ v: "2", t: "Binary (2)" }, { v: "8", t: "Octal (8)" }, { v: "10", t: "Decimal (10)" }, { v: "16", t: "Hex (16)" }] }, { name: "to", label: "To base", type: "select", def: "16", options: [{ v: "2", t: "Binary (2)" }, { v: "8", t: "Octal (8)" }, { v: "10", t: "Decimal (10)" }, { v: "16", t: "Hex (16)" }] }], run: (s, p) => CL.changeBase(s, parseInt(p.from, 10), parseInt(p.to, 10)), about: "Converts a whole number between bases (handles very large numbers).", example: { in: "255 (10→16)", out: "ff" } },
     { id: "letter-frequency", name: "Letter frequency", cat: "Data", run: (s) => CL.letterFrequency(s), about: "Counts each A–Z letter — the first step in breaking substitution ciphers." },
@@ -173,7 +179,8 @@
     { id: "gen-hex", name: "Random Hex", cat: "Random", ignoresInput: true, params: [{ name: "bytes", label: "Bytes", type: "number", def: 16 }], run: (s, p) => CL.bytesToHex(CL.randomBytes(parseInt(p.bytes, 10) || 16), false), about: "Random hex string." },
     { id: "gen-base64", name: "Random Base64", cat: "Random", ignoresInput: true, params: [{ name: "bytes", label: "Bytes", type: "number", def: 16 }], run: (s, p) => CL.bytesToBase64(CL.randomBytes(parseInt(p.bytes, 10) || 16)), about: "Random Base64 string." },
     { id: "gen-bytes", name: "Random Bytes", cat: "Random", ignoresInput: true, params: [{ name: "count", label: "Count", type: "number", def: 32 }], run: (s, p) => CL.bytesToHex(CL.randomBytes(parseInt(p.count, 10) || 32), true), about: "Random bytes shown as spaced hex." },
-    { id: "gen-ipv4", name: "Random IPv4", cat: "Random", ignoresInput: true, run: () => CL.randomIpv4(), about: "A random dotted-quad IPv4 address, from secure randomness. Useful test data - not a real routable address." }
+    { id: "gen-ipv4", name: "Random IPv4", cat: "Random", ignoresInput: true, run: () => CL.randomIpv4(), about: "A random dotted-quad IPv4 address, from secure randomness. Useful test data - not a real routable address." },
+    { id: "gen-dice", name: "Dice Roll", cat: "Random", ignoresInput: true, params: [{ name: "count", label: "Dice", type: "number", def: 5 }], run: (s, p) => CL.rollDice(parseInt(p.count, 10) || 5), about: "Rolls the given number of six-sided dice using secure randomness with rejection sampling, so every face stays exactly 1-in-6 - the same method behind a real Diceware passphrase." }
   ];
   const OP_BY_ID = Object.fromEntries(OPS.map((o) => [o.id, o]));
   const COMMON = ["base64-encode", "base64-decode", "hex-encode", "hex-decode", "url-encode", "url-decode", "sha256", "rot13"];
@@ -702,8 +709,11 @@
       ? `<rect x="28" y="60" width="40" height="6" fill="${ink}"/>`
       : `<rect x="40" y="60" width="16" height="4" fill="${ink}"/>`;
     const shine = `<rect x="20" y="64" width="8" height="8" fill="var(--lime)" opacity=".55"/>`;
-    const sparkle = mood === "done" ? `<g fill="var(--lime-bright)"><rect x="2" y="14" width="6" height="6"/><rect x="88" y="26" width="4" height="4"/></g>` : "";
-    return `<svg class="mascot-svg pixel mood-${mood}" viewBox="0 0 96 88" width="80" height="73" shape-rendering="crispEdges">${sparkle}${body}${shine}${eyes}${mouth}</svg>`;
+    const sparkle = mood === "done" ? `<g fill="var(--lime-bright)"><rect x="2" y="4" width="6" height="6"/><rect x="88" y="8" width="4" height="4"/></g>` : "";
+    const arms = mood === "done"
+      ? `<rect x="0" y="20" width="8" height="28" fill="${glass}" stroke="${glassLine}" stroke-width="2"/><rect x="88" y="20" width="8" height="28" fill="${glass}" stroke="${glassLine}" stroke-width="2"/>`
+      : `<rect x="0" y="64" width="8" height="16" fill="${glass}" stroke="${glassLine}" stroke-width="2"/><rect class="mascot-wave-px" x="88" y="36" width="8" height="20" fill="${glass}" stroke="${glassLine}" stroke-width="2"/>`;
+    return `<svg class="mascot-svg pixel mood-${mood}" viewBox="0 0 96 88" width="80" height="73" shape-rendering="crispEdges">${sparkle}${arms}${body}${shine}${eyes}${mouth}</svg>`;
   }
 
   const MASCOT_MSG = {
@@ -806,7 +816,7 @@
   }
   function closeLesson() { $("#lesson-modal").classList.add("hidden"); }
 
-  const DEMO_FIELD2 = { xor: "Key", vigenere: "Key", caesar: "Shift", regex: "Pattern (regex)", railfence: "Rails", columnar: "Keyword", bitmask: "Mask (hex byte)" };
+  const DEMO_FIELD2 = { xor: "Key", vigenere: "Key", beaufort: "Key", caesar: "Shift", regex: "Pattern (regex)", railfence: "Rails", columnar: "Keyword", bitmask: "Mask (hex byte)" };
   function buildDemo(view, demo) {
     const wrap = document.createElement("div"); wrap.className = "demo";
     wrap.innerHTML = "<h4>Try it yourself</h4>";
@@ -847,6 +857,10 @@
       case "ipv4": return CL.ipToInt(v);
       case "hexdump": return CL.toHexdump(CL.utf8Bytes(v));
       case "base85": return CL.base85Encode(CL.utf8Bytes(v));
+      case "base45": return CL.base45Encode(CL.utf8Bytes(v));
+      case "beaufort": return CL.beaufort(v, k);
+      case "popcount": return CL.popcount(v);
+      case "subnet": return CL.subnetInfo(v);
       case "unixtime": return CL.dateToUnix(v);
       case "endian": return CL.endianSwap(v.replace(/\s/g, ""));
       case "datauri": return "data:text/plain;base64," + CL.bytesToBase64(CL.utf8Bytes(v));
@@ -911,6 +925,14 @@
   function loadDone() { try { return JSON.parse(localStorage.getItem("bytelabs.challenges") || "{}"); } catch (e) { return {}; } }
   function saveDone(d) { localStorage.setItem("bytelabs.challenges", JSON.stringify(d)); }
 
+  const CHAL_CATEGORY_ORDER = ["Encoding", "Ciphers", "Bitwise", "Hashing", "Text", "Data", "Random"];
+  const CHAL_CAT_ICON_PATHS = {
+    Encoding: UNIT_ICONS[0], Ciphers: UNIT_ICONS[1], Bitwise: UNIT_ICONS[2], Hashing: UNIT_ICONS[3],
+    Text: '<path d="M4 6h16M4 12h16M4 18h10"/>', Data: UNIT_ICONS[6], Random: UNIT_ICONS[2]
+  };
+  function chalCatIcon(cat) { return `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${CHAL_CAT_ICON_PATHS[cat] || ""}</svg>`; }
+  const SOLVE_MSGS = ["Correct — nice work.", "Nailed it.", "That's the one.", "Solved.", "Correct — on to the next.", "Got it."];
+
   function initChallenges() {
     const levels = ["all", "easy", "medium", "hard"];
     const fbox = $("#chal-filters");
@@ -921,7 +943,29 @@
       b.addEventListener("click", () => { chalFilter = lv; $$("#chal-filters button").forEach((x) => x.classList.remove("active")); b.classList.add("active"); renderChallenges(); });
       fbox.appendChild(b);
     });
+    const surprise = document.createElement("button");
+    surprise.id = "chal-surprise"; surprise.className = "mini";
+    surprise.innerHTML = "🎲 Surprise me";
+    surprise.addEventListener("click", surpriseChallenge);
+    fbox.appendChild(surprise);
     renderChallenges();
+  }
+  function surpriseChallenge() {
+    const done = loadDone();
+    const all = CL_DATA.CHALLENGES;
+    const pool = (chalFilter === "all" ? all : all.filter((c) => c.level === chalFilter)).filter((c) => !done[c.id]);
+    const target = pool.length ? pool : all.filter((c) => !done[c.id]);
+    if (!target.length) { toast("Every challenge is solved!"); return; }
+    const pick = target[Math.floor(Math.random() * target.length)];
+    if (chalFilter !== "all" && !pool.length) { chalFilter = "all"; $$("#chal-filters button").forEach((x) => x.classList.toggle("active", x.dataset.level === "all")); renderChallenges(); }
+    requestAnimationFrame(() => {
+      const card = $(`.challenge[data-id="${pick.id}"]`);
+      if (!card) return;
+      card.scrollIntoView({ behavior: "smooth", block: "center" });
+      card.classList.add("spotlight");
+      setTimeout(() => card.classList.remove("spotlight"), 1600);
+      const input = $("input", card); if (input) input.focus();
+    });
   }
   function renderChallenges() {
     const wrap = $("#challenge-list"); const done = loadDone(); wrap.innerHTML = "";
@@ -931,32 +975,48 @@
     $("#challenge-progress").innerHTML =
       `<div class="lp-bar"><span style="width:${pct}%"></span></div>` +
       `<div class="lp-text">${solved} of ${all.length} solved` + (solved ? ` · ${pct}%` : "") + `</div>`;
-    $$("#chal-filters button").forEach((b) => {
+    $$("#chal-filters button[data-level]").forEach((b) => {
       const lv = b.dataset.level;
       const pool = lv === "all" ? all : all.filter((c) => c.level === lv);
       const n = pool.filter((c) => done[c.id]).length;
       $(".chip-count", b).textContent = `${n}/${pool.length}`;
     });
-    all.filter((c) => chalFilter === "all" || c.level === chalFilter).forEach((c) => {
-      const card = document.createElement("div"); card.className = "challenge lv-" + c.level + (done[c.id] ? " done" : "");
-      card.innerHTML = `
-        <div class="chal-top"><h3>${c.title}</h3><span class="chal-tags">
-          ${done[c.id] ? '<span class="badge">' + checkSvg() + " solved</span>" : ""}<span class="tag ${c.level}">${c.level}</span></span></div>
-        <div class="prompt">${c.prompt}</div>
-        <div class="task">${escapeHtml(c.task)}</div>
-        <input class="field mono" placeholder="your answer…" />
-        <div class="row"><button class="btn">Check</button><button class="mini reveal">Hint</button></div>
-        <div class="feedback"></div>`;
-      const input = $("input", card), fb = $(".feedback", card);
-      const check = () => {
-        if (input.value.trim() === c.answer) {
-          fb.innerHTML = '<span class="cmp-match">Correct.</span>'; const d = loadDone(); d[c.id] = true; saveDone(d); renderChallenges();
-        } else fb.innerHTML = '<span class="cmp-diff">Not quite — try again.</span>';
-      };
-      $(".btn", card).addEventListener("click", check);
-      $(".reveal", card).addEventListener("click", () => { fb.textContent = c.hint || "No hint for this one."; });
-      input.addEventListener("keydown", (e) => { if (e.key === "Enter") check(); });
-      wrap.appendChild(card);
+    const filtered = all.filter((c) => chalFilter === "all" || c.level === chalFilter);
+    CHAL_CATEGORY_ORDER.forEach((cat) => {
+      const group = filtered.filter((c) => c.cat === cat);
+      if (!group.length) return;
+      const catDone = group.filter((c) => done[c.id]).length;
+      const banner = document.createElement("div");
+      banner.className = "chal-cat-banner" + (catDone === group.length ? " complete" : "");
+      banner.innerHTML = `<span class="unit-icon">${chalCatIcon(cat)}</span><span class="unit-copy"><span class="unit-title">${cat}</span></span><span class="unit-count">${catDone === group.length ? checkSvg() : catDone + " / " + group.length}</span>`;
+      wrap.appendChild(banner);
+      const grid = document.createElement("div"); grid.className = "challenge-grid";
+      group.forEach((c) => {
+        const card = document.createElement("div"); card.className = "challenge lv-" + c.level + (done[c.id] ? " done" : ""); card.dataset.id = c.id;
+        card.innerHTML = `
+          <div class="chal-top"><h3>${c.title}</h3><span class="chal-tags">
+            ${done[c.id] ? '<span class="badge">' + checkSvg() + " solved</span>" : ""}<span class="tag ${c.level}">${c.level}</span></span></div>
+          <div class="prompt">${c.prompt}</div>
+          <div class="task">${escapeHtml(c.task)}</div>
+          <input class="field mono" placeholder="your answer…" />
+          <div class="row"><button class="btn">Check</button><button class="mini reveal">Hint</button></div>
+          <div class="feedback"></div>`;
+        const input = $("input", card), fb = $(".feedback", card);
+        const check = () => {
+          if (input.value.trim() === c.answer) {
+            fb.innerHTML = '<span class="cmp-match">Correct.</span>';
+            card.classList.add("solve-pop");
+            const d = loadDone(); const firstTime = !d[c.id]; d[c.id] = true; saveDone(d);
+            if (firstTime) toast(SOLVE_MSGS[Math.floor(Math.random() * SOLVE_MSGS.length)]);
+            setTimeout(renderChallenges, firstTime ? 450 : 0);
+          } else { fb.innerHTML = '<span class="cmp-diff">Not quite — try again.</span>'; card.classList.add("shake"); setTimeout(() => card.classList.remove("shake"), 400); }
+        };
+        $(".btn", card).addEventListener("click", check);
+        $(".reveal", card).addEventListener("click", () => { fb.textContent = c.hint || "No hint for this one."; });
+        input.addEventListener("keydown", (e) => { if (e.key === "Enter") check(); });
+        grid.appendChild(card);
+      });
+      wrap.appendChild(grid);
     });
   }
 

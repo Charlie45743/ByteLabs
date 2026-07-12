@@ -303,6 +303,18 @@
     const b = randomBytes(4);
     return Array.from(b).join(".");
   }
+  // Rejection sampling keeps each face uniformly 1-in-6 — a plain byte % 6 would be
+  // very slightly biased toward low faces, since 256 isn't a multiple of 6.
+  function rollDice(count) {
+    const n = Math.max(1, count | 0);
+    const rolls = [];
+    while (rolls.length < n) {
+      const b = randomBytes(1)[0];
+      if (b >= 252) continue;
+      rolls.push((b % 6) + 1);
+    }
+    return rolls.join(" ");
+  }
 
   // ----- Base64 URL-safe -----
   function bytesToBase64Url(bytes) {
@@ -378,6 +390,21 @@
   }
   function vigenereEncode(s, k) { return vigenere(s, k, 1); }
   function vigenereDecode(s, k) { return vigenere(s, k, -1); }
+
+  // ----- Beaufort cipher: c = k - p (mod 26), reciprocal like Atbash/ROT13 -----
+  function beaufort(str, key) {
+    const k = (key || "").toLowerCase().replace(/[^a-z]/g, "");
+    if (!k.length) return str;
+    let ki = 0;
+    return str.replace(/[a-z]/gi, function (c) {
+      const base = c <= "Z" ? 65 : 97;
+      const shift = k.charCodeAt(ki % k.length) - 97;
+      ki++;
+      const x = c.charCodeAt(0) - base;
+      const y = ((shift - x) % 26 + 26) % 26;
+      return String.fromCharCode(base + y);
+    });
+  }
 
   // ----- Rail Fence cipher (transposition, not substitution) -----
   function railFenceEncode(str, rails) {
@@ -589,6 +616,22 @@
     const v = n >>> 0;
     return [(v >>> 24) & 255, (v >>> 16) & 255, (v >>> 8) & 255, v & 255].join(".");
   }
+  // Computes network/broadcast/usable-range for a CIDR block, e.g. "192.168.1.10/24".
+  function subnetInfo(str) {
+    const parts = str.trim().split("/");
+    if (parts.length !== 2) throw new Error("Enter an address in CIDR form, e.g. 192.168.1.10/24.");
+    const prefix = parseInt(parts[1], 10);
+    if (!/^\d+$/.test(parts[1]) || prefix < 0 || prefix > 32) throw new Error("Prefix must be a whole number from 0 to 32.");
+    const ip = parseInt(ipToInt(parts[0]), 10);
+    const mask = prefix === 0 ? 0 : (0xffffffff << (32 - prefix)) >>> 0;
+    const network = (ip & mask) >>> 0;
+    const broadcast = (network | (~mask >>> 0)) >>> 0;
+    const totalHosts = Math.pow(2, 32 - prefix);
+    const usable = prefix >= 31 ? 0 : totalHosts - 2;
+    const firstHost = usable > 0 ? intToIp(String(network + 1)) : intToIp(String(network));
+    const lastHost = usable > 0 ? intToIp(String(broadcast - 1)) : intToIp(String(broadcast));
+    return `Network:    ${intToIp(String(network))}/${prefix}\nMask:       ${intToIp(String(mask))}\nBroadcast:  ${intToIp(String(broadcast))}\nUsable:     ${usable} host(s)\nRange:      ${firstHost} - ${lastHost}`;
+  }
 
   // ----- Color format conversion (hex / rgb() / hsl()) -----
   function parseColor(str) {
@@ -716,6 +759,51 @@
       const b = [(n >>> 24) & 255, (n >>> 16) & 255, (n >>> 8) & 255, n & 255];
       for (let k = 0; k < 4 - padLen; k++) bytesOut.push(b[k]);
       i += 5 - padLen;
+    }
+    return new Uint8Array(bytesOut);
+  }
+
+  // ----- Base45 (RFC 9285) - the encoding behind EU COVID certificate QR codes -----
+  const B45_ALPHABET = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ $%*+-./:";
+  function base45Encode(bytes) {
+    let out = "";
+    for (let i = 0; i < bytes.length; i += 2) {
+      if (i + 1 < bytes.length) {
+        let n = bytes[i] * 256 + bytes[i + 1];
+        const d0 = n % 45; n = Math.floor(n / 45);
+        const d1 = n % 45; n = Math.floor(n / 45);
+        out += B45_ALPHABET[d0] + B45_ALPHABET[d1] + B45_ALPHABET[n];
+      } else {
+        let n = bytes[i];
+        const d0 = n % 45; n = Math.floor(n / 45);
+        out += B45_ALPHABET[d0] + B45_ALPHABET[n];
+      }
+    }
+    return out;
+  }
+  function base45Decode(str) {
+    const clean = str.trim();
+    const bytesOut = [];
+    let i = 0;
+    while (i < clean.length) {
+      const remaining = clean.length - i;
+      if (remaining >= 3) {
+        const d0 = B45_ALPHABET.indexOf(clean[i]), d1 = B45_ALPHABET.indexOf(clean[i + 1]), d2 = B45_ALPHABET.indexOf(clean[i + 2]);
+        if (d0 < 0 || d1 < 0 || d2 < 0) throw new Error("Invalid Base45 character.");
+        const n = d0 + d1 * 45 + d2 * 45 * 45;
+        if (n > 0xffff) throw new Error("Invalid Base45 triplet.");
+        bytesOut.push((n >> 8) & 0xff, n & 0xff);
+        i += 3;
+      } else if (remaining === 2) {
+        const d0 = B45_ALPHABET.indexOf(clean[i]), d1 = B45_ALPHABET.indexOf(clean[i + 1]);
+        if (d0 < 0 || d1 < 0) throw new Error("Invalid Base45 character.");
+        const n = d0 + d1 * 45;
+        if (n > 0xff) throw new Error("Invalid Base45 pair.");
+        bytesOut.push(n & 0xff);
+        i += 2;
+      } else {
+        throw new Error("Base45 input has an invalid length.");
+      }
     }
     return new Uint8Array(bytesOut);
   }
@@ -978,6 +1066,28 @@
     const bytes = hexToBytes(hex);
     return bytesToHex(new Uint8Array(Array.from(bytes).reverse()), true);
   }
+  // Counts set (1) bits per byte, plus a total across the whole input.
+  function popcount(str) {
+    const bytes = utf8Bytes(str);
+    let total = 0;
+    const perByte = Array.from(bytes).map((b) => {
+      let n = 0, x = b;
+      while (x) { n += x & 1; x >>= 1; }
+      total += n;
+      return n;
+    });
+    return perByte.join(" ") + "  (total: " + total + " of " + bytes.length * 8 + " bits set)";
+  }
+  // Mirrors the bit order within each byte (bit 0 <-> bit 7, etc).
+  function reverseBitsHex(str) {
+    const bytes = utf8Bytes(str), out = new Uint8Array(bytes.length);
+    for (let i = 0; i < bytes.length; i++) {
+      let b = bytes[i], r = 0;
+      for (let k = 0; k < 8; k++) { r = (r << 1) | (b & 1); b >>= 1; }
+      out[i] = r & 0xff;
+    }
+    return bytesToHex(out, false);
+  }
 
   // ----- English-likeness scoring, shared by both brute-force tools -----
   // Standard published English letter frequencies (percent), Wikipedia / Cornell CS.
@@ -1061,16 +1171,16 @@
   window.CL = {
     utf8Bytes, bytesToText, bytesToBase64, base64ToBytes, bytesToBase64Url, base64UrlToBytes,
     bytesToHex, hexToBytes, bytesToBinary, binaryToBytes, base32Encode, base32Decode, base58Encode, base58Decode,
-    base85Encode, base85Decode, punycodeEncode, punycodeDecode, qpEncode, qpDecode,
+    base85Encode, base85Decode, base45Encode, base45Decode, punycodeEncode, punycodeDecode, qpEncode, qpDecode,
     toHexdump, fromHexdump, htmlEncode, htmlDecode, caesar, atbash, rot47, a1z26Encode, a1z26Decode,
-    vigenereEncode, vigenereDecode, railFenceEncode, railFenceDecode, columnarEncode, columnarDecode,
+    vigenereEncode, vigenereDecode, beaufort, railFenceEncode, railFenceDecode, columnarEncode, columnarDecode,
     xorHexOut, xorFromHex, decimalEncode, decimalDecode,
     octalEncode, octalDecode, unicodeEscape, unicodeUnescape, natoEncode, morseEncode, morseDecode,
     stripAccents, jsonEscape, jsonUnescape, changeCase, changeBase, letterFrequency, extract, dateToUnix, unixToDate,
-    ipToInt, intToIp, convertColor,
+    ipToInt, intToIp, subnetInfo, convertColor,
     convertLineEndings, stripHtmlTags, wordWrap, inspectChars, byteHistogram,
-    bitAndHex, bitOrHex, bitXorHex, modAddHex, modSubHex, bitNot, bitShift, rotateBits, grayEncodeHex, grayDecodeHex, endianSwap,
+    bitAndHex, bitOrHex, bitXorHex, modAddHex, modSubHex, bitNot, bitShift, rotateBits, grayEncodeHex, grayDecodeHex, endianSwap, popcount, reverseBitsHex,
     xorBruteForce, caesarBruteForce, chiSquaredEnglish,
-    md5, shaHex, hmacHex, crc32, adler32, entropy, printableRatio, magicBytes, detect, parseJwt, randomBytes, uuid, password, randomIpv4
+    md5, shaHex, hmacHex, crc32, adler32, entropy, printableRatio, magicBytes, detect, parseJwt, randomBytes, uuid, password, randomIpv4, rollDice
   };
 })();

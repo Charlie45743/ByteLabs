@@ -24,23 +24,25 @@ them, and removed individually. Heavy operations (Argon2id, PBKDF2) are marked "
 and use an explicit Compute button instead of running on every keystroke, so typing
 never stutters.
 
-113 operations across 7 categories:
+120 operations across 7 categories:
 
-- **Encoding (35)** — Base64, Base64 URL-safe, Base32, Base58, Base85, hex, hexdump,
-  binary, decimal, octal, URL encoding, HTML entities, `\u` escapes, JSON string
-  escapes, Morse code, NATO phonetic spelling, Punycode/IDN (RFC 3492, for
-  internationalized domain names), and Quoted-Printable (RFC 2045, the MIME email
-  encoding) — each with both an encode and a decode direction.
-- **Ciphers (15)** — ROT13, ROT47, Caesar (with adjustable shift), Atbash, A1Z26,
-  Vigenère, Rail Fence and Columnar Transposition (transposition ciphers — they
-  scramble position instead of substituting letters), and XOR, plus two
-  **brute-force tools**: XOR Brute Force and Caesar Brute Force, which try every
-  possible key/shift and rank the results by how much they read like actual English
-  (letter-frequency statistics plus common-word matching), showing a ranked shortlist
-  rather than a single guess.
-- **Bitwise (12)** — AND, OR, NOT, ADD and SUB (mod 256), bit shifts, bit rotates, Gray
-  code, and Swap Endianness (reverses byte order between big- and little-endian), each
-  working with a repeating key where relevant.
+- **Encoding (37)** — Base64, Base64 URL-safe, Base32, Base58, Base85, Base45 (RFC 9285,
+  the encoding behind EU COVID certificate QR codes), hex, hexdump, binary, decimal,
+  octal, URL encoding, HTML entities, `\u` escapes, JSON string escapes, Morse code,
+  NATO phonetic spelling, Punycode/IDN (RFC 3492, for internationalized domain names),
+  and Quoted-Printable (RFC 2045, the MIME email encoding) — each with both an encode
+  and a decode direction.
+- **Ciphers (16)** — ROT13, ROT47, Caesar (with adjustable shift), Atbash, A1Z26,
+  Vigenère, Beaufort (a reciprocal Vigenère variant), Rail Fence and Columnar
+  Transposition (transposition ciphers — they scramble position instead of
+  substituting letters), and XOR, plus two **brute-force tools**: XOR Brute Force and
+  Caesar Brute Force, which try every possible key/shift and rank the results by how
+  much they read like actual English (letter-frequency statistics plus common-word
+  matching), showing a ranked shortlist rather than a single guess.
+- **Bitwise (14)** — AND, OR, NOT, ADD and SUB (mod 256), bit shifts, bit rotates, Gray
+  code, Swap Endianness (reverses byte order between big- and little-endian), Count Set
+  Bits (Hamming weight), and Reverse Bits, each working with a repeating key where
+  relevant.
 - **Hashing (13)** — MD5, SHA-1/256/384/512, CRC-32, Adler-32, HMAC-SHA256/512,
   BLAKE2b-256/512, PBKDF2, and Argon2id. BLAKE2b and Argon2id are implemented from
   scratch in pure JavaScript directly from their RFC specifications (RFC 7693 and
@@ -49,13 +51,15 @@ never stutters.
 - **Text (21)** — case conversion, line sorting/deduplication/reversal, whitespace and
   accent stripping, slugify, find & replace (plain or regex), JSON formatting, line
   ending conversion, HTML tag stripping, and word wrap.
-- **Data (11)** — JWT inspection, Shannon entropy, extracting emails/URLs/IPs/numbers
+- **Data (12)** — JWT inspection, Shannon entropy, extracting emails/URLs/IPs/numbers
   from text, Unix timestamp conversion, arbitrary base conversion, letter-frequency
-  analysis, text statistics, IPv4 ⇄ integer conversion, and a color format converter
-  (hex/RGB/HSL).
-- **Random (6)** — UUIDs, passwords, random IPv4 addresses, and random hex/Base64/bytes,
-  all generated with the browser's cryptographically secure random source, never
-  `Math.random()`.
+  analysis, text statistics, IPv4 ⇄ integer conversion, a color format converter
+  (hex/RGB/HSL), and a Subnet Info calculator (network/broadcast address and usable
+  host range from CIDR notation).
+- **Random (7)** — UUIDs, passwords, random IPv4 addresses, a Dice Roll generator (with
+  proper rejection sampling so every face is exactly 1-in-6), and random
+  hex/Base64/bytes, all generated with the browser's cryptographically secure random
+  source, never `Math.random()`.
 
 ### Analyze
 
@@ -70,31 +74,35 @@ and a hash comparison tool.
 
 ### Learn
 
-A locked progression of **48 lessons** along a winding, illustrated path — Byte, a
-bubbling-flask mascot, greets you with your next lesson and cheers you on as you go.
-Lessons are grouped into seven named units, each with its own colored banner and
-progress count: Encodings, Classical ciphers, Bits & XOR, Hashing & integrity,
-Encryption, Passwords & secrets, and Data in practice. Covers encoding (Base64, hex,
-reading hexdumps, Unicode, emoji and UTF-16 surrogate pairs, mojibake, homoglyph
-attacks, Punycode/IDN, Quoted-Printable/MIME, encoding efficiency up to Base85, Morse
-and variable-length codes, data URIs), classical substitution and transposition
-ciphers (including keyword-based Columnar Transposition), Kerckhoffs's principle, and
-how to break ciphers with frequency analysis, XOR and the one-time pad, bitmasks and
-flags, endianness, brute-forcing, hashing versus checksums, hash collisions and the
-birthday problem, Merkle trees, HMAC, symmetric and asymmetric encryption (AES, RSA,
-digital signatures, key exchange, TLS), password security (salting, key derivation
-with PBKDF2/Argon2, how cracking actually works, judging real-world password
-strength, Diceware passphrases, multi-factor authentication), UUIDs, JWTs, IPv4
-addressing, Unix time, regular expressions, and entropy. Most lessons include a live
-interactive demo and end with a quiz — some with several questions, all of which
-must be answered correctly to complete the lesson.
+A locked progression of **52 lessons** along a winding, illustrated path — Byte, a
+bubbling-flask mascot (redrawn as a pixel sprite in the Retro theme), greets you with
+your next lesson and cheers you on as you go. Lessons are grouped into seven named
+units, each with its own colored banner and progress count: Encodings, Classical
+ciphers, Bits & XOR, Hashing & integrity, Encryption, Passwords & secrets, and Data in
+practice. Covers encoding (Base64, hex, reading hexdumps, Unicode, emoji and UTF-16
+surrogate pairs, mojibake, homoglyph attacks, Punycode/IDN, Quoted-Printable/MIME,
+encoding efficiency up to Base85, Base45 and why QR codes need a different kind of
+"dense," Morse and variable-length codes, data URIs), classical substitution and
+transposition ciphers (including keyword-based Columnar Transposition and the
+reciprocal Beaufort cipher), Kerckhoffs's principle, and how to break ciphers with
+frequency analysis, XOR and the one-time pad, bitmasks and flags, Hamming weight and
+error correction, endianness, brute-forcing, hashing versus checksums, hash collisions
+and the birthday problem, Merkle trees, HMAC, symmetric and asymmetric encryption
+(AES, RSA, digital signatures, key exchange, TLS), password security (salting, key
+derivation with PBKDF2/Argon2, how cracking actually works, judging real-world
+password strength, Diceware passphrases, multi-factor authentication), UUIDs, JWTs,
+IPv4 addressing and subnetting, Unix time, regular expressions, and entropy. Most
+lessons include a live interactive demo and end with a quiz — some with several
+questions, all of which must be answered correctly to complete the lesson.
 
 ### Challenges
 
-**68 practice puzzles** across easy/medium/hard, solvable using the operations in The
-Lab — decode a hidden message, break a cipher, compute a hash, spot an email in a
-sentence, or actually run the brute-force tools instead of working something out by
-hand. Progress is saved on your device only.
+**76 practice puzzles** grouped into six categories (Encoding, Ciphers, Bitwise,
+Hashing, Text, Data) with their own progress banners, plus a difficulty filter
+(easy/medium/hard) and a "Surprise me" button that jumps to a random unsolved one.
+Solvable using the operations in The Lab — decode a hidden message, break a cipher,
+compute a hash, spot an email in a sentence, or actually run the brute-force tools
+instead of working something out by hand. Progress is saved on your device only.
 
 ### Settings
 

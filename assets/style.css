@@ -333,7 +333,8 @@ kbd {
 .chal-filters button.active .chip-count { color: var(--bg); background: rgba(255,255,255,.18); }
 :root[data-theme="dark"] .chal-filters button.active .chip-count { background: rgba(0,0,0,.22); }
 .chal-progress { margin: 6px 0 18px; max-width: 380px; }
-.challenge-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; }
+.challenge-list { display: flex; flex-direction: column; }
+.challenge-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; margin-bottom: 6px; }
 .challenge { position: relative; border: 1px solid var(--border); background: var(--panel); border-radius: 12px; padding: 17px 17px 17px 20px; box-shadow: var(--shadow); transition: transform .14s, box-shadow .14s, border-color .14s; overflow: hidden; }
 .challenge::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--border-strong); }
 .challenge.lv-easy::before { background: var(--ok); }
@@ -357,6 +358,27 @@ kbd {
 :root[data-theme="dark"] .tag.medium { color: #e2b93d; }
 .badge { display: inline-flex; align-items: center; gap: 4px; font-size: 10.5px; font-weight: 600; color: #16230b; background: var(--lime-bright); border-radius: 20px; padding: 2.5px 9px; }
 .badge svg { width: 11px; height: 11px; }
+
+/* Category banners on the Challenges page — same visual language as the Learn unit banners */
+.chal-cat-banner {
+  display: flex; align-items: center; gap: 14px; margin: 26px 0 12px; padding: 11px 16px;
+  background: var(--lime-soft); border-radius: 12px; color: var(--text);
+}
+.challenge-list > .chal-cat-banner:first-child { margin-top: 0; }
+.chal-cat-banner .unit-icon { width: 34px; height: 34px; }
+.chal-cat-banner .unit-title { font-size: 13.5px; }
+.chal-cat-banner.complete { background: var(--lime-bright); }
+.chal-cat-banner.complete .unit-icon { background: #fff; color: #16230b; box-shadow: none; }
+.chal-cat-banner.complete .unit-title, .chal-cat-banner.complete .unit-count { color: #16230b; }
+.chal-cat-banner.complete .unit-count svg { width: 16px; height: 16px; }
+
+#chal-surprise { margin-left: auto; }
+@keyframes solve-pop { 0% { transform: scale(1); } 35% { transform: scale(1.03); } 100% { transform: scale(1); } }
+.challenge.solve-pop { animation: solve-pop .45s ease-out; }
+@keyframes chal-shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+.challenge.shake { animation: chal-shake .3s ease-in-out; }
+@keyframes chal-spotlight { 0%, 100% { box-shadow: var(--shadow); } 30%, 70% { box-shadow: 0 0 0 4px var(--lime-soft), var(--shadow-lift); } }
+.challenge.spotlight { animation: chal-spotlight 1.6s ease-in-out; border-color: var(--lime); }
 
 /* ---------- Settings ---------- */
 .settings { margin-top: 16px; max-width: 440px; }
@@ -407,6 +429,7 @@ kbd {
 .mascot-svg .mascot-bubbles circle { animation: bubble-rise 3s ease-in infinite; transform-origin: center; }
 .mascot-svg .mascot-bubbles circle:nth-child(2) { animation-delay: 1.1s; }
 .mascot-svg .mascot-wave { animation: mascot-wave 1.8s ease-in-out infinite; transform-origin: 76px 77px; }
+.mascot-svg .mascot-wave-px { animation: mascot-wave 1.8s ease-in-out infinite; transform-origin: 92px 56px; }
 @keyframes mascot-wave { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(-14deg); } }
 .mascot-svg.pixel { image-rendering: pixelated; }
 .mascot-svg .mascot-sparkle { animation: sparkle-pulse 1.4s ease-in-out infinite; transform-origin: center; }
