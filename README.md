@@ -98,17 +98,22 @@ questions, all of which must be answered correctly to complete the lesson.
 ### Challenges
 
 **76 practice puzzles** grouped into six categories (Encoding, Ciphers, Bitwise,
-Hashing, Text, Data) with their own progress banners, plus a difficulty filter
-(easy/medium/hard) and a "Surprise me" button that jumps to a random unsolved one.
-Solvable using the operations in The Lab — decode a hidden message, break a cipher,
-compute a hash, spot an email in a sentence, or actually run the brute-force tools
-instead of working something out by hand. Progress is saved on your device only.
+Hashing, Text, Data) with their own progress banners, a difficulty filter
+(easy/medium/hard), a keyword search box, and a "Surprise me" button that jumps to
+and highlights a random unsolved one. Solvable using the operations in The Lab —
+decode a hidden message, break a cipher, compute a hash, spot an email in a sentence,
+or actually run the brute-force tools instead of working something out by hand.
+Difficulty labels are calibrated to how much a puzzle actually asks of you once
+you've found the right tool — multi-step "peel the layers" puzzles that are fully
+spelled out in their own prompt sit at medium, not hard. Progress is saved on your
+device only.
 
 ### Settings
 
-Three themes — **Light**, **Dark**, and **Retro** (a phosphor-green CRT terminal:
-sharp pixel corners, scanlines, a chunky monospace UI, and Byte redrawn as an 8-bit
-sprite) — plus editor font size, word wrap, and animations, all stored in local
+Four themes — **Light**, **Dark**, **Retro** (a phosphor-green CRT terminal: sharp
+pixel corners, scanlines, a chunky monospace UI, and Byte redrawn as an 8-bit sprite),
+and **Nord** (the calm, muted arctic-blue palette developers already know from their
+editor) — plus editor font size, word wrap, and animations, all stored in local
 storage, nothing else.
 
 ## Privacy & security posture

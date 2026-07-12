@@ -933,6 +933,7 @@
   function chalCatIcon(cat) { return `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${CHAL_CAT_ICON_PATHS[cat] || ""}</svg>`; }
   const SOLVE_MSGS = ["Correct — nice work.", "Nailed it.", "That's the one.", "Solved.", "Correct — on to the next.", "Got it."];
 
+  let chalSearch = "";
   function initChallenges() {
     const levels = ["all", "easy", "medium", "hard"];
     const fbox = $("#chal-filters");
@@ -948,6 +949,10 @@
     surprise.innerHTML = "🎲 Surprise me";
     surprise.addEventListener("click", surpriseChallenge);
     fbox.appendChild(surprise);
+    const search = document.createElement("input");
+    search.id = "chal-search"; search.className = "field mono"; search.placeholder = "Search challenges by keyword…";
+    search.addEventListener("input", () => { chalSearch = search.value.trim().toLowerCase(); renderChallenges(); });
+    fbox.parentElement.insertBefore(search, fbox.nextSibling);
     renderChallenges();
   }
   function surpriseChallenge() {
@@ -981,7 +986,12 @@
       const n = pool.filter((c) => done[c.id]).length;
       $(".chip-count", b).textContent = `${n}/${pool.length}`;
     });
-    const filtered = all.filter((c) => chalFilter === "all" || c.level === chalFilter);
+    const filtered = all.filter((c) => (chalFilter === "all" || c.level === chalFilter) &&
+      (!chalSearch || c.title.toLowerCase().includes(chalSearch) || c.prompt.toLowerCase().includes(chalSearch) || c.cat.toLowerCase().includes(chalSearch)));
+    if (!filtered.length) {
+      wrap.innerHTML = `<div class="chal-empty">No challenges match${chalSearch ? ` "${escapeHtml(chalSearch)}"` : " this filter"}. Try a different search or filter.</div>`;
+      return;
+    }
     CHAL_CATEGORY_ORDER.forEach((cat) => {
       const group = filtered.filter((c) => c.cat === cat);
       if (!group.length) return;
@@ -1007,7 +1017,9 @@
             fb.innerHTML = '<span class="cmp-match">Correct.</span>';
             card.classList.add("solve-pop");
             const d = loadDone(); const firstTime = !d[c.id]; d[c.id] = true; saveDone(d);
-            if (firstTime) toast(SOLVE_MSGS[Math.floor(Math.random() * SOLVE_MSGS.length)]);
+            const nowSolved = Object.keys(d).filter((k) => d[k]).length;
+            if (firstTime && nowSolved === CL_DATA.CHALLENGES.length) toast("All " + nowSolved + " challenges solved. Legendary.");
+            else if (firstTime) toast(SOLVE_MSGS[Math.floor(Math.random() * SOLVE_MSGS.length)]);
             setTimeout(renderChallenges, firstTime ? 450 : 0);
           } else { fb.innerHTML = '<span class="cmp-diff">Not quite — try again.</span>'; card.classList.add("shake"); setTimeout(() => card.classList.remove("shake"), 400); }
         };
