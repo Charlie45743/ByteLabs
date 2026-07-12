@@ -29,6 +29,7 @@
   --ui: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   --radius: 10px;
   --shadow: 0 1px 2px rgba(0,0,0,.04);
+  --shadow-lift: 0 10px 24px rgba(0,0,0,.08);
   --topbar-h: 54px;
 }
 
@@ -49,6 +50,7 @@
   --ok: #58b184;
   --sel: #262626;
   --shadow: 0 1px 2px rgba(0,0,0,.3);
+  --shadow-lift: 0 12px 28px rgba(0,0,0,.45);
   --lime: #a3e635;
   --lime-soft: #26310f;
   --lime-bright: #9ae14a;
@@ -64,6 +66,13 @@ body {
 }
 .no-anim * { transition: none !important; }
 button { font-family: inherit; color: inherit; cursor: pointer; }
+
+/* ---------- Scrollbars ---------- */
+* { scrollbar-width: thin; scrollbar-color: var(--border-strong) transparent; }
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb { background-color: var(--border-strong); border-radius: 20px; border: 2px solid var(--bg); background-clip: padding-box; }
+*::-webkit-scrollbar-thumb:hover { background-color: var(--faint); }
 h1 { font-size: 22px; font-weight: 650; letter-spacing: -.3px; margin: 0 0 4px; }
 h3 { font-size: 15px; font-weight: 600; margin: 0 0 6px; }
 .muted { color: var(--muted); }
@@ -128,10 +137,10 @@ kbd {
 .op-btn {
   display: flex; align-items: center; justify-content: space-between; width: 100%; text-align: left;
   background: transparent; border: 1px solid transparent; border-radius: 7px; padding: 7px 9px;
-  font-size: 13px; color: var(--text); transition: background .1s;
+  font-size: 13px; color: var(--text); transition: background .12s, transform .12s;
 }
-.op-btn:hover { background: var(--lime-soft); }
-.op-btn .plus { color: var(--lime); font-size: 15px; opacity: 0; }
+.op-btn:hover { background: var(--lime-soft); transform: translateX(2px); }
+.op-btn .plus { color: var(--lime); font-size: 15px; opacity: 0; transition: opacity .12s; }
 .op-btn:hover .plus { opacity: 1; }
 
 /* Steps */
@@ -186,8 +195,9 @@ kbd {
 .suggestion:hover { border-color: var(--lime); }
 
 /* ---------- Buttons / fields ---------- */
-.btn { background: var(--accent); color: var(--bg); border: none; border-radius: 8px; padding: 9px 15px; font-size: 13px; font-weight: 550; box-shadow: var(--shadow); }
-.btn:hover { opacity: .88; }
+.btn { background: var(--accent); color: var(--bg); border: none; border-radius: 8px; padding: 9px 15px; font-size: 13px; font-weight: 550; box-shadow: var(--shadow); transition: opacity .12s, transform .12s, box-shadow .12s; }
+.btn:hover { opacity: .88; transform: translateY(-1px); box-shadow: var(--shadow-lift); }
+.btn:active { transform: translateY(0); box-shadow: var(--shadow); }
 .btn.ghost { background: var(--panel); color: var(--text); border: 1px solid var(--border-strong); }
 .btn.ghost:hover { background: var(--sel); opacity: 1; }
 .btn.lime { background: var(--lime-bright); color: #16230b; }
@@ -276,19 +286,22 @@ kbd {
 .demo .row { margin: 0; }
 .quiz { margin-top: 20px; }
 .quiz-q { font-weight: 550; margin-bottom: 9px; }
-.quiz-opt { display: block; width: 100%; text-align: left; background: var(--panel); border: 1px solid var(--border-strong); border-radius: 8px; padding: 9px 12px; margin-bottom: 7px; font-size: 13px; }
-.quiz-opt:hover { border-color: var(--text); }
+.quiz-opt { display: block; width: 100%; text-align: left; background: var(--panel); border: 1px solid var(--border-strong); border-radius: 8px; padding: 9px 12px; margin-bottom: 7px; font-size: 13px; transition: border-color .12s, transform .12s; }
+.quiz-opt:hover:not(:disabled) { border-color: var(--text); transform: translateX(2px); }
 .quiz-opt.right { border-color: var(--ok); background: rgba(47,138,91,.08); }
 .quiz-opt.wrong { border-color: var(--danger); }
 
 /* ---------- Challenges ---------- */
 .chal-filters { display: flex; gap: 6px; margin: 16px 0 4px; flex-wrap: wrap; }
-.chal-filters button { background: var(--panel); border: 1px solid var(--border-strong); border-radius: 20px; padding: 5px 13px; font-size: 12.5px; color: var(--muted); }
+.chal-filters button { background: var(--panel); border: 1px solid var(--border-strong); border-radius: 20px; padding: 5px 13px; font-size: 12.5px; color: var(--muted); transition: border-color .12s, color .12s; }
+.chal-filters button:hover { border-color: var(--text); color: var(--text); }
 .chal-filters button.active { background: var(--text); color: var(--bg); border-color: var(--text); }
 .chal-progress { font-size: 12.5px; color: var(--muted); margin: 6px 0 14px; }
 .challenge-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; }
-.challenge { border: 1px solid var(--border); background: var(--panel); border-radius: 12px; padding: 17px; box-shadow: var(--shadow); }
+.challenge { border: 1px solid var(--border); background: var(--panel); border-radius: 12px; padding: 17px; box-shadow: var(--shadow); transition: transform .14s, box-shadow .14s, border-color .14s; }
+.challenge:hover { transform: translateY(-2px); box-shadow: var(--shadow-lift); border-color: var(--border-strong); }
 .challenge.done { border-color: var(--ok); }
+.challenge.done:hover { border-color: var(--ok); }
 .challenge .chal-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
 .challenge h3 { margin: 0; font-size: 14.5px; }
 .challenge .prompt { color: var(--muted); font-size: 13px; line-height: 1.5; margin-bottom: 10px; }

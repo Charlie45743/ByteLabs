@@ -299,6 +299,10 @@
     for (let i = 0; i < len; i++) out += sets[bytes[i] % sets.length];
     return out;
   }
+  function randomIpv4() {
+    const b = randomBytes(4);
+    return Array.from(b).join(".");
+  }
 
   // ----- Base64 URL-safe -----
   function bytesToBase64Url(bytes) {
@@ -413,6 +417,47 @@
     return out.join("");
   }
 
+  // ----- Columnar Transposition cipher (key-based, keyword sets column read order) -----
+  function columnarKeyOrder(key) {
+    const k = (key || "").toUpperCase().replace(/[^A-Z]/g, "");
+    if (!k.length) throw new Error("This operation needs a keyword (letters only).");
+    return { k, order: k.split("").map((c, i) => ({ c, i })).sort((a, b) => (a.c < b.c ? -1 : a.c > b.c ? 1 : a.i - b.i)).map((x) => x.i) };
+  }
+  function columnarEncode(str, key) {
+    const { k, order } = columnarKeyOrder(key);
+    const cols = k.length;
+    const rows = Math.ceil(str.length / cols);
+    let out = "";
+    for (const colIdx of order) {
+      for (let r = 0; r < rows; r++) {
+        const pos = r * cols + colIdx;
+        if (pos < str.length) out += str[pos];
+      }
+    }
+    return out;
+  }
+  function columnarDecode(str, key) {
+    const { k, order } = columnarKeyOrder(key);
+    const cols = k.length;
+    const rows = Math.ceil(str.length / cols);
+    const fullCols = str.length % cols === 0 ? cols : str.length % cols;
+    const colLen = order.map((colIdx) => (colIdx < fullCols ? rows : rows - 1));
+    const grid = new Array(cols);
+    let pos = 0;
+    order.forEach((colIdx, i) => {
+      const len = colLen[i];
+      grid[colIdx] = str.slice(pos, pos + len).split("");
+      pos += len;
+    });
+    let out = "";
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        if (grid[c][r] !== undefined) out += grid[c][r];
+      }
+    }
+    return out;
+  }
+
   // ----- XOR (repeating key) -----
   function xorHexOut(str, key) {
     const data = utf8Bytes(str), k = utf8Bytes(key || "");
@@ -463,6 +508,12 @@
     let crc = 0xffffffff;
     for (let i = 0; i < bytes.length; i++) crc = (crc >>> 8) ^ CRC_TABLE[(crc ^ bytes[i]) & 0xff];
     return ((crc ^ 0xffffffff) >>> 0).toString(16).padStart(8, "0");
+  }
+  function adler32(bytes) {
+    let a = 1, b = 0;
+    const MOD = 65521;
+    for (let i = 0; i < bytes.length; i++) { a = (a + bytes[i]) % MOD; b = (b + a) % MOD; }
+    return (((b << 16) | a) >>> 0).toString(16).padStart(8, "0");
   }
 
   // ----- HMAC via Web Crypto -----
@@ -518,6 +569,87 @@
   // ----- Unix time -----
   function dateToUnix(str) { const t = Date.parse(str.trim()); if (isNaN(t)) throw new Error("Unrecognised date. Try e.g. 2024-01-31 or an ISO date."); return String(Math.floor(t / 1000)); }
   function unixToDate(str) { const n = parseInt(str.trim(), 10); if (isNaN(n)) throw new Error("Enter a whole number of seconds."); return new Date(n * 1000).toISOString(); }
+
+  // ----- IPv4 <-> 32-bit integer -----
+  function ipToInt(str) {
+    const parts = str.trim().split(".");
+    if (parts.length !== 4) throw new Error("Not a valid IPv4 address — expected 4 dot-separated numbers.");
+    let n = 0;
+    for (const p of parts) {
+      if (!/^\d+$/.test(p)) throw new Error("Invalid IPv4 octet: " + p);
+      const v = parseInt(p, 10);
+      if (v < 0 || v > 255) throw new Error("IPv4 octets must be 0-255, got: " + v);
+      n = n * 256 + v;
+    }
+    return String(n >>> 0);
+  }
+  function intToIp(str) {
+    const n = Number(str.trim());
+    if (!Number.isInteger(n) || n < 0 || n > 4294967295) throw new Error("Enter a whole number from 0 to 4294967295.");
+    const v = n >>> 0;
+    return [(v >>> 24) & 255, (v >>> 16) & 255, (v >>> 8) & 255, v & 255].join(".");
+  }
+
+  // ----- Color format conversion (hex / rgb() / hsl()) -----
+  function parseColor(str) {
+    const s = str.trim();
+    let m;
+    if ((m = s.match(/^#?([0-9a-f]{3}|[0-9a-f]{6})$/i))) {
+      let h = m[1];
+      if (h.length === 3) h = h.split("").map((c) => c + c).join("");
+      return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
+    }
+    if ((m = s.match(/^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*(?:,[^)]+)?\)$/i))) {
+      return [parseInt(m[1], 10), parseInt(m[2], 10), parseInt(m[3], 10)];
+    }
+    if ((m = s.match(/^hsla?\(\s*(\d+)\s*,\s*(\d+)%\s*,\s*(\d+)%\s*(?:,[^)]+)?\)$/i))) {
+      return hslToRgbColor([parseInt(m[1], 10), parseInt(m[2], 10), parseInt(m[3], 10)]);
+    }
+    throw new Error("Unrecognised color format. Try #rrggbb, rgb(r,g,b) or hsl(h,s%,l%).");
+  }
+  function rgbToHexColor([r, g, b]) { return "#" + [r, g, b].map((x) => Math.round(x).toString(16).padStart(2, "0")).join(""); }
+  function rgbToHslColor([r, g, b]) {
+    r /= 255; g /= 255; b /= 255;
+    const max = Math.max(r, g, b), min = Math.min(r, g, b);
+    let h, s, l = (max + min) / 2;
+    if (max === min) { h = s = 0; }
+    else {
+      const d = max - min;
+      s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+      switch (max) {
+        case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+        case g: h = (b - r) / d + 2; break;
+        default: h = (r - g) / d + 4;
+      }
+      h /= 6;
+    }
+    return [Math.round(h * 360), Math.round(s * 100), Math.round(l * 100)];
+  }
+  function hslToRgbColor([h, s, l]) {
+    h /= 360; s /= 100; l /= 100;
+    let r, g, b;
+    if (s === 0) { r = g = b = l; }
+    else {
+      const hue2rgb = (p, q, t) => {
+        if (t < 0) t += 1;
+        if (t > 1) t -= 1;
+        if (t < 1 / 6) return p + (q - p) * 6 * t;
+        if (t < 1 / 2) return q;
+        if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+        return p;
+      };
+      const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+      const p = 2 * l - q;
+      r = hue2rgb(p, q, h + 1 / 3); g = hue2rgb(p, q, h); b = hue2rgb(p, q, h - 1 / 3);
+    }
+    return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
+  }
+  function convertColor(str, to) {
+    const rgb = parseColor(str);
+    if (to === "hex") return rgbToHexColor(rgb);
+    if (to === "hsl") { const [h, s, l] = rgbToHslColor(rgb); return `hsl(${h}, ${s}%, ${l}%)`; }
+    return `rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]})`;
+  }
 
   // ----- Base58 -----
   const B58 = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
@@ -687,6 +819,35 @@
     }).join(".");
   }
 
+  // ----- Quoted-Printable (RFC 2045, simplified — no soft line-wrap on encode, but decode
+  // handles "=\n"/"=\r\n" soft breaks so it round-trips real-world QP too) -----
+  function qpEncode(str) {
+    const bytes = utf8Bytes(str);
+    let out = "";
+    for (let i = 0; i < bytes.length; i++) {
+      const b = bytes[i];
+      if (b === 0x3d) out += "=3D";
+      else if (b === 10) out += "\n";
+      else if (b === 13) continue;
+      else if ((b >= 33 && b <= 126) || b === 32 || b === 9) out += String.fromCharCode(b);
+      else out += "=" + b.toString(16).toUpperCase().padStart(2, "0");
+    }
+    return out;
+  }
+  function qpDecode(str) {
+    const clean = str.replace(/=\r?\n/g, "");
+    const bytes = [];
+    for (let i = 0; i < clean.length; i++) {
+      if (clean[i] === "=" && i + 2 < clean.length && /^[0-9A-Fa-f]{2}$/.test(clean.slice(i + 1, i + 3))) {
+        bytes.push(parseInt(clean.slice(i + 1, i + 3), 16));
+        i += 2;
+      } else {
+        bytes.push(clean.charCodeAt(i));
+      }
+    }
+    return bytesToText(new Uint8Array(bytes));
+  }
+
   // ----- Hexdump (xxd style) -----
   function toHexdump(bytes) {
     let out = "";
@@ -797,6 +958,21 @@
     }
     return bytesToHex(out, false);
   }
+  // Gray code: adjacent values differ by exactly one bit. Applied per byte.
+  function grayEncodeHex(str) {
+    const bytes = utf8Bytes(str), out = new Uint8Array(bytes.length);
+    for (let i = 0; i < bytes.length; i++) out[i] = bytes[i] ^ (bytes[i] >> 1);
+    return bytesToHex(out, false);
+  }
+  function grayDecodeHex(hex) {
+    const bytes = hexToBytes(hex), out = new Uint8Array(bytes.length);
+    for (let i = 0; i < bytes.length; i++) {
+      let n = 0;
+      for (let mask = bytes[i]; mask; mask >>= 1) n ^= mask;
+      out[i] = n;
+    }
+    return bytesToText(out);
+  }
 
   // ----- English-likeness scoring, shared by both brute-force tools -----
   // Standard published English letter frequencies (percent), Wikipedia / Cornell CS.
@@ -880,14 +1056,16 @@
   window.CL = {
     utf8Bytes, bytesToText, bytesToBase64, base64ToBytes, bytesToBase64Url, base64UrlToBytes,
     bytesToHex, hexToBytes, bytesToBinary, binaryToBytes, base32Encode, base32Decode, base58Encode, base58Decode,
-    base85Encode, base85Decode, punycodeEncode, punycodeDecode,
+    base85Encode, base85Decode, punycodeEncode, punycodeDecode, qpEncode, qpDecode,
     toHexdump, fromHexdump, htmlEncode, htmlDecode, caesar, atbash, rot47, a1z26Encode, a1z26Decode,
-    vigenereEncode, vigenereDecode, railFenceEncode, railFenceDecode, xorHexOut, xorFromHex, decimalEncode, decimalDecode,
+    vigenereEncode, vigenereDecode, railFenceEncode, railFenceDecode, columnarEncode, columnarDecode,
+    xorHexOut, xorFromHex, decimalEncode, decimalDecode,
     octalEncode, octalDecode, unicodeEscape, unicodeUnescape, natoEncode, morseEncode, morseDecode,
     stripAccents, jsonEscape, jsonUnescape, changeCase, changeBase, letterFrequency, extract, dateToUnix, unixToDate,
+    ipToInt, intToIp, convertColor,
     convertLineEndings, stripHtmlTags, wordWrap, inspectChars, byteHistogram,
-    bitAndHex, bitOrHex, bitXorHex, modAddHex, modSubHex, bitNot, bitShift, rotateBits,
+    bitAndHex, bitOrHex, bitXorHex, modAddHex, modSubHex, bitNot, bitShift, rotateBits, grayEncodeHex, grayDecodeHex,
     xorBruteForce, caesarBruteForce, chiSquaredEnglish,
-    md5, shaHex, hmacHex, crc32, entropy, printableRatio, magicBytes, detect, parseJwt, randomBytes, uuid, password
+    md5, shaHex, hmacHex, crc32, adler32, entropy, printableRatio, magicBytes, detect, parseJwt, randomBytes, uuid, password, randomIpv4
   };
 })();

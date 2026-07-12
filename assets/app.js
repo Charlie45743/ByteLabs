@@ -23,6 +23,8 @@
     { id: "base85-decode", name: "From Base85", cat: "Encoding", run: (s) => CL.bytesToText(CL.base85Decode(s)), about: "Decodes Base85 (Ascii85) back into text." },
     { id: "punycode-encode", name: "To Punycode", cat: "Encoding", run: (s) => CL.punycodeEncode(s), about: "Encodes a domain name to ASCII-Compatible Encoding (RFC 3492), the way browsers actually send internationalized domains over DNS. Only non-ASCII dot-separated labels get an xn-- prefix.", example: { in: "münchen.de", out: "xn--mnchen-3ya.de" } },
     { id: "punycode-decode", name: "From Punycode", cat: "Encoding", run: (s) => CL.punycodeDecode(s), about: "Decodes an xn-- Punycode domain back to Unicode. Note: real browsers deliberately do NOT do this automatically in script-visible APIs — it's exactly the kind of conversion that enables homoglyph domain spoofing, see the Learn lesson on that.", example: { in: "xn--mnchen-3ya.de", out: "münchen.de" } },
+    { id: "qp-encode", name: "To Quoted-Printable", cat: "Encoding", run: (s) => CL.qpEncode(s), about: "MIME email encoding (RFC 2045) - keeps ASCII text mostly readable, escapes everything else as =XX hex. The classic alternative to Base64 for email bodies.", example: { in: "100% = good", out: "100% =3D good" } },
+    { id: "qp-decode", name: "From Quoted-Printable", cat: "Encoding", run: (s) => CL.qpDecode(s), about: "Decodes Quoted-Printable back to text, including soft line-break continuations." },
     { id: "to-hexdump", name: "To Hexdump", cat: "Encoding", run: (s) => CL.toHexdump(CL.utf8Bytes(s)), about: "xxd-style dump with byte offsets, hex and an ASCII column." },
     { id: "from-hexdump", name: "From Hexdump", cat: "Encoding", run: (s) => CL.bytesToText(CL.fromHexdump(s)), about: "Rebuilds text from a hexdump, ignoring offsets and the ASCII column." },
     { id: "hex-encode", name: "To Hex", cat: "Encoding", run: (s) => CL.bytesToHex(CL.utf8Bytes(s), true), about: "Shows each byte as two hex digits.", example: { in: "A", out: "41" } },
@@ -56,6 +58,8 @@
     { id: "vigenere-decode", name: "Vigenère Decode", cat: "Ciphers", params: [{ name: "key", label: "Key", type: "text", def: "KEY" }], run: (s, p) => CL.vigenereDecode(s, p.key), about: "Reverses a Vigenère cipher with the same key." },
     { id: "railfence-encode", name: "Rail Fence Encode", cat: "Ciphers", params: [{ name: "rails", label: "Rails", type: "number", def: 3 }], run: (s, p) => CL.railFenceEncode(s, parseInt(p.rails, 10) || 2), about: "A transposition cipher — writes the text in a zigzag across N rails, then reads each rail off in order. Unlike every other cipher here, it scrambles position rather than substituting letters, so letter frequencies stay unchanged.", example: { in: "WEAREDISCOVEREDFLEEATONCE", out: "WECRLTEERDSOEEFEAOCAIVDEN" } },
     { id: "railfence-decode", name: "Rail Fence Decode", cat: "Ciphers", params: [{ name: "rails", label: "Rails", type: "number", def: 3 }], run: (s, p) => CL.railFenceDecode(s, parseInt(p.rails, 10) || 2), about: "Reverses a Rail Fence cipher — you need the same rail count used to encode." },
+    { id: "columnar-encode", name: "Columnar Transposition Encode", cat: "Ciphers", params: [{ name: "key", label: "Keyword", type: "text", def: "ZEBRAS" }], run: (s, p) => CL.columnarEncode(s, p.key), about: "A transposition cipher where a keyword's alphabetical letter order sets the order columns are read back in - more key space than Rail Fence.", example: { in: "WEAREDISCOVEREDFLEEATONCE", out: "EVLNACDTESEAROFODEECWIREE" } },
+    { id: "columnar-decode", name: "Columnar Transposition Decode", cat: "Ciphers", params: [{ name: "key", label: "Keyword", type: "text", def: "ZEBRAS" }], run: (s, p) => CL.columnarDecode(s, p.key), about: "Reverses a Columnar Transposition cipher - you need the same keyword used to encode." },
     { id: "xor", name: "XOR", cat: "Ciphers", params: [{ name: "key", label: "Key", type: "text", def: "key" }, { name: "mode", label: "Direction", type: "select", def: "enc", options: [{ v: "enc", t: "Text → Hex" }, { v: "dec", t: "Hex → Text" }] }], run: (s, p) => (p.mode === "dec" ? CL.xorFromHex(s, p.key) : CL.xorHexOut(s, p.key)), about: "XORs bytes with a repeating key. Encrypt text to hex, or decrypt hex back to text." },
     { id: "caesar-brute", name: "Caesar Brute Force", cat: "Ciphers", run: (s) => {
         const results = CL.caesarBruteForce(s, 26);
@@ -78,6 +82,8 @@
     { id: "bit-shift-right", name: "Bit Shift Right", cat: "Bitwise", params: [{ name: "amount", label: "Bits", type: "number", def: 1 }], run: (s, p) => CL.bitShift(s, parseInt(p.amount, 10) || 0, "right"), about: "Shifts the bits of each byte right independently, output as hex. Bits shifted past the bottom are discarded — not reversible." },
     { id: "bit-rotate-left", name: "Rotate Bits Left", cat: "Bitwise", params: [{ name: "amount", label: "Bits", type: "number", def: 1 }], run: (s, p) => CL.rotateBits(s, parseInt(p.amount, 10) || 0, "left"), about: "Rotates the 8 bits of each byte left independently, output as hex. No bits are lost — Rotate Right by the same amount reverses it." },
     { id: "bit-rotate-right", name: "Rotate Bits Right", cat: "Bitwise", params: [{ name: "amount", label: "Bits", type: "number", def: 1 }], run: (s, p) => CL.rotateBits(s, parseInt(p.amount, 10) || 0, "right"), about: "Rotates the 8 bits of each byte right independently, output as hex. No bits are lost — Rotate Left by the same amount reverses it." },
+    { id: "gray-encode", name: "To Gray Code", cat: "Bitwise", run: (s) => CL.grayEncodeHex(s), about: "Converts each byte to its Gray code, output as hex. Gray code's defining property: incrementing a value by 1 always flips exactly one bit - used in rotary encoders and Karnaugh maps to avoid glitches from multiple bits changing at once.", example: { in: "A", out: "61" } },
+    { id: "gray-decode", name: "From Gray Code", cat: "Bitwise", run: (s) => CL.grayDecodeHex(s), about: "Decodes hex Gray code bytes back to the original text." },
 
     // Hashing
     { id: "md5", name: "MD5", cat: "Hashing", run: (s) => CL.md5(CL.utf8Bytes(s)), about: "128-bit hash. One-way. Broken for security — checksums only.", warn: true },
@@ -86,6 +92,7 @@
     { id: "sha384", name: "SHA-384", cat: "Hashing", run: (s) => CL.shaHex("SHA-384", CL.utf8Bytes(s)), about: "384-bit SHA-2 hash. One-way." },
     { id: "sha512", name: "SHA-512", cat: "Hashing", run: (s) => CL.shaHex("SHA-512", CL.utf8Bytes(s)), about: "512-bit SHA-2 hash. One-way." },
     { id: "crc32", name: "CRC-32", cat: "Hashing", run: (s) => CL.crc32(CL.utf8Bytes(s)), about: "32-bit checksum for detecting accidental changes. Not for security." },
+    { id: "adler32", name: "Adler-32", cat: "Hashing", run: (s) => CL.adler32(CL.utf8Bytes(s)), about: "A faster, weaker checksum than CRC-32, used inside zlib/gzip. Two running sums mod 65521, packed into 32 bits. Fine for catching accidental corruption, not for security.", example: { in: "Wikipedia", out: "11e60398" } },
     { id: "hmac-sha256", name: "HMAC-SHA256", cat: "Hashing", params: [{ name: "key", label: "Key", type: "text", def: "key" }], run: (s, p) => CL.hmacHex("SHA-256", p.key, s), about: "Keyed hash — proves a message came from someone who knows the key." },
     { id: "hmac-sha512", name: "HMAC-SHA512", cat: "Hashing", params: [{ name: "key", label: "Key", type: "text", def: "key" }], run: (s, p) => CL.hmacHex("SHA-512", p.key, s), about: "Keyed hash using SHA-512." },
     { id: "blake2b-256", name: "BLAKE2b-256", cat: "Hashing", run: (s) => CL.bytesToHex(CL_CRYPTO.blake2b(CL.utf8Bytes(s), 32), false), about: "256-bit BLAKE2b hash — faster than SHA-2 in software, used by WireGuard and others. One-way." },
@@ -152,6 +159,9 @@
     { id: "extract", name: "Extract", cat: "Data", params: [{ name: "mode", label: "Find", type: "select", def: "emails", options: [{ v: "emails", t: "Email addresses" }, { v: "urls", t: "URLs" }, { v: "ipv4", t: "IPv4 addresses" }, { v: "numbers", t: "Numbers" }] }], run: (s, p) => CL.extract(s, p.mode), about: "Pulls out every match (emails, URLs, IPs or numbers), one per line." },
     { id: "unix-encode", name: "Date to Unix Time", cat: "Data", run: (s) => CL.dateToUnix(s), about: "Converts a date such as 2024-01-31 into a Unix timestamp (seconds)." },
     { id: "unix-decode", name: "Unix Time to Date", cat: "Data", run: (s) => CL.unixToDate(s), about: "Converts a Unix timestamp (seconds) into an ISO date.", example: { in: "0", out: "1970-01-01T00:00:00.000Z" } },
+    { id: "ip-to-int", name: "IPv4 to Integer", cat: "Data", run: (s) => CL.ipToInt(s), about: "Converts a dotted-quad IPv4 address into its 32-bit unsigned integer form - how it's actually stored and routed.", example: { in: "192.168.1.1", out: "3232235777" } },
+    { id: "int-to-ip", name: "Integer to IPv4", cat: "Data", run: (s) => CL.intToIp(s), about: "Converts a 32-bit unsigned integer back into dotted-quad IPv4 notation.", example: { in: "3232235777", out: "192.168.1.1" } },
+    { id: "color-convert", name: "Color Converter", cat: "Data", params: [{ name: "to", label: "Convert to", type: "select", def: "rgb", options: [{ v: "hex", t: "Hex" }, { v: "rgb", t: "RGB" }, { v: "hsl", t: "HSL" }] }], run: (s, p) => CL.convertColor(s, p.to), about: "Auto-detects hex (#rrggbb), rgb() or hsl() input and converts to whichever format you pick. Converting through HSL rounds to whole degrees/percent, so round-trips can drift by a shade.", example: { in: "#ff6600", out: "rgb(255, 102, 0)" } },
     { id: "change-base", name: "Change number base", cat: "Data", params: [{ name: "from", label: "From base", type: "select", def: "10", options: [{ v: "2", t: "Binary (2)" }, { v: "8", t: "Octal (8)" }, { v: "10", t: "Decimal (10)" }, { v: "16", t: "Hex (16)" }] }, { name: "to", label: "To base", type: "select", def: "16", options: [{ v: "2", t: "Binary (2)" }, { v: "8", t: "Octal (8)" }, { v: "10", t: "Decimal (10)" }, { v: "16", t: "Hex (16)" }] }], run: (s, p) => CL.changeBase(s, parseInt(p.from, 10), parseInt(p.to, 10)), about: "Converts a whole number between bases (handles very large numbers).", example: { in: "255 (10→16)", out: "ff" } },
     { id: "letter-frequency", name: "Letter frequency", cat: "Data", run: (s) => CL.letterFrequency(s), about: "Counts each A–Z letter — the first step in breaking substitution ciphers." },
     { id: "text-stats", name: "Text statistics", cat: "Data", run: (s) => { const w = s.trim() ? s.trim().split(/\s+/).length : 0; const l = s ? s.split(/\r?\n/).length : 0; return "Characters: " + s.length + "\nWords: " + w + "\nLines: " + l + "\nBytes (UTF-8): " + CL.utf8Bytes(s).length + "\nEntropy: " + CL.entropy(CL.utf8Bytes(s)).toFixed(3) + " bits/byte"; }, about: "A quick summary: characters, words, lines, bytes and entropy." },
@@ -161,7 +171,8 @@
     { id: "gen-password", name: "Password", cat: "Random", ignoresInput: true, params: [{ name: "len", label: "Length", type: "number", def: 16 }], run: (s, p) => CL.password(parseInt(p.len, 10) || 16), about: "A strong random password." },
     { id: "gen-hex", name: "Random Hex", cat: "Random", ignoresInput: true, params: [{ name: "bytes", label: "Bytes", type: "number", def: 16 }], run: (s, p) => CL.bytesToHex(CL.randomBytes(parseInt(p.bytes, 10) || 16), false), about: "Random hex string." },
     { id: "gen-base64", name: "Random Base64", cat: "Random", ignoresInput: true, params: [{ name: "bytes", label: "Bytes", type: "number", def: 16 }], run: (s, p) => CL.bytesToBase64(CL.randomBytes(parseInt(p.bytes, 10) || 16)), about: "Random Base64 string." },
-    { id: "gen-bytes", name: "Random Bytes", cat: "Random", ignoresInput: true, params: [{ name: "count", label: "Count", type: "number", def: 32 }], run: (s, p) => CL.bytesToHex(CL.randomBytes(parseInt(p.count, 10) || 32), true), about: "Random bytes shown as spaced hex." }
+    { id: "gen-bytes", name: "Random Bytes", cat: "Random", ignoresInput: true, params: [{ name: "count", label: "Count", type: "number", def: 32 }], run: (s, p) => CL.bytesToHex(CL.randomBytes(parseInt(p.count, 10) || 32), true), about: "Random bytes shown as spaced hex." },
+    { id: "gen-ipv4", name: "Random IPv4", cat: "Random", ignoresInput: true, run: () => CL.randomIpv4(), about: "A random dotted-quad IPv4 address, from secure randomness. Useful test data - not a real routable address." }
   ];
   const OP_BY_ID = Object.fromEntries(OPS.map((o) => [o.id, o]));
   const COMMON = ["base64-encode", "base64-decode", "hex-encode", "hex-decode", "url-encode", "url-decode", "sha256", "rot13"];
@@ -645,7 +656,7 @@
   }
   function closeLesson() { $("#lesson-modal").classList.add("hidden"); }
 
-  const DEMO_FIELD2 = { xor: "Key", vigenere: "Key", caesar: "Shift", regex: "Pattern (regex)", railfence: "Rails" };
+  const DEMO_FIELD2 = { xor: "Key", vigenere: "Key", caesar: "Shift", regex: "Pattern (regex)", railfence: "Rails", columnar: "Keyword" };
   function buildDemo(view, demo) {
     const wrap = document.createElement("div"); wrap.className = "demo";
     wrap.innerHTML = "<h4>Try it yourself</h4>";
@@ -655,7 +666,7 @@
     if (DEMO_FIELD2[demo.type]) {
       const lab = document.createElement("label"); lab.className = "lbl"; lab.textContent = DEMO_FIELD2[demo.type]; wrap.appendChild(lab);
       in2 = document.createElement("input"); in2.className = "field mono";
-      in2.value = demo.type === "caesar" || demo.type === "railfence" ? "3" : demo.type === "regex" ? "\\d+" : "key";
+      in2.value = demo.type === "caesar" || demo.type === "railfence" ? "3" : demo.type === "columnar" ? "ZEBRAS" : demo.type === "regex" ? "\\d+" : "key";
       wrap.appendChild(in2);
     }
     const outLbl = document.createElement("label"); outLbl.className = "lbl"; outLbl.textContent = "Result"; wrap.appendChild(outLbl);
@@ -681,6 +692,9 @@
       case "xor": return CL.xorHexOut(v, k);
       case "vigenere": return CL.vigenereEncode(v, k);
       case "railfence": return CL.railFenceEncode(v, parseInt(k, 10) || 2);
+      case "columnar": return CL.columnarEncode(v, k);
+      case "qp": return CL.qpEncode(v);
+      case "ipv4": return CL.ipToInt(v);
       case "regex": { const m = v.match(new RegExp(k, "g")); return m ? m.join("\n") : "(no matches)"; }
       case "jwt": return JSON.stringify(CL.parseJwt(v.trim()).payload, null, 2);
       case "hash": return hasSubtle ? await CL.shaHex("SHA-256", CL.utf8Bytes(v)) : CL.md5(CL.utf8Bytes(v)) + " (MD5)";

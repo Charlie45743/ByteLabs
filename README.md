@@ -24,32 +24,37 @@ them, and removed individually. Heavy operations (Argon2id, PBKDF2) are marked "
 and use an explicit Compute button instead of running on every keystroke, so typing
 never stutters.
 
-101 operations across 7 categories:
+112 operations across 7 categories:
 
-- **Encoding (33)** — Base64, Base64 URL-safe, Base32, Base58, Base85, hex, hexdump,
+- **Encoding (35)** — Base64, Base64 URL-safe, Base32, Base58, Base85, hex, hexdump,
   binary, decimal, octal, URL encoding, HTML entities, `\u` escapes, JSON string
-  escapes, Morse code, NATO phonetic spelling, and Punycode/IDN (RFC 3492, for
-  internationalized domain names) — each with both an encode and a decode direction.
-- **Ciphers (13)** — ROT13, ROT47, Caesar (with adjustable shift), Atbash, A1Z26,
-  Vigenère, Rail Fence (a transposition cipher — scrambles position instead of
-  substituting letters), and XOR, plus two **brute-force tools**: XOR Brute Force and
-  Caesar Brute Force, which try every possible key/shift and rank the results by how
-  much they read like actual English (letter-frequency statistics plus common-word
-  matching), showing a ranked shortlist rather than a single guess.
-- **Bitwise (9)** — AND, OR, NOT, ADD and SUB (mod 256), bit shifts, and bit rotates,
-  each working with a repeating key where relevant.
-- **Hashing (12)** — MD5, SHA-1/256/384/512, CRC-32, HMAC-SHA256/512, BLAKE2b-256/512,
-  PBKDF2, and Argon2id. BLAKE2b and Argon2id are implemented from scratch in pure
-  JavaScript directly from their RFC specifications (RFC 7693 and RFC 9106) and
-  verified against the official published test vectors — see `assets/crypto-extra.js`.
+  escapes, Morse code, NATO phonetic spelling, Punycode/IDN (RFC 3492, for
+  internationalized domain names), and Quoted-Printable (RFC 2045, the MIME email
+  encoding) — each with both an encode and a decode direction.
+- **Ciphers (15)** — ROT13, ROT47, Caesar (with adjustable shift), Atbash, A1Z26,
+  Vigenère, Rail Fence and Columnar Transposition (transposition ciphers — they
+  scramble position instead of substituting letters), and XOR, plus two
+  **brute-force tools**: XOR Brute Force and Caesar Brute Force, which try every
+  possible key/shift and rank the results by how much they read like actual English
+  (letter-frequency statistics plus common-word matching), showing a ranked shortlist
+  rather than a single guess.
+- **Bitwise (11)** — AND, OR, NOT, ADD and SUB (mod 256), bit shifts, bit rotates, and
+  Gray code, each working with a repeating key where relevant.
+- **Hashing (13)** — MD5, SHA-1/256/384/512, CRC-32, Adler-32, HMAC-SHA256/512,
+  BLAKE2b-256/512, PBKDF2, and Argon2id. BLAKE2b and Argon2id are implemented from
+  scratch in pure JavaScript directly from their RFC specifications (RFC 7693 and
+  RFC 9106) and verified against the official published test vectors — see
+  `assets/crypto-extra.js`.
 - **Text (21)** — case conversion, line sorting/deduplication/reversal, whitespace and
   accent stripping, slugify, find & replace (plain or regex), JSON formatting, line
   ending conversion, HTML tag stripping, and word wrap.
-- **Data (8)** — JWT inspection, Shannon entropy, extracting emails/URLs/IPs/numbers
+- **Data (11)** — JWT inspection, Shannon entropy, extracting emails/URLs/IPs/numbers
   from text, Unix timestamp conversion, arbitrary base conversion, letter-frequency
-  analysis, and text statistics.
-- **Random (5)** — UUIDs, passwords, and random hex/Base64/bytes, all generated with the
-  browser's cryptographically secure random source, never `Math.random()`.
+  analysis, text statistics, IPv4 ⇄ integer conversion, and a color format converter
+  (hex/RGB/HSL).
+- **Random (6)** — UUIDs, passwords, random IPv4 addresses, and random hex/Base64/bytes,
+  all generated with the browser's cryptographically secure random source, never
+  `Math.random()`.
 
 ### Analyze
 
@@ -64,19 +69,20 @@ and a hash comparison tool.
 
 ### Learn
 
-A locked progression of **30 lessons** — Duolingo-style: finish one to unlock the next.
+A locked progression of **33 lessons** — Duolingo-style: finish one to unlock the next.
 Covers encoding (Base64, hex, Unicode, URL encoding, mojibake, homoglyph attacks,
-Punycode/IDN), classical substitution ciphers and transposition ciphers and how to
+Punycode/IDN, Quoted-Printable/MIME email encoding), classical substitution and
+transposition ciphers (including keyword-based Columnar Transposition) and how to
 break them with frequency analysis, bitwise operations, brute-forcing, hashing versus
 checksums, HMAC, symmetric and asymmetric encryption (AES, RSA, digital signatures,
 key exchange, TLS), password security (salting, key derivation with PBKDF2/Argon2,
-how cracking actually works, judging real-world password strength), JWTs, regular
-expressions, and entropy. Most lessons include a live interactive demo and end with a
-short quiz.
+how cracking actually works, judging real-world password strength), JWTs, IPv4
+addressing, regular expressions, and entropy. Most lessons include a live interactive
+demo and end with a short quiz.
 
 ### Challenges
 
-**43 practice puzzles** across easy/medium/hard, solvable using the operations in The
+**51 practice puzzles** across easy/medium/hard, solvable using the operations in The
 Lab — decode a hidden message, break a cipher, compute a hash, spot an email in a
 sentence, or actually run the brute-force tools instead of working something out by
 hand. Progress is saved on your device only.

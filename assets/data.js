@@ -91,6 +91,32 @@ each covers the weakness the other has.</p>
       quiz: { q: "What does a transposition cipher change about the plaintext?", options: ["The letters themselves", "The order the letters appear in", "The character encoding (e.g. ASCII to UTF-8)"], answer: 1 }
     },
     {
+      id: "columnar", title: "Columnar transposition & key space",
+      body: `
+<h3>Columnar transposition</h3>
+<p>Rail Fence has a weakness: the only real setting is the rail count, and nobody writes a message across more
+than a handful of rails. That means an attacker can just try every rail count by hand — there are barely a
+dozen worth checking.</p>
+<h4>Adding a keyword</h4>
+<p>Columnar transposition fixes this by using a <strong>keyword</strong> instead of a number. Write the message
+into rows under the keyword's letters, then read the columns back in the order you'd sort the keyword's letters
+alphabetically. The keyword <code>ZEBRAS</code> sorts to <code>A,B,E,R,S,Z</code> — so column 5 (under the "A")
+is read first, then column 3 (under the "B"), and so on.</p>
+<h4>Why that matters</h4>
+<p>A short numeric setting like "3 rails" has only a few dozen reasonable values to brute-force. A keyword has
+as much key space as you're willing to type — <code>ZEBRAS</code> alone is already 6! = 720 possible column
+orders, and a longer keyword grows factorially. Same core idea as Rail Fence — scrambling position, not
+substituting letters — but with a real key instead of a small guessable number.</p>
+<h4>Still not enough alone</h4>
+<p>Transposition alone is still breakable with enough ciphertext (anagramming columns, spotting likely word
+fragments) — which is exactly why real ciphers historically layered transposition <em>and</em> substitution
+together rather than relying on either alone.</p>
+<h4>Try it</h4>
+<p>The demo below runs Columnar Transposition Encode. Try changing the keyword.</p>`,
+      demo: { type: "columnar" },
+      quiz: { q: "Why is a keyword-based transposition cipher stronger than a fixed rail count?", options: ["It encrypts instead of just scrambling", "The keyword gives far more possible orderings than a small rail number", "It uses a hash function"], answer: 1 }
+    },
+    {
       id: "encryption", title: "What is Encryption?",
       body: `
 <h3>What is Encryption?</h3>
@@ -382,6 +408,28 @@ The <strong>signature</strong> proves the token wasn't changed.</p>
       quiz: { q: "What is %20?", options: ["A space", "The number 20", "A newline"], answer: 0 }
     },
     {
+      id: "mime", title: "Quoted-Printable & email encoding",
+      body: `
+<h3>Quoted-Printable & email encoding</h3>
+<p>Email was designed decades ago around plain 7-bit ASCII, and plenty of old infrastructure still assumes it.
+Two encodings exist to squeeze arbitrary bytes through that narrow pipe: Base64, and
+<strong>Quoted-Printable</strong>.</p>
+<h4>How it works</h4>
+<p>Bytes that are already safe, printable ASCII pass through completely unchanged. Anything else — accented
+letters, emoji, raw binary — becomes <code>=</code> followed by two hex digits. A literal <code>=</code> in the
+original text has to be escaped too, as <code>=3D</code>, so a decoder can always tell an escape from a real
+equals sign.</p>
+<h4>Why not just use Base64 for everything?</h4>
+<p>Base64 is denser for mostly non-ASCII content, but it makes plain English completely unreadable in transit —
+every byte gets remapped. Quoted-Printable keeps an English email <em>mostly readable as plain text</em> even
+before decoding, with only the occasional accented word or symbol escaped. That trade-off is why email clients
+still pick between the two depending on the content.</p>
+<h4>Try it</h4>
+<p>The demo below runs Quoted-Printable encoding. Try a word with an accent, or a literal <code>=</code> sign.</p>`,
+      demo: { type: "qp" },
+      quiz: { q: "In Quoted-Printable, what happens to a plain ASCII letter like 'A'?", options: ["It passes through unchanged", "It becomes =41", "It gets Base64-encoded"], answer: 0 }
+    },
+    {
       id: "unicode", title: "How Unicode works",
       body: `
 <h3>How Unicode &amp; UTF-8 work</h3>
@@ -506,6 +554,28 @@ number), but for short identifiers that's fine.</p>`,
       quiz: { q: "Why does Base58 drop characters like 0 and O?", options: ["To save space", "To avoid look-alike typos", "For encryption"], answer: 1 }
     },
     {
+      id: "networking", title: "IPv4 addresses under the hood",
+      body: `
+<h3>IPv4 addresses under the hood</h3>
+<p>An IPv4 address like <code>192.168.1.1</code> looks like four separate numbers, but routers and computers
+don't actually store it that way.</p>
+<h4>It's really one 32-bit number</h4>
+<p>Each of the four "octets" is one byte (0–255), and the dotted-quad form is just a human-readable way to write
+a single 32-bit unsigned integer. <code>192.168.1.1</code> is exactly
+<code>192×16777216 + 168×65536 + 1×256 + 1 = 3232235777</code> — try it with the IPv4 to Integer operation.</p>
+<h4>Why this representation matters</h4>
+<p>Routing tables, subnet masks, and access-control rules all operate on the integer form under the hood — a
+subnet is really just "these high bits must match." Converting between the two forms is a routine task in
+networking tools, log analysis, and firewall configuration.</p>
+<h4>The address space</h4>
+<p>32 bits means about 4.3 billion possible addresses total — which sounded huge in the 1980s and turned out not
+to be, which is the whole reason IPv6 (128-bit addresses) exists.</p>
+<h4>Try it</h4>
+<p>The demo below converts an IPv4 address to its integer form.</p>`,
+      demo: { type: "ipv4" },
+      quiz: { q: "What is a dotted-quad IPv4 address really, under the hood?", options: ["Four unrelated numbers", "A single 32-bit unsigned integer, split into 4 bytes for readability", "A hash of the hostname"], answer: 1 }
+    },
+    {
       id: "regex", title: "Regular expressions",
       body: `
 <h3>Regular expressions</h3>
@@ -524,9 +594,12 @@ pull emails or IPs out of a block of text.</p>`,
       body: `
 <h3>Checksums vs cryptographic hashes</h3>
 <p>Both turn data into a short value, but they answer different questions.</p>
-<h4>Checksums (CRC-32)</h4>
+<h4>Checksums (CRC-32, Adler-32)</h4>
 <p>Fast, tiny, and built to catch <em>accidental</em> changes — a flipped bit during a download or transfer.
-They are easy to fool on purpose, so never use them for security.</p>
+They are easy to fool on purpose, so never use them for security. <strong>Adler-32</strong> is even simpler and
+faster than CRC-32 (it's what zlib/gzip use internally) — just two running sums — but that simplicity makes it
+noticeably weaker at catching certain kinds of corruption, especially in short messages. CRC-32 remains the
+better default checksum; Adler-32 trades a little reliability for speed on large files.</p>
 <h4>Cryptographic hashes (SHA-256)</h4>
 <p>Designed so that no one can craft two inputs with the same hash, or work backwards from the hash. Slower,
 but suitable for verifying integrity against a determined attacker.</p>
@@ -583,15 +656,23 @@ but suitable for verifying integrity against a determined attacker.</p>
     { id: "c40", level: "hard", title: "Brute force the shift", prompt: "Use the Caesar Brute Force tool to recover this message — don't work it out by hand.", task: "xgvkrimbhg dxxil hnk wtmt ltyx ykhf ikrbgz xrxl tgw vnkbhnl tmmtvdxkl", answer: "encryption keeps our data safe from prying eyes and curious attackers", hint: "Use Caesar Brute Force and check the top-ranked line." },
     { id: "c41", level: "medium", title: "Rail Fence", prompt: "This was encoded with Rail Fence, 3 rails. Decode it.", task: "ACDTAKTANTAW", answer: "ATTACKATDAWN", hint: "Use Rail Fence Decode with Rails set to 3." },
     { id: "c42", level: "easy", title: "Base85", prompt: "Decode this Base85 (Ascii85) string.", task: "Ao(mg", answer: "flag", hint: "Use From Base85." },
-    { id: "c43", level: "medium", title: "Internationalized domain", prompt: "Decode this Punycode domain back to Unicode.", task: "xn--mnchen-3ya.de", answer: "münchen.de", hint: "Use From Punycode." }
+    { id: "c43", level: "medium", title: "Internationalized domain", prompt: "Decode this Punycode domain back to Unicode.", task: "xn--mnchen-3ya.de", answer: "münchen.de", hint: "Use From Punycode." },
+    { id: "c44", level: "hard", title: "Columnar transposition", prompt: "Decode this Columnar Transposition ciphertext using the keyword PUZZLE.", task: "ENMDMAIETGEMHTIT", answer: "MEETMEATMIDNIGHT", hint: "Use Columnar Transposition Decode, keyword PUZZLE." },
+    { id: "c45", level: "medium", title: "Quoted-Printable", prompt: "Decode this Quoted-Printable string.", task: "50% off caf=C3=A9 orders", answer: "50% off café orders", hint: "Use From Quoted-Printable." },
+    { id: "c46", level: "easy", title: "Adler-32", prompt: "Enter the Adler-32 checksum (hex) of the word below.", task: "hello", answer: "062c0215", hint: "Use the Adler-32 operation." },
+    { id: "c47", level: "medium", title: "Gray code", prompt: "Decode these Gray-coded hex bytes.", task: "6468", answer: "GO", hint: "Use From Gray Code." },
+    { id: "c48", level: "easy", title: "Color format", prompt: "Convert this hex color to its RGB form.", task: "#663399", answer: "rgb(102, 51, 153)", hint: "Use Color Converter, convert to RGB." },
+    { id: "c49", level: "easy", title: "IP to integer", prompt: "Convert this IPv4 address to its 32-bit integer form.", task: "10.0.0.1", answer: "167772161", hint: "Use IPv4 to Integer." },
+    { id: "c50", level: "easy", title: "Integer to IP", prompt: "Convert this integer back to dotted-quad IPv4 form.", task: "2130706433", answer: "127.0.0.1", hint: "Use Integer to IPv4." },
+    { id: "c51", level: "hard", title: "Two layers, new encodings", prompt: "This was Quoted-Printable encoded, then Base64-encoded. Peel both layers.", task: "Y2FmPUMzPUE5ID0zRCAxMDAlIHNlY3VyZQ==", answer: "café = 100% secure", hint: "From Base64, then From Quoted-Printable." }
   ];
 
   // Order lessons follow on the progression map (each unlocks the next).
   const LESSON_ORDER = [
-    "base64", "hex", "unicode", "mojibake", "homoglyphs", "url", "base32", "base58",
-    "ciphers", "transposition", "frequency", "xor", "bitwise", "bruteforce", "hashing", "checksums", "hmac",
+    "base64", "hex", "unicode", "mojibake", "homoglyphs", "url", "mime", "base32", "base58",
+    "ciphers", "transposition", "columnar", "frequency", "xor", "bitwise", "bruteforce", "hashing", "checksums", "hmac",
     "encryption", "aes", "rsa", "signatures", "keyexchange", "tls",
-    "salt", "kdf", "cracking", "strength-practice", "jwt", "regex", "entropy"
+    "salt", "kdf", "cracking", "strength-practice", "jwt", "networking", "regex", "entropy"
   ];
 
   window.CL_DATA = { LESSONS, CHALLENGES, LESSON_ORDER };
