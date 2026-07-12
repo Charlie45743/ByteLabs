@@ -110,10 +110,9 @@ device only.
 
 ### Settings
 
-Four themes — **Light**, **Dark**, **Retro** (a phosphor-green CRT terminal: sharp
-pixel corners, scanlines, a chunky monospace UI, and Byte redrawn as an 8-bit sprite),
-and **Nord** (the calm, muted arctic-blue palette developers already know from their
-editor) — plus editor font size, word wrap, and animations, all stored in local
+Three themes — **Light**, **Dark**, and **Retro** (a phosphor-green CRT terminal:
+sharp pixel corners, scanlines, a chunky monospace UI, and Byte redrawn as an 8-bit
+sprite) — plus editor font size, word wrap, and animations, all stored in local
 storage, nothing else.
 
 ## Privacy & security posture

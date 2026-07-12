@@ -645,20 +645,6 @@
   ];
   function unitIcon(i) { return `<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${UNIT_ICONS[i % UNIT_ICONS.length]}</svg>`; }
 
-  // Nord's aurora/frost hues, cycled per unit or category — applied only when the Nord
-  // theme is active (via CSS custom properties, so every other theme is untouched).
-  const AURORA_HUES = [
-    ["#8fbcbb", "rgba(143,188,187,.16)"], ["#88c0d0", "rgba(136,192,208,.16)"], ["#81a1c1", "rgba(129,161,193,.16)"],
-    ["#5e81ac", "rgba(94,129,172,.18)"], ["#a3be8c", "rgba(163,190,140,.16)"], ["#b48ead", "rgba(180,142,173,.16)"],
-    ["#d08770", "rgba(208,135,112,.16)"]
-  ];
-  function applyAurora(el, i) {
-    if ((loadSettings().theme) !== "nord") return;
-    const [hue, soft] = AURORA_HUES[i % AURORA_HUES.length];
-    el.style.setProperty("--aurora", hue);
-    el.style.setProperty("--aurora-soft", soft);
-  }
-
   // The ByteLabs mascot — Byte, a bubbling flask, echoing the flask icon in the logo and Lab nav.
   function mascotSvg(mood) {
     const ink = "#16230b";
@@ -768,7 +754,6 @@
         <span class="unit-icon">${unitIcon(si)}</span>
         <span class="unit-copy"><span class="unit-eyebrow">Unit ${si + 1}</span><span class="unit-title">${escapeHtml(sec.title)}</span></span>
         <span class="unit-count">${secComplete ? checkSvg() : secDone + " / " + sec.ids.length}</span>`;
-      if (!secComplete) applyAurora(head, si);
       map.appendChild(head);
       const seg = document.createElement("div");
       seg.className = "map-seg";
@@ -1007,15 +992,13 @@
       wrap.innerHTML = `<div class="chal-empty">No challenges match${chalSearch ? ` "${escapeHtml(chalSearch)}"` : " this filter"}. Try a different search or filter.</div>`;
       return;
     }
-    CHAL_CATEGORY_ORDER.forEach((cat, catIdx) => {
+    CHAL_CATEGORY_ORDER.forEach((cat) => {
       const group = filtered.filter((c) => c.cat === cat);
       if (!group.length) return;
       const catDone = group.filter((c) => done[c.id]).length;
-      const catComplete = catDone === group.length;
       const banner = document.createElement("div");
-      banner.className = "chal-cat-banner" + (catComplete ? " complete" : "");
-      banner.innerHTML = `<span class="unit-icon">${chalCatIcon(cat)}</span><span class="unit-copy"><span class="unit-title">${cat}</span></span><span class="unit-count">${catComplete ? checkSvg() : catDone + " / " + group.length}</span>`;
-      if (!catComplete) applyAurora(banner, catIdx);
+      banner.className = "chal-cat-banner" + (catDone === group.length ? " complete" : "");
+      banner.innerHTML = `<span class="unit-icon">${chalCatIcon(cat)}</span><span class="unit-copy"><span class="unit-title">${cat}</span></span><span class="unit-count">${catDone === group.length ? checkSvg() : catDone + " / " + group.length}</span>`;
       wrap.appendChild(banner);
       const grid = document.createElement("div"); grid.className = "challenge-grid";
       group.forEach((c) => {

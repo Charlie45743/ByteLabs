@@ -87,35 +87,6 @@
   --ui: "Cascadia Mono", "SF Mono", Consolas, "Roboto Mono", monospace;
 }
 
-/* Nord — the Arctic, north-bluish color palette (arcticicestudio.github.io/nord).
-   A calm, muted developer favorite; every surface reuses the normal component
-   styles unchanged, just with Nord's own hues instead of ByteLabs' usual lime. */
-:root[data-theme="nord"] {
-  --bg: #2e3440;
-  --bg-soft: #313745;
-  --panel: #3b4252;
-  --panel-soft: #434c5e;
-  --border: #434c5e;
-  --border-strong: #4c566a;
-  --text: #eceff4;
-  --muted: #d8dee9;
-  --faint: #7b88a1;
-  --accent: #88c0d0;
-  --accent-soft: #3b4a52;
-  --link: #88c0d0;
-  --danger: #bf616a;
-  --ok: #a3be8c;
-  --sel: #434c5e;
-  --shadow: 0 2px 6px rgba(0,0,0,.35);
-  --shadow-lift: 0 14px 32px rgba(0,0,0,.45), 0 0 0 1px rgba(136,192,208,.12);
-  --lime: #88c0d0;
-  --lime-soft: #3b4a52;
-  --lime-bright: #8fbcbb;
-  --seq-100: #3b4a52; --seq-250: #4c6169; --seq-400: #5e8189; --seq-550: #88c0d0; --seq-700: #c4e2ea;
-  --status-good: #a3be8c; --status-warning: #ebcb8b; --status-serious: #d08770; --status-critical: #bf616a;
-  --radius: 14px;
-}
-
 * { box-sizing: border-box; }
 html, body { height: 100%; }
 body {
@@ -393,8 +364,7 @@ kbd {
 /* Category banners on the Challenges page — same visual language as the Learn unit banners */
 .chal-cat-banner {
   display: flex; align-items: center; gap: 14px; margin: 26px 0 12px; padding: 11px 16px;
-  background: var(--aurora-soft, var(--lime-soft)); border-radius: 12px; color: var(--text);
-  transition: background .2s;
+  background: var(--lime-soft); border-radius: 12px; color: var(--text);
 }
 .challenge-list > .chal-cat-banner:first-child { margin-top: 0; }
 .chal-cat-banner .unit-icon { width: 34px; height: 34px; }
@@ -438,17 +408,15 @@ kbd {
 /* Duolingo-style unit banners along the path */
 .unit-banner {
   display: flex; align-items: center; gap: 14px; margin: 28px 0 4px; padding: 14px 18px;
-  background: var(--aurora-soft, var(--lime-soft)); border-radius: 14px; color: var(--text);
-  transition: background .2s;
+  background: var(--lime-soft); border-radius: 14px; color: var(--text);
 }
 .lesson-map > .unit-banner:first-child { margin-top: 0; }
 .unit-icon {
   flex: 0 0 auto; width: 42px; height: 42px; display: flex; align-items: center; justify-content: center;
-  background: var(--panel); border-radius: 50%; color: var(--aurora, var(--lime)); box-shadow: var(--shadow);
-  transition: color .2s;
+  background: var(--panel); border-radius: 50%; color: var(--lime); box-shadow: var(--shadow);
 }
 .unit-copy { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
-.unit-eyebrow { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; color: var(--aurora, var(--lime)); }
+.unit-eyebrow { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; color: var(--lime); }
 .unit-title { font-size: 15px; font-weight: 650; letter-spacing: -.1px; }
 .unit-count { flex: 0 0 auto; font-size: 12.5px; font-weight: 600; color: var(--muted); display: inline-flex; align-items: center; }
 .unit-banner.complete { background: var(--lime-bright); }
@@ -544,28 +512,6 @@ kbd {
 }
 :root[data-theme="retro"] .map-link { stroke-dasharray: 0 0 !important; stroke-width: 4; }
 :root[data-theme="retro"] .mascot-bubble::before { display: none; }
-
-/* ---------- Nord theme: aurora glow + a softer, rounder shape language ----------
-   Retro goes sharp (radius 0); Nord goes the opposite way, on purpose, so all four
-   themes read as distinct at a glance rather than just "a different accent color." */
-:root[data-theme="nord"] body { position: relative; }
-:root[data-theme="nord"] body::before {
-  content: ""; position: fixed; inset: -10% -10% auto -10%; height: 55vh; z-index: -1; pointer-events: none;
-  background:
-    radial-gradient(ellipse 40% 50% at 20% 10%, rgba(136,192,208,.20), transparent 65%),
-    radial-gradient(ellipse 35% 45% at 70% 25%, rgba(180,142,173,.14), transparent 65%),
-    radial-gradient(ellipse 30% 40% at 45% 40%, rgba(163,190,140,.12), transparent 65%);
-  filter: blur(40px);
-}
-:root[data-theme="nord"] .card, :root[data-theme="nord"] .challenge, :root[data-theme="nord"] .op-btn,
-:root[data-theme="nord"] .field, :root[data-theme="nord"] .btn, :root[data-theme="nord"] .node-circle,
-:root[data-theme="nord"] .mascot-bubble, :root[data-theme="nord"] .lesson-modal-box, :root[data-theme="nord"] .palette-box,
-:root[data-theme="nord"] .quiz-opt, :root[data-theme="nord"] .demo-out, :root[data-theme="nord"] .task,
-:root[data-theme="nord"] .toast, :root[data-theme="nord"] .hash-row, :root[data-theme="nord"] .unit-icon {
-  border-radius: 14px;
-}
-:root[data-theme="nord"] .node-circle { border-radius: 30%; }
-:root[data-theme="nord"] .mascot-glass, :root[data-theme="nord"] .mascot-liquid { filter: drop-shadow(0 0 10px rgba(136,192,208,.25)); }
 
 /* ---------- Lesson modal ---------- */
 .lesson-modal { position: fixed; inset: 0; z-index: 55; background: rgba(0,0,0,.4); display: flex; align-items: center; justify-content: center; padding: 24px; }
