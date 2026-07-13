@@ -413,6 +413,7 @@ kbd {
 .settings { margin-top: 16px; max-width: 440px; }
 .set-row { display: flex; align-items: center; justify-content: space-between; padding: 14px 0; border-bottom: 1px solid var(--border); font-size: 14px; }
 .set-row input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--text); }
+.credits-heading { margin-top: 28px; }
 
 /* ---------- Palette / toast ---------- */
 .palette { position: fixed; inset: 0; background: rgba(0,0,0,.28); display: flex; justify-content: center; align-items: flex-start; padding-top: 12vh; z-index: 50; }
