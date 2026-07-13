@@ -1140,6 +1140,183 @@ but suitable for verifying integrity against a determined attacker.</p>
 <p>Guarding against noise? A checksum is fine. Guarding against people? Use a cryptographic hash.</p>`,
       demo: { type: "crc" },
       quiz: { q: "Which is safe against a deliberate attacker?", options: ["CRC-32", "SHA-256", "Both equally"], answer: 1 }
+    },
+    {
+      id: "affine", title: "The Affine cipher: Caesar with math",
+      body: `
+<h3>The Affine cipher: Caesar with math</h3>
+<p>Caesar shifts every letter by the same fixed amount — a purely additive operation. The <strong>Affine
+cipher</strong> generalizes that into a full linear equation: <code>E(x) = (a·x + b) mod 26</code>, where
+<code>x</code> is a letter's position (A=0…Z=25). Caesar is just the special case where <code>a = 1</code>.</p>
+<h4>Why 'a' can't be just any number</h4>
+<p>Multiplying by <code>a</code> only produces a valid one-to-one substitution — every ciphertext letter maps
+back to exactly one plaintext letter — if <code>a</code> shares no common factor with 26, i.e. <code>a</code>
+must be coprime to 26. Pick <code>a = 2</code> and half the alphabet collapses onto the same output letters,
+making decoding ambiguous. Only 12 values of <code>a</code> out of 26 actually work (1, 3, 5, 7, 9, 11, 15, 17,
+19, 21, 23, 25).</p>
+<h4>Decoding needs a modular inverse</h4>
+<p>Decrypting reverses the equation: <code>D(y) = a⁻¹·(y − b) mod 26</code>, where <code>a⁻¹</code> is the
+<strong>modular inverse</strong> of <code>a</code> — the number that multiplies back to 1 mod 26. Finding it
+uses the extended Euclidean algorithm, the same tool that underpins real modular arithmetic in RSA.</p>
+<h4>Still just substitution</h4>
+<p>Despite the extra math, Affine is still a one-letter-for-another substitution cipher underneath — a slightly
+bigger key space than Caesar (12 × 26 = 312 combinations instead of 26), but just as vulnerable to the
+frequency analysis covered later in this unit.</p>
+<h4>Try it</h4>
+<p>The demo below runs Affine encode. The key format is <code>a,b</code> — try the default <code>5,8</code>, or
+an invalid <code>a</code> like <code>2,8</code> to see the error.</p>`,
+      demo: { type: "affine" },
+      quiz: [
+        { q: "What must be true of 'a' in the Affine cipher for decoding to work?", options: ["It must be even", "It must be coprime to 26 (share no common factor)", "It must be greater than 13"], answer: 1 },
+        { q: "What is the Caesar cipher, in Affine cipher terms?", options: ["Affine with a=1", "Affine with b=0", "Not related to Affine at all"], answer: 0 }
+      ]
+    },
+    {
+      id: "polybius", title: "The Polybius square: letters as coordinates",
+      body: `
+<h3>The Polybius square: letters as coordinates</h3>
+<p>Instead of substituting one letter for another letter, the <strong>Polybius square</strong> (invented in
+ancient Greece) substitutes each letter for a pair of coordinates on a 5×5 grid.</p>
+<h4>Building the grid</h4>
+<p>Write the 26-letter alphabet into a 5×5 grid (25 cells) by combining <code>I</code> and <code>J</code> into
+one cell — 25 letters fit exactly. Number both rows and columns 1–5. Every letter now has a unique
+row,column pair: <code>B</code> sits at row 1, column 2, so it becomes <code>12</code>.</p>
+<h4>Why coordinates instead of letters</h4>
+<p>A ciphertext made only of digit pairs looks completely different from letter-substitution ciphertext, and —
+more usefully historically — digit pairs are easy to transmit as pairs of flag signals, lamp flashes, or tap
+codes. Prisoners of war have used Polybius-square tap codes (tapping row, then column) to communicate silently
+between cells.</p>
+<h4>Still breakable the same way</h4>
+<p>Structurally it's still a one-to-one substitution — swap "coordinate pair" for "letter" and the same
+frequency-analysis attack covered later in this unit still applies, since each plaintext letter always maps to
+the same coordinate pair.</p>
+<h4>Try it</h4>
+<p>The demo below runs Polybius Square Encode — try a word containing <code>J</code> and see it come out the
+same as <code>I</code> would.</p>`,
+      demo: { type: "polybius" },
+      quiz: { q: "Why does the Polybius square combine I and J into one cell?", options: ["They sound alike", "A 5x5 grid has only 25 cells for 26 letters", "J wasn't part of the ancient Greek alphabet"], answer: 1 }
+    },
+    {
+      id: "bacon", title: "The Bacon cipher: hiding a message in plain sight",
+      body: `
+<h3>The Bacon cipher: hiding a message in plain sight</h3>
+<p>Every cipher so far scrambles a message so it's unreadable, but still obviously a ciphertext to anyone who
+intercepts it. The <strong>Bacon cipher</strong> (Francis Bacon, ~1605) does something different: it hides a
+secret message inside what looks like ordinary text — this is <strong>steganography</strong>, hiding that a
+secret exists at all, not just hiding its content.</p>
+<h4>The 5-bit encoding</h4>
+<p>Each letter becomes a unique 5-bit pattern of just two symbols, traditionally called <code>A</code> and
+<code>B</code> — 2⁵ = 32 combinations, enough for the 24-letter Latin alphabet Bacon used (I/J and U/V shared,
+similar to the Polybius square's I/J). <code>A</code> is <code>AAAAA</code>, <code>B</code> is <code>AAAAB</code>,
+and so on up through the alphabet.</p>
+<h4>The real trick: carrying it invisibly</h4>
+<p>The A/B pattern itself isn't the hiding place — it's just a binary code, no more secret than Morse. Bacon's
+actual innovation was <em>carrying</em> that binary pattern inside an innocent-looking cover text: two visually
+similar typefaces standing in for A and B, so a letter sent openly could contain a hidden message that only
+someone who knew to look for the typeface pattern would ever notice. Modern equivalents hide the same A/B
+pattern in whitespace, capitalization, or even which synonym is chosen in each sentence.</p>
+<h4>Steganography vs encryption</h4>
+<p>Encryption hides <em>what</em> a message says, assuming everyone can see a message was sent. Steganography
+hides that a message exists at all. They solve different problems, and are often combined — encrypt the payload
+first, then steganographically hide the ciphertext.</p>
+<h4>Try it</h4>
+<p>The demo below runs Bacon Cipher Encode on plain text, showing the raw A/B pattern — imagine it hidden in a
+typeface or capitalization pattern instead.</p>`,
+      demo: { type: "bacon" },
+      quiz: [
+        { q: "What does steganography hide, that encryption alone doesn't?", options: ["The content of the message", "The fact that a hidden message exists at all", "The sender's identity"], answer: 1 },
+        { q: "How many bits does the Bacon cipher use per letter?", options: ["3", "5", "8"], answer: 1 }
+      ]
+    },
+    {
+      id: "romannumerals", title: "Roman numerals: a numbering system without place value",
+      body: `
+<h3>Roman numerals: a numbering system without place value</h3>
+<p>Every number system covered so far — decimal, hex, binary — is <strong>positional</strong>: a digit's value
+depends on <em>where</em> it sits. The <code>3</code> in <code>300</code> means something different from the
+<code>3</code> in <code>30</code> purely because of position. Roman numerals work on a completely different
+principle, and comparing the two makes it obvious why positional systems won.</p>
+<h4>Additive and subtractive, not positional</h4>
+<p>Roman numerals assign fixed values to a handful of symbols (<code>I</code>=1, <code>V</code>=5,
+<code>X</code>=10, <code>L</code>=50, <code>C</code>=100, <code>D</code>=500, <code>M</code>=1000) and mostly
+just add them left to right: <code>XII</code> = 10 + 1 + 1 = 12. A smaller symbol placed <em>before</em> a
+larger one subtracts instead: <code>IV</code> = 5 − 1 = 4, avoiding four <code>I</code>s in a row.</p>
+<h4>Where this breaks down</h4>
+<p>There's no symbol for zero, no clean way to write a fraction, and numbers get unwieldy fast: 3,888 is
+<code>MMMDCCCLXXXVIII</code> — thirteen symbols for a four-digit number. Worse, arithmetic is genuinely hard —
+try multiplying <code>XLVII</code> by <code>XIX</code> by hand without converting to decimal first. Positional
+notation (borrowed from Hindu-Arabic numerals, with the game-changing addition of a zero) makes arithmetic
+mechanical instead of a matter of memorized symbol tricks.</p>
+<h4>Where Roman numerals survive today</h4>
+<p>Precisely because they're <em>not</em> used for calculation anymore — clock faces, book chapter numbers,
+movie copyright years, and monarch or Super Bowl numbering all use them purely as a stylistic label, not
+something anyone does math on directly.</p>
+<h4>Try it</h4>
+<p>The demo below converts a number to Roman numerals — try <code>1994</code> or <code>44</code>.</p>`,
+      demo: { type: "roman" },
+      quiz: { q: "What is the key difference between Roman numerals and decimal/hex/binary?", options: ["Roman numerals only go up to 100", "Decimal/hex/binary are positional — a digit's value depends on where it sits — Roman numerals aren't", "Roman numerals use letters instead of symbols"], answer: 1 }
+    },
+    {
+      id: "luhn", title: "The Luhn algorithm: catching typos, not attacks",
+      body: `
+<h3>The Luhn algorithm: catching typos, not attacks</h3>
+<p>The Checksums lesson drew a line between checksums (catch accidental corruption) and cryptographic hashes
+(resist a deliberate attacker). The <strong>Luhn algorithm</strong> — the check digit on the end of every
+credit card number — sits even further toward the "accidental" end of that spectrum: it isn't trying to
+survive an attacker at all, just to catch a human mistyping or misreading a single digit.</p>
+<h4>How it works</h4>
+<p>Starting from the rightmost digit (the check digit itself is skipped), double every second digit going left;
+if doubling produces a two-digit number, subtract 9 (equivalent to adding its two digits together). Sum every
+digit, and the check digit is whatever makes that total a multiple of 10.</p>
+<h4>What it actually catches</h4>
+<p>Luhn is specifically good at catching two extremely common typing mistakes: a single mistyped digit, and two
+adjacent digits swapped (a transposition) — together the overwhelming majority of real-world data-entry errors.
+It's cheap enough to run on a point-of-sale terminal instantly, which is exactly the job it needs to do.</p>
+<h4>What it can't catch</h4>
+<p>Luhn is public and trivial to satisfy on purpose — anyone can compute a valid check digit for a made-up
+number, which is why it stops nobody from typing a fabricated but Luhn-valid card number. It doesn't prove a
+card is real, funded, or unstolen; that verification happens elsewhere, against the actual issuing bank. Luhn
+only proves "this specific number wasn't garbled by a typo."</p>
+<h4>Try it</h4>
+<p>The demo below appends a Luhn check digit to whatever digits you type — try <code>7992739871</code> and
+check the result ends in <code>3</code>.</p>`,
+      demo: { type: "luhn" },
+      quiz: [
+        { q: "What is the Luhn algorithm actually designed to catch?", options: ["A deliberate attacker forging a card number", "Accidental human errors like a mistyped or swapped digit", "Expired cards"], answer: 1 },
+        { q: "Why doesn't a Luhn-valid number prove a card is real?", options: ["Luhn is a proprietary secret formula", "The algorithm is public, so anyone can compute a valid check digit for a made-up number", "Luhn only works on odd-length numbers"], answer: 1 }
+      ]
+    },
+    {
+      id: "base3662", title: "Base36 & Base62: compact IDs without punctuation",
+      body: `
+<h3>Base36 & Base62: compact IDs without punctuation</h3>
+<p>Base58 (previous lesson) removed a handful of look-alike characters for human readability. Base36 and Base62
+take a different angle on the same underlying big-integer encoding trick: use only letters and digits, nothing
+else — no <code>+</code>, <code>/</code>, or <code>=</code> padding — because that's the one alphabet every URL,
+filename, and database column handles without any special-casing.</p>
+<h4>Base36: digits and one case</h4>
+<p><strong>Base36</strong> uses <code>0–9</code> then <code>a–z</code> — the same alphabet your browser's
+address bar and most programming languages' built-in <code>parseInt(x, 36)</code> already understand. It's
+popular for short, case-insensitive IDs (some URL shorteners, product or order references) where a customer
+might read a code aloud over the phone.</p>
+<h4>Base62: adding a second case</h4>
+<p><strong>Base62</strong> adds uppercase back in (<code>0–9</code>, <code>A–Z</code>, <code>a–z</code>) for a
+bigger alphabet in the same "letters and digits only" spirit. It's the encoding behind many real URL
+shorteners' slugs (a 6-character Base62 string already covers 62⁶ ≈ 56 billion unique IDs) and is a common
+choice for compact primary-key encodings in public-facing APIs.</p>
+<h4>The trade-off vs Base58</h4>
+<p>Unlike Base58, Base36/Base62 keep every letter and digit, including the ambiguous ones Base58 deliberately
+drops (<code>0</code>/<code>O</code>, <code>l</code>/<code>I</code>). That's fine when a machine is doing the
+reading — a URL router doesn't care that <code>1</code> and <code>l</code> look alike — but riskier for
+anything a human copies by hand, which is exactly the gap Base58 exists to fill.</p>
+<h4>Try it</h4>
+<p>The demo below encodes your text as Base62. Compare it against To Base36 and To Base58 in The Lab to see how
+alphabet size changes the output length.</p>`,
+      demo: { type: "base62" },
+      quiz: [
+        { q: "What alphabet does Base62 use?", options: ["Only digits 0-9", "Digits plus uppercase and lowercase letters, nothing else", "The same alphabet as Base64"], answer: 1 },
+        { q: "Why might Base36/Base62 be riskier than Base58 for a human to copy by hand?", options: ["They're always longer", "They keep ambiguous look-alike characters like 0/O and l/I that Base58 deliberately removes", "They require a calculator to decode"], answer: 1 }
+      ]
     }
   ];
 
@@ -1222,17 +1399,32 @@ but suitable for verifying integrity against a determined attacker.</p>
     { id: "c73", cat: "Data", level: "medium", title: "Find the broadcast address", prompt: "What is the broadcast address of this network?", task: "172.16.0.5/28", answer: "172.16.0.15", hint: "Use Subnet Info." },
     { id: "c74", cat: "Bitwise", level: "easy", title: "Swap two bytes", prompt: "Swap the endianness of this 2-byte hex value.", task: "abcd", answer: "cd ab", hint: "Use Swap Endianness." },
     { id: "c75", cat: "Encoding", level: "medium", title: "Decode Base45", prompt: "Decode this Base45 (RFC 9285) string.", task: "7I87WENT93KC", answer: "ByteLabs", hint: "Use From Base45." },
-    { id: "c76", cat: "Ciphers", level: "hard", title: "Break the Beaufort", prompt: "This was encrypted with a Beaufort cipher, keyword SHIELD. Recover the message — remember Beaufort is reciprocal.", task: "PDDAYAOQ", answer: "DEFENDER", hint: "Use Beaufort Cipher again with the same key SHIELD — it decrypts itself." }
+    { id: "c76", cat: "Ciphers", level: "hard", title: "Break the Beaufort", prompt: "This was encrypted with a Beaufort cipher, keyword SHIELD. Recover the message — remember Beaufort is reciprocal.", task: "PDDAYAOQ", answer: "DEFENDER", hint: "Use Beaufort Cipher again with the same key SHIELD — it decrypts itself." },
+    { id: "c77", cat: "Ciphers", level: "medium", title: "Affine cipher", prompt: "Encrypt this with an Affine cipher, key a=5, b=8.", task: "MEET AT DAWN", answer: "QCCZ IZ XIOV", hint: "Use Affine Cipher Encode with a=5, b=8." },
+    { id: "c78", cat: "Ciphers", level: "hard", title: "Break the Affine cipher", prompt: "This was Affine-enciphered with key a=5, b=8. Recover the message.", task: "UCSPCZ QCUUIMC", answer: "SECRET MESSAGE", hint: "Use Affine Cipher Decode with a=5, b=8." },
+    { id: "c79", cat: "Ciphers", level: "easy", title: "Polybius square", prompt: "Encode this word on a Polybius square.", task: "HELLO", answer: "23 15 31 31 34", hint: "Use Polybius Square Encode." },
+    { id: "c80", cat: "Ciphers", level: "medium", title: "Read the coordinates", prompt: "Decode these Polybius square coordinates.", task: "52 34 42 31 14", answer: "WORLD", hint: "Use Polybius Square Decode." },
+    { id: "c81", cat: "Ciphers", level: "easy", title: "Bacon cipher", prompt: "Encode this word with the Bacon cipher.", task: "HI", answer: "AABBB ABAAA", hint: "Use Bacon Cipher Encode." },
+    { id: "c82", cat: "Ciphers", level: "medium", title: "Read the A/B pattern", prompt: "Decode this Bacon cipher pattern.", task: "AAABA ABBBA AAABB AABAA", answer: "CODE", hint: "Use Bacon Cipher Decode." },
+    { id: "c83", cat: "Encoding", level: "medium", title: "Base36", prompt: "Decode this Base36 string.", task: "17tvyr22jp", answer: "puzzle", hint: "Use From Base36." },
+    { id: "c84", cat: "Encoding", level: "medium", title: "Base62", prompt: "Decode this Base62 string.", task: "2AYtmByu8J", answer: "hackers", hint: "Use From Base62." },
+    { id: "c85", cat: "Encoding", level: "easy", title: "To Roman numerals", prompt: "Convert this number to Roman numerals.", task: "1994", answer: "MCMXCIV", hint: "Use To Roman Numerals." },
+    { id: "c86", cat: "Encoding", level: "easy", title: "From Roman numerals", prompt: "Convert this Roman numeral back to a number.", task: "XLII", answer: "42", hint: "Use From Roman Numerals." },
+    { id: "c87", cat: "Bitwise", level: "easy", title: "Swap the nibbles", prompt: "Swap the high and low nibble of every byte below and give the hex result.", task: "hi", answer: "8696", hint: "Use Swap Nibbles." },
+    { id: "c88", cat: "Hashing", level: "medium", title: "CRC-16", prompt: "Enter the CRC-16 checksum (hex) of the word below.", task: "ByteLabs", answer: "5904", hint: "Use the CRC-16 operation." },
+    { id: "c89", cat: "Hashing", level: "easy", title: "Luhn check digit", prompt: "Append the Luhn check digit to the number below.", task: "36695", answer: "366955", hint: "Use the Luhn Checksum operation." },
+    { id: "c90", cat: "Data", level: "medium", title: "Edit distance", prompt: "How many single-character edits turn the word below into 'lawn'?", task: "flaw", answer: "2", hint: "Use Levenshtein Distance with Compare to = lawn." },
+    { id: "c91", cat: "Data", level: "medium", title: "Parse the URL", prompt: "Run Parse URL on the address below and enter the value of the 'promo' query parameter.", task: "https://shop.example.com/cart?item=42&promo=SUMMER20", answer: "SUMMER20", hint: "Use Parse URL and read the promo line under Query." }
   ];
 
   // Order lessons follow on the progression map (each unlocks the next).
   // Sections group the path into named units on the Learn map. Their ids, flattened
   // in order, ARE the lesson order — the unlock chain runs straight through them.
   const LESSON_SECTIONS = [
-    { title: "Encodings", ids: ["base64", "hex", "hexdump", "unicode", "surrogates", "mojibake", "homoglyphs", "url", "mime", "base32", "base58", "density", "base45lesson", "morse", "datauri"] },
-    { title: "Classical ciphers", ids: ["ciphers", "beaufortlesson", "transposition", "columnar", "frequency", "kerckhoffs"] },
+    { title: "Encodings", ids: ["base64", "hex", "romannumerals", "hexdump", "unicode", "surrogates", "mojibake", "homoglyphs", "url", "mime", "base32", "base58", "base3662", "density", "base45lesson", "morse", "datauri"] },
+    { title: "Classical ciphers", ids: ["ciphers", "affine", "polybius", "beaufortlesson", "transposition", "columnar", "bacon", "frequency", "kerckhoffs"] },
     { title: "Bits & XOR", ids: ["xor", "otp", "bitwise", "bitmasks", "hamming", "endianness", "bruteforce"] },
-    { title: "Hashing & integrity", ids: ["hashing", "collisions", "merkletrees", "checksums", "hmac"] },
+    { title: "Hashing & integrity", ids: ["hashing", "collisions", "merkletrees", "checksums", "luhn", "hmac"] },
     { title: "Encryption", ids: ["encryption", "aes", "rsa", "signatures", "keyexchange", "tls"] },
     { title: "Passwords & secrets", ids: ["salt", "kdf", "cracking", "strength-practice", "diceware", "mfa"] },
     { title: "Data in practice", ids: ["uuids", "jwt", "networking", "subnetting", "unixtime", "regex", "entropy"] }

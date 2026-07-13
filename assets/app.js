@@ -23,6 +23,12 @@
     { id: "base85-decode", name: "From Base85", cat: "Encoding", run: (s) => CL.bytesToText(CL.base85Decode(s)), about: "Decodes Base85 (Ascii85) back into text." },
     { id: "base45-encode", name: "To Base45", cat: "Encoding", run: (s) => CL.base45Encode(CL.utf8Bytes(s)), about: "RFC 9285 - the encoding behind EU Digital COVID Certificate QR codes. Packs 2 bytes into 3 characters from an alphabet chosen to be efficient inside QR codes.", example: { in: "AB", out: "BB8" } },
     { id: "base45-decode", name: "From Base45", cat: "Encoding", run: (s) => CL.bytesToText(CL.base45Decode(s)), about: "Decodes Base45 (RFC 9285) back into text." },
+    { id: "base36-encode", name: "To Base36", cat: "Encoding", run: (s) => CL.base36Encode(CL.utf8Bytes(s)), about: "Encodes text as one big number in base 36 (0-9, a-z) - the widest alphabet that stays case-insensitive, often used for compact, easy-to-read-aloud IDs.", example: { in: "hello", out: "5pzcszu7" } },
+    { id: "base36-decode", name: "From Base36", cat: "Encoding", run: (s) => CL.bytesToText(CL.base36Decode(s)), about: "Decodes Base36 back into text." },
+    { id: "base62-encode", name: "To Base62", cat: "Encoding", run: (s) => CL.base62Encode(CL.utf8Bytes(s)), about: "Encodes text as one big number in base 62 (0-9, A-Z, a-z) - denser than Base36 by using case, and URL-safe without needing any escaping. Real-world use: URL shorteners and Twitter/Discord-style snowflake IDs.", example: { in: "ByteLabs", out: "5hqC2qBZvGN" } },
+    { id: "base62-decode", name: "From Base62", cat: "Encoding", run: (s) => CL.bytesToText(CL.base62Decode(s)), about: "Decodes Base62 back into text." },
+    { id: "roman-encode", name: "To Roman Numerals", cat: "Encoding", run: (s) => CL.toRoman(s), about: "Converts a whole number (1-3999) to Roman numerals using standard subtractive notation (IV, IX, XL...).", example: { in: "1994", out: "MCMXCIV" } },
+    { id: "roman-decode", name: "From Roman Numerals", cat: "Encoding", run: (s) => CL.fromRoman(s), about: "Converts Roman numerals back to a whole number.", example: { in: "MCMXCIV", out: "1994" } },
     { id: "punycode-encode", name: "To Punycode", cat: "Encoding", run: (s) => CL.punycodeEncode(s), about: "Encodes a domain name to ASCII-Compatible Encoding (RFC 3492), the way browsers actually send internationalized domains over DNS. Only non-ASCII dot-separated labels get an xn-- prefix.", example: { in: "münchen.de", out: "xn--mnchen-3ya.de" } },
     { id: "punycode-decode", name: "From Punycode", cat: "Encoding", run: (s) => CL.punycodeDecode(s), about: "Decodes an xn-- Punycode domain back to Unicode. Note: real browsers deliberately do NOT do this automatically in script-visible APIs — it's exactly the kind of conversion that enables homoglyph domain spoofing, see the Learn lesson on that.", example: { in: "xn--mnchen-3ya.de", out: "münchen.de" } },
     { id: "qp-encode", name: "To Quoted-Printable", cat: "Encoding", run: (s) => CL.qpEncode(s), about: "MIME email encoding (RFC 2045) - keeps ASCII text mostly readable, escapes everything else as =XX hex. The classic alternative to Base64 for email bodies.", example: { in: "100% = good", out: "100% =3D good" } },
@@ -59,6 +65,12 @@
     { id: "vigenere-encode", name: "Vigenère Encode", cat: "Ciphers", params: [{ name: "key", label: "Key", type: "text", def: "KEY" }], run: (s, p) => CL.vigenereEncode(s, p.key), about: "Shifts each letter by a repeating keyword.", example: { in: "ATTACK", out: "KXRKGI" } },
     { id: "vigenere-decode", name: "Vigenère Decode", cat: "Ciphers", params: [{ name: "key", label: "Key", type: "text", def: "KEY" }], run: (s, p) => CL.vigenereDecode(s, p.key), about: "Reverses a Vigenère cipher with the same key." },
     { id: "beaufort", name: "Beaufort Cipher", cat: "Ciphers", params: [{ name: "key", label: "Key", type: "text", def: "KEY" }], run: (s, p) => CL.beaufort(s, p.key), about: "A Vigenère variant (c = key - plaintext, instead of key + plaintext) that's reciprocal like Atbash - applying it twice with the same key restores the original text.", example: { in: "ATTACKATDAWN", out: "KLFKCOKLVKIL" } },
+    { id: "affine-encode", name: "Affine Cipher Encode", cat: "Ciphers", params: [{ name: "a", label: "Key a", type: "number", def: 5 }, { name: "b", label: "Key b", type: "number", def: 8 }], run: (s, p) => CL.affineEncode(s, parseInt(p.a, 10) || 1, parseInt(p.b, 10) || 0), about: "Generalizes Caesar to c = a*x + b (mod 26). Key a must share no common factor with 26 (try 1,3,5,7,9,11,15,17,19,21,23,25) or it can't be decoded.", example: { in: "HELLO", out: "RCLLA" } },
+    { id: "affine-decode", name: "Affine Cipher Decode", cat: "Ciphers", params: [{ name: "a", label: "Key a", type: "number", def: 5 }, { name: "b", label: "Key b", type: "number", def: 8 }], run: (s, p) => CL.affineDecode(s, parseInt(p.a, 10) || 1, parseInt(p.b, 10) || 0), about: "Reverses an Affine cipher with the same a and b." },
+    { id: "polybius-encode", name: "Polybius Square Encode", cat: "Ciphers", run: (s) => CL.polybiusEncode(s), about: "Plots each letter on a 5x5 grid (I and J share a cell) and outputs its row/column digits.", example: { in: "HELLO", out: "23 15 31 31 34" } },
+    { id: "polybius-decode", name: "Polybius Square Decode", cat: "Ciphers", run: (s) => CL.polybiusDecode(s), about: "Turns row/column digit pairs back into letters." },
+    { id: "bacon-encode", name: "Bacon Cipher Encode", cat: "Ciphers", run: (s) => CL.baconEncode(s), about: "Encodes each letter as 5 bits (A=00000 ... Z=11001) written using two symbols, A and B - a steganographic cipher meant to hide inside another text's formatting.", example: { in: "HI", out: "AABBB ABAAA" } },
+    { id: "bacon-decode", name: "Bacon Cipher Decode", cat: "Ciphers", run: (s) => CL.baconDecode(s), about: "Turns 5-symbol A/B groups back into letters." },
     { id: "railfence-encode", name: "Rail Fence Encode", cat: "Ciphers", params: [{ name: "rails", label: "Rails", type: "number", def: 3 }], run: (s, p) => CL.railFenceEncode(s, parseInt(p.rails, 10) || 2), about: "A transposition cipher — writes the text in a zigzag across N rails, then reads each rail off in order. Unlike every other cipher here, it scrambles position rather than substituting letters, so letter frequencies stay unchanged.", example: { in: "WEAREDISCOVEREDFLEEATONCE", out: "WECRLTEERDSOEEFEAOCAIVDEN" } },
     { id: "railfence-decode", name: "Rail Fence Decode", cat: "Ciphers", params: [{ name: "rails", label: "Rails", type: "number", def: 3 }], run: (s, p) => CL.railFenceDecode(s, parseInt(p.rails, 10) || 2), about: "Reverses a Rail Fence cipher — you need the same rail count used to encode." },
     { id: "columnar-encode", name: "Columnar Transposition Encode", cat: "Ciphers", params: [{ name: "key", label: "Keyword", type: "text", def: "ZEBRAS" }], run: (s, p) => CL.columnarEncode(s, p.key), about: "A transposition cipher where a keyword's alphabetical letter order sets the order columns are read back in - more key space than Rail Fence.", example: { in: "WEAREDISCOVEREDFLEEATONCE", out: "EVLNACDTESEAROFODEECWIREE" } },
@@ -90,6 +102,7 @@
     { id: "endian-swap", name: "Swap Endianness", cat: "Bitwise", run: (s) => CL.endianSwap(s.replace(/\s/g, "")), about: "Reverses byte order — converts hex bytes between big-endian and little-endian. Applying it twice restores the original.", example: { in: "12345678", out: "78 56 34 12" } },
     { id: "popcount", name: "Count Set Bits", cat: "Bitwise", run: (s) => CL.popcount(s), about: "Counts the 1-bits in each byte (its Hamming weight) plus a running total - the same count a Bitmask check relies on.", example: { in: "A", out: "2  (total: 2 of 8 bits set)" } },
     { id: "reverse-bits", name: "Reverse Bits", cat: "Bitwise", run: (s) => CL.reverseBitsHex(s), about: "Mirrors the 8 bits within each byte (bit 0 swaps with bit 7, and so on), output as hex. Its own inverse.", example: { in: "A", out: "82" } },
+    { id: "swap-nibbles", name: "Swap Nibbles", cat: "Bitwise", run: (s) => CL.swapNibblesHex(s), about: "Swaps the high and low 4-bit half of each byte, output as hex. Its own inverse.", example: { in: "A", out: "14" } },
 
     // Hashing
     { id: "md5", name: "MD5", cat: "Hashing", run: (s) => CL.md5(CL.utf8Bytes(s)), about: "128-bit hash. One-way. Broken for security — checksums only.", warn: true },
@@ -99,6 +112,8 @@
     { id: "sha512", name: "SHA-512", cat: "Hashing", run: (s) => CL.shaHex("SHA-512", CL.utf8Bytes(s)), about: "512-bit SHA-2 hash. One-way." },
     { id: "crc32", name: "CRC-32", cat: "Hashing", run: (s) => CL.crc32(CL.utf8Bytes(s)), about: "32-bit checksum for detecting accidental changes. Not for security." },
     { id: "adler32", name: "Adler-32", cat: "Hashing", run: (s) => CL.adler32(CL.utf8Bytes(s)), about: "A faster, weaker checksum than CRC-32, used inside zlib/gzip. Two running sums mod 65521, packed into 32 bits. Fine for catching accidental corruption, not for security.", example: { in: "Wikipedia", out: "11e60398" } },
+    { id: "crc16", name: "CRC-16", cat: "Hashing", run: (s) => CL.crc16(CL.utf8Bytes(s)), about: "CRC-16/ARC - a smaller, faster relative of CRC-32, used inside Modbus and various file formats. Catches accidental corruption, not tampering.", example: { in: "123456789", out: "bb3d" } },
+    { id: "luhn", name: "Luhn Checksum", cat: "Hashing", run: (s) => CL.luhnAppend(s), about: "Appends the Luhn check digit used by credit card numbers, IMEI numbers, and other ID schemes - catches simple typos and digit transpositions, not fraud.", example: { in: "7992739871", out: "79927398713" } },
     { id: "hmac-sha256", name: "HMAC-SHA256", cat: "Hashing", params: [{ name: "key", label: "Key", type: "text", def: "key" }], run: (s, p) => CL.hmacHex("SHA-256", p.key, s), about: "Keyed hash — proves a message came from someone who knows the key." },
     { id: "hmac-sha512", name: "HMAC-SHA512", cat: "Hashing", params: [{ name: "key", label: "Key", type: "text", def: "key" }], run: (s, p) => CL.hmacHex("SHA-512", p.key, s), about: "Keyed hash using SHA-512." },
     { id: "blake2b-256", name: "BLAKE2b-256", cat: "Hashing", run: (s) => CL.bytesToHex(CL_CRYPTO.blake2b(CL.utf8Bytes(s), 32), false), about: "256-bit BLAKE2b hash — faster than SHA-2 in software, used by WireGuard and others. One-way." },
@@ -168,6 +183,8 @@
     { id: "ip-to-int", name: "IPv4 to Integer", cat: "Data", run: (s) => CL.ipToInt(s), about: "Converts a dotted-quad IPv4 address into its 32-bit unsigned integer form - how it's actually stored and routed.", example: { in: "192.168.1.1", out: "3232235777" } },
     { id: "int-to-ip", name: "Integer to IPv4", cat: "Data", run: (s) => CL.intToIp(s), about: "Converts a 32-bit unsigned integer back into dotted-quad IPv4 notation.", example: { in: "3232235777", out: "192.168.1.1" } },
     { id: "subnet-info", name: "Subnet Info", cat: "Data", run: (s) => CL.subnetInfo(s), about: "Enter an address in CIDR form (e.g. 192.168.1.10/24) to get its network address, subnet mask, broadcast address, and usable host range.", example: { in: "192.168.1.10/24", out: "Network:    192.168.1.0/24\nMask:       255.255.255.0\nBroadcast:  192.168.1.255\nUsable:     254 host(s)\nRange:      192.168.1.1 - 192.168.1.254" } },
+    { id: "levenshtein", name: "Levenshtein Distance", cat: "Data", params: [{ name: "b", label: "Compare to", type: "text", def: "kitten" }], run: (s, p) => String(CL.levenshtein(s, p.b)), about: "Counts the minimum single-character edits (insert, delete, substitute) to turn one string into the other - the standard measure of 'how similar are these two pieces of text'.", example: { in: "sitting", out: "3" } },
+    { id: "parse-url", name: "Parse URL", cat: "Data", run: (s) => CL.parseUrl(s), about: "Breaks a URL down into protocol, host, port, path, query parameters, and fragment, using the browser's own URL parser.", example: { in: "https://example.com:8080/path?q=1#frag", out: "Protocol:   https:\nHost:       example.com\nPort:       8080\nPath:       /path\nQuery:      ?q=1\n    q = 1\nFragment:   #frag" } },
     { id: "color-convert", name: "Color Converter", cat: "Data", params: [{ name: "to", label: "Convert to", type: "select", def: "rgb", options: [{ v: "hex", t: "Hex" }, { v: "rgb", t: "RGB" }, { v: "hsl", t: "HSL" }] }], run: (s, p) => CL.convertColor(s, p.to), about: "Auto-detects hex (#rrggbb), rgb() or hsl() input and converts to whichever format you pick. Converting through HSL rounds to whole degrees/percent, so round-trips can drift by a shade.", example: { in: "#ff6600", out: "rgb(255, 102, 0)" } },
     { id: "change-base", name: "Change number base", cat: "Data", params: [{ name: "from", label: "From base", type: "select", def: "10", options: [{ v: "2", t: "Binary (2)" }, { v: "8", t: "Octal (8)" }, { v: "10", t: "Decimal (10)" }, { v: "16", t: "Hex (16)" }] }, { name: "to", label: "To base", type: "select", def: "16", options: [{ v: "2", t: "Binary (2)" }, { v: "8", t: "Octal (8)" }, { v: "10", t: "Decimal (10)" }, { v: "16", t: "Hex (16)" }] }], run: (s, p) => CL.changeBase(s, parseInt(p.from, 10), parseInt(p.to, 10)), about: "Converts a whole number between bases (handles very large numbers).", example: { in: "255 (10→16)", out: "ff" } },
     { id: "letter-frequency", name: "Letter frequency", cat: "Data", run: (s) => CL.letterFrequency(s), about: "Counts each A–Z letter — the first step in breaking substitution ciphers." },
@@ -180,7 +197,8 @@
     { id: "gen-base64", name: "Random Base64", cat: "Random", ignoresInput: true, params: [{ name: "bytes", label: "Bytes", type: "number", def: 16 }], run: (s, p) => CL.bytesToBase64(CL.randomBytes(parseInt(p.bytes, 10) || 16)), about: "Random Base64 string." },
     { id: "gen-bytes", name: "Random Bytes", cat: "Random", ignoresInput: true, params: [{ name: "count", label: "Count", type: "number", def: 32 }], run: (s, p) => CL.bytesToHex(CL.randomBytes(parseInt(p.count, 10) || 32), true), about: "Random bytes shown as spaced hex." },
     { id: "gen-ipv4", name: "Random IPv4", cat: "Random", ignoresInput: true, run: () => CL.randomIpv4(), about: "A random dotted-quad IPv4 address, from secure randomness. Useful test data - not a real routable address." },
-    { id: "gen-dice", name: "Dice Roll", cat: "Random", ignoresInput: true, params: [{ name: "count", label: "Dice", type: "number", def: 5 }], run: (s, p) => CL.rollDice(parseInt(p.count, 10) || 5), about: "Rolls the given number of six-sided dice using secure randomness with rejection sampling, so every face stays exactly 1-in-6 - the same method behind a real Diceware passphrase." }
+    { id: "gen-dice", name: "Dice Roll", cat: "Random", ignoresInput: true, params: [{ name: "count", label: "Dice", type: "number", def: 5 }], run: (s, p) => CL.rollDice(parseInt(p.count, 10) || 5), about: "Rolls the given number of six-sided dice using secure randomness with rejection sampling, so every face stays exactly 1-in-6 - the same method behind a real Diceware passphrase." },
+    { id: "gen-lorem", name: "Lorem Ipsum", cat: "Random", ignoresInput: true, params: [{ name: "words", label: "Words", type: "number", def: 30 }], run: (s, p) => CL.loremIpsum(parseInt(p.words, 10) || 30), about: "Classic Latin-esque placeholder text, picked word-by-word with the same secure randomness (and rejection sampling) as every other generator here." }
   ];
   const OP_BY_ID = Object.fromEntries(OPS.map((o) => [o.id, o]));
   const COMMON = ["base64-encode", "base64-decode", "hex-encode", "hex-decode", "url-encode", "url-decode", "sha256", "rot13"];
@@ -690,6 +708,39 @@
   <ellipse cx="34" cy="82" rx="3.2" ry="2.2" fill="#ffffff" opacity=".5"/>
 </svg>`;
   }
+  // Ocean theme gets its own fish version of Byte — same mood language (one eye
+  // in profile instead of two, a wiggling pectoral fin standing in for the wave).
+  function fishMascotSvg(mood) {
+    const ink = "#0b2e3d";
+    const mouth = mood === "done" ? `<path d="M100 56 Q108 64 100 68" stroke="${ink}" stroke-width="3" fill="none" stroke-linecap="round"/>`
+      : mood === "start" ? `<path d="M100 55 Q107 60 101 65" stroke="${ink}" stroke-width="3" fill="none" stroke-linecap="round"/>`
+      : `<path d="M100 56 Q105 59 101 62" stroke="${ink}" stroke-width="2.5" fill="none" stroke-linecap="round"/>`;
+    const eye = mood === "done"
+      ? `<path d="M82 38 Q87 33 92 38" stroke="${ink}" stroke-width="2.8" fill="none" stroke-linecap="round"/>`
+      : `<circle cx="87" cy="40" r="4.2" fill="${ink}"/><circle cx="86" cy="38.5" r="1.4" fill="#fff"/>`;
+    const fin = mood === "done"
+      ? `<path d="M62 74 Q46 94 74 96 Q82 82 62 74 Z" fill="var(--lime-bright)" stroke="var(--border-strong)" stroke-width="2.5" stroke-linejoin="round"/>`
+      : `<g class="mascot-wave-fish"><path d="M62 74 Q54 88 66 92 Q71 80 62 74 Z" fill="var(--lime-bright)" stroke="var(--border-strong)" stroke-width="2.5" stroke-linejoin="round"/></g>`;
+    const sparkles = mood === "done"
+      ? `<g class="mascot-sparkle" fill="var(--lime-bright)"><path d="M18 18l1.6 4.4L24 24l-4.4 1.6L18 30l-1.6-4.4L12 24l4.4-1.6z"/><path d="M112 20l1.1 3 3 1.1-3 1.1-1.1 3-1.1-3-3-1.1 3-1.1z"/></g>`
+      : "";
+    return `
+<svg class="mascot-svg mood-${mood}" viewBox="0 0 130 100" width="104" height="80" fill="none">
+  ${sparkles}
+  <g class="mascot-bubbles">
+    <circle cx="118" cy="30" r="2.2" fill="var(--lime-soft)" stroke="var(--lime)" stroke-width="1.3"/>
+    <circle cx="123" cy="22" r="1.5" fill="var(--lime-soft)" stroke="var(--lime)" stroke-width="1.3"/>
+  </g>
+  <path d="M32 50 L8 27 L19 50 L8 73 Z" fill="var(--lime-bright)" stroke="var(--border-strong)" stroke-width="2.5" stroke-linejoin="round"/>
+  <ellipse cx="68" cy="50" rx="38" ry="26" fill="var(--lime-bright)" stroke="var(--border-strong)" stroke-width="2.5"/>
+  <path d="M54 27 L65 6 L77 26 Z" fill="var(--lime-bright)" stroke="var(--border-strong)" stroke-width="2.5" stroke-linejoin="round"/>
+  ${fin}
+  <ellipse cx="78" cy="53" rx="3.6" ry="2.4" fill="#ff9fc2" opacity=".5"/>
+  ${eye}
+  ${mouth}
+  <ellipse cx="52" cy="42" rx="4" ry="2.6" fill="#ffffff" opacity=".35"/>
+</svg>`;
+  }
   // Retro theme gets its own 8-bit sprite version of Byte — same silhouette idea,
   // rebuilt from chunky stacked blocks instead of curves.
   function pixelMascotSvg(mood) {
@@ -726,7 +777,7 @@
     const mood = pct >= 100 ? "done" : completed > 0 ? "start" : "idle";
     const msg = pct >= 100 ? MASCOT_MSG.done : completed > 0 && nextTitle ? MASCOT_MSG.start(nextTitle) : MASCOT_MSG.empty;
     const theme = (loadSettings().theme) || "light";
-    const figure = theme === "retro" ? pixelMascotSvg(mood) : mascotSvg(mood);
+    const figure = theme === "retro" ? pixelMascotSvg(mood) : theme === "ocean" ? fishMascotSvg(mood) : mascotSvg(mood);
     box.innerHTML = `
       <div class="mascot-figure">${figure}</div>
       <div class="mascot-bubble"><p>${msg}</p></div>`;
@@ -816,7 +867,7 @@
   }
   function closeLesson() { $("#lesson-modal").classList.add("hidden"); }
 
-  const DEMO_FIELD2 = { xor: "Key", vigenere: "Key", beaufort: "Key", caesar: "Shift", regex: "Pattern (regex)", railfence: "Rails", columnar: "Keyword", bitmask: "Mask (hex byte)" };
+  const DEMO_FIELD2 = { xor: "Key", vigenere: "Key", beaufort: "Key", caesar: "Shift", regex: "Pattern (regex)", railfence: "Rails", columnar: "Keyword", bitmask: "Mask (hex byte)", affine: "Key (a,b)" };
   function buildDemo(view, demo) {
     const wrap = document.createElement("div"); wrap.className = "demo";
     wrap.innerHTML = "<h4>Try it yourself</h4>";
@@ -826,7 +877,7 @@
     if (DEMO_FIELD2[demo.type]) {
       const lab = document.createElement("label"); lab.className = "lbl"; lab.textContent = DEMO_FIELD2[demo.type]; wrap.appendChild(lab);
       in2 = document.createElement("input"); in2.className = "field mono";
-      in2.value = demo.type === "caesar" || demo.type === "railfence" ? "3" : demo.type === "columnar" ? "ZEBRAS" : demo.type === "regex" ? "\\d+" : demo.type === "bitmask" ? "0f" : "key";
+      in2.value = demo.type === "caesar" || demo.type === "railfence" ? "3" : demo.type === "columnar" ? "ZEBRAS" : demo.type === "regex" ? "\\d+" : demo.type === "bitmask" ? "0f" : demo.type === "affine" ? "5,8" : "key";
       wrap.appendChild(in2);
     }
     const outLbl = document.createElement("label"); outLbl.className = "lbl"; outLbl.textContent = "Result"; wrap.appendChild(outLbl);
@@ -868,6 +919,12 @@
       case "regex": { const m = v.match(new RegExp(k, "g")); return m ? m.join("\n") : "(no matches)"; }
       case "jwt": return JSON.stringify(CL.parseJwt(v.trim()).payload, null, 2);
       case "hash": return hasSubtle ? await CL.shaHex("SHA-256", CL.utf8Bytes(v)) : CL.md5(CL.utf8Bytes(v)) + " (MD5)";
+      case "affine": { const parts = k.split(",").map((s) => parseInt(s.trim(), 10)); return CL.affineEncode(v, parts[0] || 1, parts[1] || 0); }
+      case "polybius": return CL.polybiusEncode(v);
+      case "bacon": return CL.baconEncode(v);
+      case "roman": return CL.toRoman(v);
+      case "luhn": return CL.luhnAppend(v);
+      case "base62": return CL.base62Encode(CL.utf8Bytes(v));
       default: return "";
     }
   }

@@ -315,6 +315,31 @@
     }
     return rolls.join(" ");
   }
+  const LOREM_WORDS = ("lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor incididunt ut labore " +
+    "et dolore magna aliqua enim ad minim veniam quis nostrud exercitation ullamco laboris nisi aliquip ex ea commodo " +
+    "consequat duis aute irure in reprehenderit voluptate velit esse cillum eu fugiat nulla pariatur excepteur sint " +
+    "occaecat cupidatat non proident sunt culpa qui officia deserunt mollit anim id est laborum").split(" ");
+  // Rejection sampling for a uniform pick, same reasoning as rollDice: a plain
+  // byte % n is very slightly biased whenever 256 isn't a multiple of n.
+  function randomIndex(n) {
+    const limit = 256 - (256 % n);
+    while (true) { const b = randomBytes(1)[0]; if (b < limit) return b % n; }
+  }
+  function loremIpsum(wordCount) {
+    const n = Math.max(1, wordCount | 0);
+    const words = [];
+    for (let i = 0; i < n; i++) words.push(LOREM_WORDS[randomIndex(LOREM_WORDS.length)]);
+    let out = words.join(" ");
+    out = out.charAt(0).toUpperCase() + out.slice(1);
+    // Sprinkle sentence breaks roughly every 8-14 words so it reads like prose, not one run-on line.
+    const parts = out.split(" ");
+    let sinceBreak = 0;
+    for (let i = 0; i < parts.length - 1; i++) {
+      sinceBreak++;
+      if (sinceBreak > 7 + (i % 6)) { parts[i] += "."; parts[i + 1] = parts[i + 1].charAt(0).toUpperCase() + parts[i + 1].slice(1); sinceBreak = 0; }
+    }
+    return parts.join(" ") + ".";
+  }
 
   // ----- Base64 URL-safe -----
   function bytesToBase64Url(bytes) {
@@ -404,6 +429,64 @@
       const y = ((shift - x) % 26 + 26) % 26;
       return String.fromCharCode(base + y);
     });
+  }
+
+  // ----- Affine cipher: E(x) = a*x + b (mod 26); a must be coprime with 26 -----
+  function egcd(a, b) { if (b === 0) return [a, 1, 0]; const [g, x1, y1] = egcd(b, a % b); return [g, y1, x1 - Math.floor(a / b) * y1]; }
+  function modInverse(a, m) {
+    const [g, x] = egcd(((a % m) + m) % m, m);
+    if (g !== 1) throw new Error("Key 'a' must share no common factor with 26 (try 1,3,5,7,9,11,15,17,19,21,23,25).");
+    return ((x % m) + m) % m;
+  }
+  function affineEncode(str, a, b) {
+    return str.replace(/[a-z]/gi, (c) => {
+      const base = c <= "Z" ? 65 : 97;
+      const x = c.charCodeAt(0) - base;
+      return String.fromCharCode((((a * x + b) % 26) + 26) % 26 + base);
+    });
+  }
+  function affineDecode(str, a, b) {
+    const aInv = modInverse(a, 26);
+    return str.replace(/[a-z]/gi, (c) => {
+      const base = c <= "Z" ? 65 : 97;
+      const y = c.charCodeAt(0) - base;
+      return String.fromCharCode((((aInv * (y - b)) % 26 + 26 * 30) % 26) + base);
+    });
+  }
+
+  // ----- Polybius square (5x5 grid, I/J share a cell) -----
+  const POLYBIUS_SQ = "ABCDEFGHIKLMNOPQRSTUVWXYZ";
+  function polybiusEncode(str) {
+    const pairs = str.toUpperCase().replace(/[^A-Z]/g, "").split("").map((c) => {
+      const idx = POLYBIUS_SQ.indexOf(c === "J" ? "I" : c);
+      if (idx < 0) return "";
+      return String(Math.floor(idx / 5) + 1) + String((idx % 5) + 1);
+    });
+    return pairs.join(" ");
+  }
+  function polybiusDecode(str) {
+    const digits = str.replace(/[^1-5]/g, "");
+    if (digits.length % 2 !== 0) throw new Error("Polybius input needs an even number of digits (row+column pairs).");
+    let out = "";
+    for (let i = 0; i < digits.length; i += 2) {
+      const row = parseInt(digits[i], 10) - 1, col = parseInt(digits[i + 1], 10) - 1;
+      out += POLYBIUS_SQ[row * 5 + col];
+    }
+    return out;
+  }
+
+  // ----- Bacon cipher: each letter as 5 bits (A=0, B=1), written as A/B symbols -----
+  function baconEncode(str) {
+    return str.toUpperCase().replace(/[^A-Z]/g, "").split("").map((c) => {
+      const v = c.charCodeAt(0) - 65;
+      return v.toString(2).padStart(5, "0").replace(/0/g, "A").replace(/1/g, "B");
+    }).join(" ");
+  }
+  function baconDecode(str) {
+    const clean = str.toUpperCase().replace(/[^AB]/g, "");
+    if (clean.length % 5 !== 0) throw new Error("Bacon input needs a multiple of 5 A/B symbols per letter.");
+    const groups = clean.match(/.{5}/g) || [];
+    return groups.map((g) => String.fromCharCode(65 + parseInt(g.replace(/A/g, "0").replace(/B/g, "1"), 2))).join("");
   }
 
   // ----- Rail Fence cipher (transposition, not substitution) -----
@@ -542,6 +625,30 @@
     for (let i = 0; i < bytes.length; i++) { a = (a + bytes[i]) % MOD; b = (b + a) % MOD; }
     return (((b << 16) | a) >>> 0).toString(16).padStart(8, "0");
   }
+  // CRC-16/ARC (poly 0xA001 reflected, init 0x0000, no output xor) - a common, simple
+  // CRC-16 variant, used e.g. inside Modbus and ZIP-family formats.
+  function crc16(bytes) {
+    let crc = 0x0000;
+    for (let i = 0; i < bytes.length; i++) {
+      crc ^= bytes[i];
+      for (let b = 0; b < 8; b++) crc = (crc & 1) ? (crc >>> 1) ^ 0xa001 : crc >>> 1;
+    }
+    return (crc & 0xffff).toString(16).padStart(4, "0");
+  }
+  // Computes the Luhn check digit for a digit string, returning the full valid number.
+  function luhnAppend(str) {
+    const digits = str.replace(/\D/g, "");
+    if (!digits.length) throw new Error("Enter a string of digits.");
+    const nums = digits.split("").map(Number);
+    let sum = 0;
+    for (let i = 0; i < nums.length; i++) {
+      let d = nums[nums.length - 1 - i];
+      if (i % 2 === 0) { d *= 2; if (d > 9) d -= 9; }
+      sum += d;
+    }
+    const check = (10 - (sum % 10)) % 10;
+    return digits + check;
+  }
 
   // ----- HMAC via Web Crypto -----
   async function hmacHex(algo, keyStr, msgStr) {
@@ -575,6 +682,27 @@
     numbers: /-?\d+(?:\.\d+)?/g
   };
   function extract(str, mode) { const re = EXTRACT_PATTERNS[mode]; if (!re) return ""; const m = str.match(re); return m ? m.join("\n") : ""; }
+
+  // ----- Levenshtein edit distance -----
+  function levenshtein(a, b) {
+    const m = a.length, n = b.length;
+    const dp = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
+    for (let i = 0; i <= m; i++) dp[i][0] = i;
+    for (let j = 0; j <= n; j++) dp[0][j] = j;
+    for (let i = 1; i <= m; i++) {
+      for (let j = 1; j <= n; j++) {
+        dp[i][j] = a[i - 1] === b[j - 1] ? dp[i - 1][j - 1] : 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
+      }
+    }
+    return dp[m][n];
+  }
+
+  // ----- URL breakdown, via the browser's own tested parser -----
+  function parseUrl(str) {
+    const u = new URL(str.trim());
+    const params = Array.from(u.searchParams.entries()).map(([k, v]) => `    ${k} = ${v}`).join("\n");
+    return `Protocol:   ${u.protocol}\nHost:       ${u.hostname}${u.port ? "\nPort:       " + u.port : ""}\nPath:       ${u.pathname || "/"}${u.search ? "\nQuery:      " + u.search : ""}${params ? "\n" + params : ""}${u.hash ? "\nFragment:   " + u.hash : ""}`;
+  }
 
   // ----- More text utilities -----
   function convertLineEndings(str, to) { const unix = str.replace(/\r\n/g, "\n").replace(/\r/g, "\n"); return to === "crlf" ? unix.replace(/\n/g, "\r\n") : unix; }
@@ -720,6 +848,64 @@
     const out = []; for (let i = 0; i < zeros; i++) out.push(0);
     for (let i = bytes.length - 1; i >= 0; i--) out.push(bytes[i]);
     return new Uint8Array(out);
+  }
+
+  // ----- Generic base-N byte-string codec (same big-integer approach as Base58 above) -----
+  function makeBaseNEncode(alphabet) {
+    const base = alphabet.length;
+    return function (bytes) {
+      let zeros = 0; while (zeros < bytes.length && bytes[zeros] === 0) zeros++;
+      const digits = [0];
+      for (let i = zeros; i < bytes.length; i++) {
+        let carry = bytes[i];
+        for (let j = 0; j < digits.length; j++) { carry += digits[j] << 8; digits[j] = carry % base; carry = (carry / base) | 0; }
+        while (carry > 0) { digits.push(carry % base); carry = (carry / base) | 0; }
+      }
+      let out = ""; for (let i = 0; i < zeros; i++) out += alphabet[0];
+      for (let i = digits.length - 1; i >= 0; i--) out += alphabet[digits[i]];
+      return out;
+    };
+  }
+  function makeBaseNDecode(alphabet) {
+    const base = alphabet.length;
+    return function (str) {
+      const s = str.trim(); let zeros = 0; while (zeros < s.length && s[zeros] === alphabet[0]) zeros++;
+      const bytes = [0];
+      for (let i = zeros; i < s.length; i++) {
+        const val = alphabet.indexOf(s[i]); if (val < 0) throw new Error("Invalid character: " + s[i]);
+        let carry = val;
+        for (let j = 0; j < bytes.length; j++) { carry += bytes[j] * base; bytes[j] = carry & 0xff; carry >>= 8; }
+        while (carry > 0) { bytes.push(carry & 0xff); carry >>= 8; }
+      }
+      const out = []; for (let i = 0; i < zeros; i++) out.push(0);
+      for (let i = bytes.length - 1; i >= 0; i--) out.push(bytes[i]);
+      return new Uint8Array(out);
+    };
+  }
+  const B36_ALPHABET = "0123456789abcdefghijklmnopqrstuvwxyz";
+  const B62_ALPHABET = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+  const base36Encode = makeBaseNEncode(B36_ALPHABET), base36Decode = makeBaseNDecode(B36_ALPHABET);
+  const base62Encode = makeBaseNEncode(B62_ALPHABET), base62Decode = makeBaseNDecode(B62_ALPHABET);
+
+  // ----- Roman numerals (standard subtractive notation, 1-3999) -----
+  const ROMAN_TABLE = [[1000,"M"],[900,"CM"],[500,"D"],[400,"CD"],[100,"C"],[90,"XC"],[50,"L"],[40,"XL"],[10,"X"],[9,"IX"],[5,"V"],[4,"IV"],[1,"I"]];
+  function toRoman(str) {
+    const n = parseInt(str.trim(), 10);
+    if (!Number.isInteger(n) || n < 1 || n > 3999) throw new Error("Enter a whole number from 1 to 3999 (standard Roman numerals have no way to write 0 or larger numbers).");
+    let out = "", x = n;
+    for (const [v, sym] of ROMAN_TABLE) { while (x >= v) { out += sym; x -= v; } }
+    return out;
+  }
+  function fromRoman(str) {
+    const map = { I: 1, V: 5, X: 10, L: 50, C: 100, D: 500, M: 1000 };
+    const s = str.trim().toUpperCase();
+    if (!s.length || /[^IVXLCDM]/.test(s)) throw new Error("Only the letters I, V, X, L, C, D, M are valid Roman numerals.");
+    let total = 0;
+    for (let i = 0; i < s.length; i++) {
+      const cur = map[s[i]], next = map[s[i + 1]];
+      total += (next && cur < next) ? -cur : cur;
+    }
+    return String(total);
   }
 
   // ----- Base85 (Ascii85) -----
@@ -1088,6 +1274,12 @@
     }
     return bytesToHex(out, false);
   }
+  // Swaps the high and low 4-bit nibble within each byte. Its own inverse.
+  function swapNibblesHex(str) {
+    const bytes = utf8Bytes(str), out = new Uint8Array(bytes.length);
+    for (let i = 0; i < bytes.length; i++) out[i] = ((bytes[i] << 4) | (bytes[i] >> 4)) & 0xff;
+    return bytesToHex(out, false);
+  }
 
   // ----- English-likeness scoring, shared by both brute-force tools -----
   // Standard published English letter frequencies (percent), Wikipedia / Cornell CS.
@@ -1171,16 +1363,20 @@
   window.CL = {
     utf8Bytes, bytesToText, bytesToBase64, base64ToBytes, bytesToBase64Url, base64UrlToBytes,
     bytesToHex, hexToBytes, bytesToBinary, binaryToBytes, base32Encode, base32Decode, base58Encode, base58Decode,
-    base85Encode, base85Decode, base45Encode, base45Decode, punycodeEncode, punycodeDecode, qpEncode, qpDecode,
+    base85Encode, base85Decode, base45Encode, base45Decode, base36Encode, base36Decode, base62Encode, base62Decode,
+    punycodeEncode, punycodeDecode, qpEncode, qpDecode, toRoman, fromRoman,
     toHexdump, fromHexdump, htmlEncode, htmlDecode, caesar, atbash, rot47, a1z26Encode, a1z26Decode,
-    vigenereEncode, vigenereDecode, beaufort, railFenceEncode, railFenceDecode, columnarEncode, columnarDecode,
+    vigenereEncode, vigenereDecode, beaufort, affineEncode, affineDecode, polybiusEncode, polybiusDecode,
+    baconEncode, baconDecode, railFenceEncode, railFenceDecode, columnarEncode, columnarDecode,
     xorHexOut, xorFromHex, decimalEncode, decimalDecode,
     octalEncode, octalDecode, unicodeEscape, unicodeUnescape, natoEncode, morseEncode, morseDecode,
-    stripAccents, jsonEscape, jsonUnescape, changeCase, changeBase, letterFrequency, extract, dateToUnix, unixToDate,
+    stripAccents, jsonEscape, jsonUnescape, changeCase, changeBase, letterFrequency, extract, levenshtein, parseUrl, dateToUnix, unixToDate,
     ipToInt, intToIp, subnetInfo, convertColor,
     convertLineEndings, stripHtmlTags, wordWrap, inspectChars, byteHistogram,
-    bitAndHex, bitOrHex, bitXorHex, modAddHex, modSubHex, bitNot, bitShift, rotateBits, grayEncodeHex, grayDecodeHex, endianSwap, popcount, reverseBitsHex,
+    bitAndHex, bitOrHex, bitXorHex, modAddHex, modSubHex, bitNot, bitShift, rotateBits, grayEncodeHex, grayDecodeHex,
+    endianSwap, popcount, reverseBitsHex, swapNibblesHex,
     xorBruteForce, caesarBruteForce, chiSquaredEnglish,
-    md5, shaHex, hmacHex, crc32, adler32, entropy, printableRatio, magicBytes, detect, parseJwt, randomBytes, uuid, password, randomIpv4, rollDice
+    md5, shaHex, hmacHex, crc32, crc16, adler32, luhnAppend, entropy, printableRatio, magicBytes, detect, parseJwt,
+    randomBytes, uuid, password, randomIpv4, rollDice, loremIpsum
   };
 })();
