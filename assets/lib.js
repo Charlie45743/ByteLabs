@@ -340,6 +340,32 @@
     }
     return parts.join(" ") + ".";
   }
+  function randomMac() {
+    const bytes = [Math.floor(Math.random() * 256) & 0xfe]; // clear the multicast bit for a locally-plausible unicast MAC
+    for (let i = 0; i < 5; i++) bytes.push(Math.floor(Math.random() * 256));
+    return bytes.map((b) => b.toString(16).padStart(2, "0")).join(":");
+  }
+  function randomHexColor() { return "#" + Math.floor(Math.random() * 0x1000000).toString(16).padStart(6, "0"); }
+  function randomIntInRange(minStr, maxStr) {
+    const min = parseInt(minStr, 10), max = parseInt(maxStr, 10);
+    if (!Number.isInteger(min) || !Number.isInteger(max) || min > max) throw new Error("Enter a valid min <= max.");
+    return String(min + Math.floor(Math.random() * (max - min + 1)));
+  }
+  function randomFloatInRange(minStr, maxStr) {
+    const min = parseFloat(minStr), max = parseFloat(maxStr);
+    if (!Number.isFinite(min) || !Number.isFinite(max) || min > max) throw new Error("Enter a valid min <= max.");
+    return String(min + Math.random() * (max - min));
+  }
+  function coinFlip() { return Math.random() < 0.5 ? "Heads" : "Tails"; }
+  const CARD_RANKS = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"];
+  const CARD_SUITS = ["♠", "♥", "♦", "♣"];
+  function randomCard() { return CARD_RANKS[Math.floor(Math.random() * 13)] + CARD_SUITS[Math.floor(Math.random() * 4)]; }
+  function shuffleLines(str) {
+    const lines = str.split(/\r\n|\r|\n/);
+    for (let i = lines.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); const t = lines[i]; lines[i] = lines[j]; lines[j] = t; }
+    return lines.join("\n");
+  }
+  function randomBoolean() { return Math.random() < 0.5 ? "true" : "false"; }
 
   // ----- Base64 URL-safe -----
   function bytesToBase64Url(bytes) {
@@ -487,6 +513,209 @@
     if (clean.length % 5 !== 0) throw new Error("Bacon input needs a multiple of 5 A/B symbols per letter.");
     const groups = clean.match(/.{5}/g) || [];
     return groups.map((g) => String.fromCharCode(65 + parseInt(g.replace(/A/g, "0").replace(/B/g, "1"), 2))).join("");
+  }
+
+  // ----- Trithemius cipher: Caesar whose shift grows by 1 with each letter's position -----
+  function trithemiusEncode(str) {
+    let pos = 0;
+    return str.replace(/[a-z]/gi, (c) => {
+      const base = c <= "Z" ? 65 : 97;
+      const x = c.charCodeAt(0) - base;
+      const out = String.fromCharCode((((x + pos) % 26) + 26) % 26 + base);
+      pos++;
+      return out;
+    });
+  }
+  function trithemiusDecode(str) {
+    let pos = 0;
+    return str.replace(/[a-z]/gi, (c) => {
+      const base = c <= "Z" ? 65 : 97;
+      const x = c.charCodeAt(0) - base;
+      const out = String.fromCharCode((((x - pos) % 26) + 26) % 26 + base);
+      pos++;
+      return out;
+    });
+  }
+
+  // ----- Gronsfeld cipher: Vigenere with a numeric key instead of a letter keyword -----
+  function gronsfeldEncode(str, key) {
+    const digits = (key || "").replace(/\D/g, "");
+    if (!digits.length) throw new Error("Gronsfeld needs a numeric key (digits only).");
+    let ki = 0;
+    return str.replace(/[a-z]/gi, (c) => {
+      const base = c <= "Z" ? 65 : 97;
+      const x = c.charCodeAt(0) - base;
+      const shift = digits.charCodeAt(ki % digits.length) - 48;
+      ki++;
+      return String.fromCharCode((((x + shift) % 26) + 26) % 26 + base);
+    });
+  }
+  function gronsfeldDecode(str, key) {
+    const digits = (key || "").replace(/\D/g, "");
+    if (!digits.length) throw new Error("Gronsfeld needs a numeric key (digits only).");
+    let ki = 0;
+    return str.replace(/[a-z]/gi, (c) => {
+      const base = c <= "Z" ? 65 : 97;
+      const x = c.charCodeAt(0) - base;
+      const shift = digits.charCodeAt(ki % digits.length) - 48;
+      ki++;
+      return String.fromCharCode((((x - shift) % 26) + 26) % 26 + base);
+    });
+  }
+
+  // ----- Autokey cipher: Vigenere whose key is extended by the plaintext itself, so it
+  // never repeats short like a fixed keyword does. -----
+  function autokeyEncode(str, key) {
+    if (!/[a-z]/i.test(key || "")) throw new Error("Autokey needs an alphabetic keyword.");
+    const keyLetters = key.toUpperCase().replace(/[^A-Z]/g, "").split("");
+    const plainLetters = str.toUpperCase().replace(/[^A-Z]/g, "").split("");
+    const stream = keyLetters.concat(plainLetters);
+    let li = 0;
+    return str.replace(/[a-z]/gi, (c) => {
+      const base = c <= "Z" ? 65 : 97;
+      const x = c.charCodeAt(0) - base;
+      const k = stream[li].charCodeAt(0) - 65;
+      li++;
+      return String.fromCharCode((((x + k) % 26) + 26) % 26 + base);
+    });
+  }
+  function autokeyDecode(str, key) {
+    if (!/[a-z]/i.test(key || "")) throw new Error("Autokey needs an alphabetic keyword.");
+    const keyLetters = key.toUpperCase().replace(/[^A-Z]/g, "").split("");
+    const recovered = [];
+    let ki = 0;
+    return str.replace(/[a-z]/gi, (c) => {
+      const base = c <= "Z" ? 65 : 97;
+      const y = c.charCodeAt(0) - base;
+      const kChar = ki < keyLetters.length ? keyLetters[ki] : recovered[ki - keyLetters.length];
+      const k = kChar.charCodeAt(0) - 65;
+      const p = (((y - k) % 26) + 26) % 26;
+      recovered.push(String.fromCharCode(p + 65));
+      ki++;
+      return String.fromCharCode(p + base);
+    });
+  }
+
+  // ----- Nihilist cipher: standard Polybius-square coordinates plus a repeating numeric
+  // key (itself derived from a keyword through the same grid), added digit-pair-wise. -----
+  function polybiusValue(c) {
+    const idx = POLYBIUS_SQ.indexOf(c === "J" ? "I" : c);
+    if (idx < 0) return null;
+    return (Math.floor(idx / 5) + 1) * 10 + ((idx % 5) + 1);
+  }
+  function nihilistEncode(str, key) {
+    const keyVals = (key || "").toUpperCase().replace(/[^A-Z]/g, "").split("").map(polybiusValue).filter((v) => v !== null);
+    if (!keyVals.length) throw new Error("Nihilist needs an alphabetic keyword.");
+    const plainVals = str.toUpperCase().replace(/[^A-Z]/g, "").split("").map(polybiusValue).filter((v) => v !== null);
+    return plainVals.map((v, i) => v + keyVals[i % keyVals.length]).join(" ");
+  }
+  function nihilistDecode(str, key) {
+    const keyVals = (key || "").toUpperCase().replace(/[^A-Z]/g, "").split("").map(polybiusValue).filter((v) => v !== null);
+    if (!keyVals.length) throw new Error("Nihilist needs an alphabetic keyword.");
+    const nums = str.trim().split(/\s+/).filter(Boolean).map(Number);
+    if (nums.some((n) => !Number.isInteger(n))) throw new Error("Nihilist ciphertext should be space-separated numbers.");
+    return nums.map((n, i) => {
+      const v = n - keyVals[i % keyVals.length];
+      const row = Math.floor(v / 10) - 1, col = (v % 10) - 1;
+      if (row < 0 || row > 4 || col < 0 || col > 4) throw new Error("A decoded coordinate fell outside the 5x5 grid - check the key and ciphertext.");
+      return POLYBIUS_SQ[row * 5 + col];
+    }).join("");
+  }
+
+  // ----- Keyword cipher: monoalphabetic substitution seeded by a keyword (dedupe its
+  // letters, then fill in the rest of the alphabet in order). -----
+  function keywordAlphabet(key) {
+    const seen = new Set();
+    const letters = [];
+    (key || "").toUpperCase().replace(/[^A-Z]/g, "").split("").forEach((c) => { if (!seen.has(c)) { seen.add(c); letters.push(c); } });
+    for (let i = 0; i < 26; i++) { const c = String.fromCharCode(65 + i); if (!seen.has(c)) { seen.add(c); letters.push(c); } }
+    return letters.join("");
+  }
+  function keywordCipherEncode(str, key) {
+    const cipherAlpha = keywordAlphabet(key);
+    return str.replace(/[a-z]/gi, (c) => {
+      const base = c <= "Z" ? 65 : 97;
+      const x = c.charCodeAt(0) - base;
+      const out = cipherAlpha[x];
+      return base === 65 ? out : out.toLowerCase();
+    });
+  }
+  function keywordCipherDecode(str, key) {
+    const cipherAlpha = keywordAlphabet(key);
+    return str.replace(/[a-z]/gi, (c) => {
+      const base = c <= "Z" ? 65 : 97;
+      const idx = cipherAlpha.indexOf(c.toUpperCase());
+      const out = String.fromCharCode(65 + idx);
+      return base === 65 ? out : out.toLowerCase();
+    });
+  }
+
+  // ----- ROT18: ROT13 on letters plus ROT5 on digits in one pass. Reciprocal, like ROT13
+  // and ROT47 - running it twice restores the original. -----
+  function rot18(str) {
+    return str.replace(/[a-z0-9]/gi, (c) => {
+      if (/[0-9]/.test(c)) return String.fromCharCode(((c.charCodeAt(0) - 48 + 5) % 10) + 48);
+      const base = c <= "Z" ? 65 : 97;
+      return String.fromCharCode(((c.charCodeAt(0) - base + 13) % 26) + base);
+    });
+  }
+
+  // ----- Playfair cipher: digraph substitution on a keyed 5x5 grid (I/J merged). Doubled
+  // letters within a pair and an odd final letter are padded with 'X', same as the
+  // historical cipher - so decode isn't guaranteed byte-identical when that padding fired. -----
+  function playfairGrid(key) {
+    const seen = new Set();
+    const letters = [];
+    (key || "").toUpperCase().replace(/J/g, "I").replace(/[^A-Z]/g, "").split("").forEach((c) => { if (!seen.has(c)) { seen.add(c); letters.push(c); } });
+    for (let i = 0; i < 26; i++) {
+      const c = String.fromCharCode(65 + i);
+      if (c === "J") continue;
+      if (!seen.has(c)) { seen.add(c); letters.push(c); }
+    }
+    return letters;
+  }
+  function playfairPos(grid, c) {
+    const i = grid.indexOf(c === "J" ? "I" : c);
+    return { row: Math.floor(i / 5), col: i % 5 };
+  }
+  function playfairDigraphs(str) {
+    const letters = str.toUpperCase().replace(/J/g, "I").replace(/[^A-Z]/g, "").split("");
+    const pairs = [];
+    let i = 0;
+    while (i < letters.length) {
+      const a = letters[i];
+      const b = letters[i + 1];
+      if (b === undefined) { pairs.push([a, "X"]); i += 1; }
+      else if (a === b) { pairs.push([a, "X"]); i += 1; }
+      else { pairs.push([a, b]); i += 2; }
+    }
+    return pairs;
+  }
+  function playfairEncode(str, key) {
+    if (!/[a-z]/i.test(key || "")) throw new Error("Playfair needs an alphabetic keyword.");
+    const grid = playfairGrid(key);
+    const pairs = playfairDigraphs(str);
+    return pairs.map(([a, b]) => {
+      const pa = playfairPos(grid, a), pb = playfairPos(grid, b);
+      if (pa.row === pb.row) return grid[pa.row * 5 + (pa.col + 1) % 5] + grid[pb.row * 5 + (pb.col + 1) % 5];
+      if (pa.col === pb.col) return grid[((pa.row + 1) % 5) * 5 + pa.col] + grid[((pb.row + 1) % 5) * 5 + pb.col];
+      return grid[pa.row * 5 + pb.col] + grid[pb.row * 5 + pa.col];
+    }).join("");
+  }
+  function playfairDecode(str, key) {
+    if (!/[a-z]/i.test(key || "")) throw new Error("Playfair needs an alphabetic keyword.");
+    const grid = playfairGrid(key);
+    const letters = str.toUpperCase().replace(/[^A-Z]/g, "").split("");
+    if (letters.length % 2 !== 0) throw new Error("Playfair ciphertext should have an even number of letters.");
+    let out = "";
+    for (let i = 0; i < letters.length; i += 2) {
+      const a = letters[i], b = letters[i + 1];
+      const pa = playfairPos(grid, a), pb = playfairPos(grid, b);
+      if (pa.row === pb.row) out += grid[pa.row * 5 + (pa.col + 4) % 5] + grid[pb.row * 5 + (pb.col + 4) % 5];
+      else if (pa.col === pb.col) out += grid[((pa.row + 4) % 5) * 5 + pa.col] + grid[((pb.row + 4) % 5) * 5 + pb.col];
+      else out += grid[pa.row * 5 + pb.col] + grid[pb.row * 5 + pa.col];
+    }
+    return out;
   }
 
   // ----- Rail Fence cipher (transposition, not substitution) -----
@@ -649,6 +878,84 @@
     const check = (10 - (sum % 10)) % 10;
     return digits + check;
   }
+  // CRC-8/SMBUS: polynomial 0x07, init 0x00, not reflected, no final XOR.
+  function crc8(bytes) {
+    let crc = 0x00;
+    for (const byte of bytes) {
+      crc ^= byte;
+      for (let i = 0; i < 8; i++) crc = (crc & 0x80) ? ((crc << 1) ^ 0x07) & 0xff : (crc << 1) & 0xff;
+    }
+    return crc.toString(16).padStart(2, "0");
+  }
+  function fletcher16(bytes) {
+    let sum1 = 0, sum2 = 0;
+    for (const b of bytes) { sum1 = (sum1 + b) % 255; sum2 = (sum2 + sum1) % 255; }
+    return (((sum2 << 8) | sum1) >>> 0).toString(16).padStart(4, "0");
+  }
+  function fletcher32(bytes) {
+    const padded = bytes.length % 2 ? Array.from(bytes).concat([0]) : Array.from(bytes);
+    let sum1 = 0, sum2 = 0;
+    for (let i = 0; i < padded.length; i += 2) {
+      const word = (padded[i] << 8) | padded[i + 1];
+      sum1 = (sum1 + word) % 65535; sum2 = (sum2 + sum1) % 65535;
+    }
+    return (((sum2 << 16) | sum1) >>> 0).toString(16).padStart(8, "0");
+  }
+  function fnv1a32(bytes) {
+    let hash = 0x811c9dc5;
+    for (const b of bytes) { hash ^= b; hash = Math.imul(hash, 0x01000193) >>> 0; }
+    return hash.toString(16).padStart(8, "0");
+  }
+  function fnv1a64(bytes) {
+    let hash = 0xcbf29ce484222325n;
+    const prime = 0x100000001b3n, mask = (1n << 64n) - 1n;
+    for (const b of bytes) { hash ^= BigInt(b); hash = (hash * prime) & mask; }
+    return hash.toString(16).padStart(16, "0");
+  }
+  function djb2(bytes) {
+    let hash = 5381;
+    for (const b of bytes) hash = (Math.imul(hash, 33) + b) >>> 0;
+    return hash.toString(16).padStart(8, "0");
+  }
+  function sdbm(bytes) {
+    let hash = 0;
+    for (const b of bytes) hash = (b + (hash << 6) + (hash << 16) - hash) >>> 0;
+    return hash.toString(16).padStart(8, "0");
+  }
+  function checksum8(bytes) {
+    let sum = 0;
+    for (const b of bytes) sum = (sum + b) & 0xff;
+    return sum.toString(16).padStart(2, "0");
+  }
+  // Generic HMAC construction (RFC 2104) over any synchronous (bytes -> hex) hash function,
+  // used here to give MD5 an HMAC variant since Web Crypto's SubtleCrypto only signs with
+  // the SHA family, not MD5.
+  function hmacGeneric(hashHexFn, blockSize, keyBytes, msgBytes) {
+    let key = keyBytes;
+    if (key.length > blockSize) key = hexToBytes(hashHexFn(key));
+    if (key.length < blockSize) { const padded = new Uint8Array(blockSize); padded.set(key); key = padded; }
+    const oKeyPad = new Uint8Array(blockSize), iKeyPad = new Uint8Array(blockSize);
+    for (let i = 0; i < blockSize; i++) { oKeyPad[i] = key[i] ^ 0x5c; iKeyPad[i] = key[i] ^ 0x36; }
+    const inner = hexToBytes(hashHexFn(new Uint8Array([...iKeyPad, ...msgBytes])));
+    return hashHexFn(new Uint8Array([...oKeyPad, ...inner]));
+  }
+  function hmacMd5Hex(keyStr, msgStr) { return hmacGeneric(md5, 64, utf8Bytes(keyStr), utf8Bytes(msgStr)); }
+  // RFC 1071 Internet Checksum: one's-complement sum of 16-bit words with end-around
+  // carry, then complemented - the checksum inside every IPv4, TCP and UDP header.
+  function internetChecksum(bytes) {
+    let sum = 0;
+    for (let i = 0; i < bytes.length; i += 2) {
+      const word = (bytes[i] << 8) | (bytes[i + 1] || 0);
+      sum += word;
+      while (sum > 0xffff) sum = (sum & 0xffff) + (sum >>> 16);
+    }
+    return ((~sum) & 0xffff).toString(16).padStart(4, "0");
+  }
+  function xor8Checksum(bytes) {
+    let x = 0;
+    for (const b of bytes) x ^= b;
+    return x.toString(16).padStart(2, "0");
+  }
 
   // ----- HMAC via Web Crypto -----
   async function hmacHex(algo, keyStr, msgStr) {
@@ -719,6 +1026,72 @@
       if (cur) out.push(cur);
       return out.join("\n");
     }).join("\n");
+  }
+  function removeLineNumbers(str) {
+    return str.split(/\r\n|\r|\n/).map((l) => l.replace(/^\s*\d+\s*[:.)\-]?\s{0,2}/, "")).join("\n");
+  }
+  function tabsToSpaces(str, width) { const w = parseInt(width, 10) || 4; return str.replace(/\t/g, " ".repeat(w)); }
+  function spacesToTabs(str, width) { const w = parseInt(width, 10) || 4; return str.replace(new RegExp(" ".repeat(w), "g"), "\t"); }
+  // Deduplicates words case-insensitively while keeping original spacing between the
+  // words that remain (unlike the line-level "Unique lines" operation).
+  function removeDuplicateWords(str) {
+    const seen = new Set();
+    return str.split(/(\s+)/).filter((tok) => {
+      if (/^\s+$/.test(tok)) return true;
+      const key = tok.toLowerCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    }).join("").replace(/ {2,}/g, " ").trim();
+  }
+  function pigLatinEncode(str) {
+    return str.replace(/[A-Za-z]+/g, (word) => {
+      if (/^[aeiouAEIOU]/.test(word)) return word + "way";
+      const lead = (word.match(/^[^aeiouAEIOU]+/) || [""])[0];
+      return word.slice(lead.length) + lead + "ay";
+    });
+  }
+  const LEET_MAP = { a: "4", e: "3", i: "1", o: "0", s: "5", t: "7", l: "1", g: "9", b: "8" };
+  const LEET_UNMAP = { 4: "a", 3: "e", 1: "i", 0: "o", 5: "s", 7: "t", 9: "g", 8: "b" };
+  function leetEncode(str) { return str.replace(/[a-zA-Z]/g, (c) => LEET_MAP[c.toLowerCase()] || c); }
+  // Best-effort only: digits map back to one letter each, but leet substitution isn't
+  // one-to-one (both 1 and l become "1"), so this can't perfectly undo every encoding.
+  function leetDecode(str) { return str.replace(/[0-9]/g, (c) => LEET_UNMAP[c] || c); }
+  function padLeft(str, width, ch) {
+    const w = parseInt(width, 10) || 0, c = (ch && ch[0]) || " ";
+    return str.length >= w ? str : c.repeat(w - str.length) + str;
+  }
+  function padRight(str, width, ch) {
+    const w = parseInt(width, 10) || 0, c = (ch && ch[0]) || " ";
+    return str.length >= w ? str : str + c.repeat(w - str.length);
+  }
+  function centerText(str, width, ch) {
+    const w = parseInt(width, 10) || 0, c = (ch && ch[0]) || " ";
+    if (str.length >= w) return str;
+    const total = w - str.length, left = Math.floor(total / 2);
+    return c.repeat(left) + str + c.repeat(total - left);
+  }
+  function repeatText(str, times) { return str.repeat(Math.max(0, parseInt(times, 10) || 0)); }
+  function truncateText(str, length) {
+    const n = parseInt(length, 10) || 0;
+    if (str.length <= n) return str;
+    return str.slice(0, Math.max(0, n - 3)) + "...";
+  }
+  function wrapInQuotes(str, quote) { const q = quote || "\""; return q + str + q; }
+  function stripSurroundingQuotes(str) {
+    const s = str.trim();
+    if (s.length >= 2 && s[0] === s[s.length - 1] && /['"`]/.test(s[0])) return s.slice(1, -1);
+    return s;
+  }
+  function alternatingCase(str) {
+    let upper = false;
+    return str.replace(/[a-zA-Z]/g, (c) => { const out = upper ? c.toUpperCase() : c.toLowerCase(); upper = !upper; return out; });
+  }
+  function removeNumbers(str) { return str.replace(/[0-9]/g, ""); }
+  function removePunctuation(str) { return str.replace(/[!-/:-@[-`{-~]/g, ""); }
+  function insertAtPosition(str, position, text) {
+    const pos = Math.max(0, Math.min(str.length, parseInt(position, 10) || 0));
+    return str.slice(0, pos) + (text || "") + str.slice(pos);
   }
 
   // ----- Unix time -----
@@ -822,6 +1195,154 @@
     return `rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]})`;
   }
 
+  // ----- IPv6 expand/compress -----
+  function expandIpv6(str) {
+    const s = str.trim();
+    if (!/^[0-9a-fA-F:]+$/.test(s)) throw new Error("Not a valid IPv6 address.");
+    let parts;
+    if (s.includes("::")) {
+      const [left, right] = s.split("::");
+      const leftParts = left ? left.split(":") : [];
+      const rightParts = right ? right.split(":") : [];
+      const missing = 8 - leftParts.length - rightParts.length;
+      if (missing < 0) throw new Error("Too many groups for a valid IPv6 address.");
+      parts = [...leftParts, ...Array(missing).fill("0"), ...rightParts];
+    } else {
+      parts = s.split(":");
+    }
+    if (parts.length !== 8) throw new Error("IPv6 address must have 8 groups (or use :: once).");
+    return parts.map((p) => p.padStart(4, "0")).join(":");
+  }
+  function compressIpv6(str) {
+    const full = expandIpv6(str).split(":");
+    const trimmed = full.map((p) => p.replace(/^0+(?=.)/, ""));
+    let bestStart = -1, bestLen = 0, curStart = -1, curLen = 0;
+    for (let i = 0; i < 8; i++) {
+      if (trimmed[i] === "0") {
+        if (curStart === -1) curStart = i;
+        curLen++;
+        if (curLen > bestLen) { bestLen = curLen; bestStart = curStart; }
+      } else { curStart = -1; curLen = 0; }
+    }
+    if (bestLen < 2) return trimmed.join(":");
+    const before = trimmed.slice(0, bestStart).join(":");
+    const after = trimmed.slice(bestStart + bestLen).join(":");
+    return before + "::" + after;
+  }
+  // ----- MAC address formatter -----
+  function formatMac(str, style) {
+    const hex = str.replace(/[^0-9a-fA-F]/g, "").toLowerCase();
+    if (hex.length !== 12) throw new Error("A MAC address needs 12 hex digits.");
+    const pairs = hex.match(/.{2}/g);
+    if (style === "dash") return pairs.join("-");
+    if (style === "dot") return [pairs.slice(0, 2).join(""), pairs.slice(2, 4).join(""), pairs.slice(4, 6).join("")].join(".");
+    if (style === "plain") return hex;
+    return pairs.join(":");
+  }
+  // ----- More text-mining extractors, alongside the extract() operation -----
+  function extractHexColors(str) { return (str.match(/#[0-9a-fA-F]{6}\b|#[0-9a-fA-F]{3}\b/g) || []).join("\n"); }
+  function extractHashtags(str) { return (str.match(/#[A-Za-z0-9_]+/g) || []).join("\n"); }
+  function extractMacAddresses(str) { return (str.match(/\b[0-9a-fA-F]{2}([:-][0-9a-fA-F]{2}){5}\b/g) || []).join("\n"); }
+  function extractDomain(str) {
+    const m = str.match(/https?:\/\/([^/\s:]+)/);
+    if (m) return m[1];
+    const m2 = str.match(/\b([a-z0-9-]+\.[a-z0-9-]+(?:\.[a-z]{2,})+)\b/i);
+    if (m2) return m2[1];
+    throw new Error("No domain found.");
+  }
+  function maskEmail(str) {
+    return str.replace(/([a-zA-Z0-9._%+-])[a-zA-Z0-9._%+-]*(@[a-zA-Z0-9.-]+)/g, (m, first, domain) => first + "***" + domain);
+  }
+  function extractHashes(str) {
+    return (str.match(/\b[0-9a-fA-F]{32}\b|\b[0-9a-fA-F]{40}\b|\b[0-9a-fA-F]{64}\b/g) || []).join("\n");
+  }
+  // IPv6 addresses are notoriously hard to match with a single regex correctly, so this
+  // grabs plausible hex:colon tokens first, then keeps only the ones the expandIpv6()
+  // validator above actually accepts - reusing real parsing logic instead of trying to
+  // encode IPv6's grammar a second time as a regex.
+  function extractIpv6(str) {
+    const candidates = str.match(/\b[0-9a-fA-F:]*::?[0-9a-fA-F:]*\b/g) || [];
+    const valid = candidates.filter((c) => { if (!c.includes(":")) return false; try { expandIpv6(c); return true; } catch (e) { return false; } });
+    return [...new Set(valid)].join("\n");
+  }
+  function extractBase64Blobs(str) { return (str.match(/[A-Za-z0-9+/]{16,}={0,2}/g) || []).join("\n"); }
+  // ----- CSV <-> JSON -----
+  function parseCsvLine(line) {
+    const out = [];
+    let cur = "", inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+      const c = line[i];
+      if (inQuotes) {
+        if (c === "\"" && line[i + 1] === "\"") { cur += "\""; i++; }
+        else if (c === "\"") inQuotes = false;
+        else cur += c;
+      } else if (c === "\"") inQuotes = true;
+      else if (c === ",") { out.push(cur); cur = ""; }
+      else cur += c;
+    }
+    out.push(cur);
+    return out;
+  }
+  function csvToJson(str) {
+    const lines = str.split(/\r\n|\r|\n/).filter((l) => l.length);
+    if (lines.length < 1) throw new Error("Empty CSV.");
+    const headers = parseCsvLine(lines[0]);
+    const rows = lines.slice(1).map((line) => {
+      const vals = parseCsvLine(line);
+      const obj = {};
+      headers.forEach((h, i) => { obj[h] = vals[i] !== undefined ? vals[i] : ""; });
+      return obj;
+    });
+    return JSON.stringify(rows, null, 2);
+  }
+  function csvField(v) {
+    const s = String(v);
+    return /[",\n]/.test(s) ? "\"" + s.replace(/"/g, "\"\"") + "\"" : s;
+  }
+  function jsonToCsv(str) {
+    const data = JSON.parse(str);
+    if (!Array.isArray(data) || !data.length) throw new Error("Expected a non-empty JSON array of objects.");
+    const headers = Object.keys(data[0]);
+    const lines = [headers.join(",")];
+    data.forEach((row) => lines.push(headers.map((h) => csvField(row[h])).join(",")));
+    return lines.join("\n");
+  }
+  // ----- Query string builder (complements parseUrl's query-string reading) -----
+  function buildQueryString(str) {
+    const parts = str.split(/\r\n|\r|\n/).filter((l) => l.trim().length).map((line) => {
+      const idx = line.indexOf("=");
+      const k = idx === -1 ? line.trim() : line.slice(0, idx).trim();
+      const v = idx === -1 ? "" : line.slice(idx + 1).trim();
+      return encodeURIComponent(k) + "=" + encodeURIComponent(v);
+    });
+    return "?" + parts.join("&");
+  }
+  // ----- Unix time: seconds <-> milliseconds -----
+  function unixSecToMs(str) {
+    const n = parseInt(str.trim(), 10);
+    if (!Number.isInteger(n)) throw new Error("Enter a Unix timestamp in seconds.");
+    return String(n * 1000);
+  }
+  function unixMsToSec(str) {
+    const n = parseInt(str.trim(), 10);
+    if (!Number.isInteger(n)) throw new Error("Enter a Unix timestamp in milliseconds.");
+    return String(Math.floor(n / 1000));
+  }
+  // ----- Date difference, in whole days -----
+  function dateDifference(str, str2) {
+    const a = new Date(str.trim() + "T00:00:00Z"), b = new Date((str2 || "").trim() + "T00:00:00Z");
+    if (isNaN(a) || isNaN(b)) throw new Error("Enter two dates as YYYY-MM-DD.");
+    const days = Math.round((b - a) / 86400000);
+    return String(days) + " day" + (Math.abs(days) === 1 ? "" : "s");
+  }
+  // ----- Word frequency table (word-level, unlike the character-level letterFrequency) -----
+  function wordFrequency(str) {
+    const words = str.toLowerCase().match(/[a-z0-9']+/g) || [];
+    const counts = {};
+    words.forEach((w) => { counts[w] = (counts[w] || 0) + 1; });
+    return Object.entries(counts).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).map(([w, c]) => `${w}: ${c}`).join("\n");
+  }
+
   // ----- Base58 -----
   const B58 = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
   function base58Encode(bytes) {
@@ -886,6 +1407,137 @@
   const B62_ALPHABET = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
   const base36Encode = makeBaseNEncode(B36_ALPHABET), base36Decode = makeBaseNDecode(B36_ALPHABET);
   const base62Encode = makeBaseNEncode(B62_ALPHABET), base62Decode = makeBaseNDecode(B62_ALPHABET);
+  // Crockford's Base32: digits + letters, with I/L/O/U dropped (too easy to confuse with 1/1/0/V).
+  const CROCKFORD32_ALPHABET = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
+  const crockford32Encode = makeBaseNEncode(CROCKFORD32_ALPHABET), crockford32Decode = makeBaseNDecode(CROCKFORD32_ALPHABET);
+  // Z85 (ZeroMQ RFC 32/Z85): same big-integer per-4-byte-chunk approach as Base85 above,
+  // just a different 85-character alphabet and no all-zero "z" shortcut.
+  const Z85_ALPHABET = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ.-:+=^!/*?&<>()[]{}@%$#";
+  function z85Encode(bytes) {
+    let out = "";
+    for (let i = 0; i < bytes.length; i += 4) {
+      const chunk = bytes.subarray(i, i + 4);
+      const padLen = 4 - chunk.length;
+      const padded = new Uint8Array(4);
+      padded.set(chunk);
+      let n = ((padded[0] << 24) | (padded[1] << 16) | (padded[2] << 8) | padded[3]) >>> 0;
+      const digits = [0, 0, 0, 0, 0];
+      for (let d = 4; d >= 0; d--) { digits[d] = n % 85; n = Math.floor(n / 85); }
+      let group = digits.map((d) => Z85_ALPHABET[d]).join("");
+      if (padLen > 0) group = group.slice(0, 5 - padLen);
+      out += group;
+    }
+    return out;
+  }
+  function z85Decode(str) {
+    const clean = str.replace(/\s/g, "");
+    const bytesOut = [];
+    let i = 0;
+    while (i < clean.length) {
+      let group = clean.slice(i, i + 5);
+      const padLen = 5 - group.length;
+      if (padLen > 0) group = group.padEnd(5, Z85_ALPHABET[84]);
+      let n = 0;
+      for (let k = 0; k < 5; k++) {
+        const code = Z85_ALPHABET.indexOf(group[k]);
+        if (code < 0) throw new Error("Invalid Z85 character: " + group[k]);
+        n = n * 85 + code;
+      }
+      n = n >>> 0;
+      const b = [(n >>> 24) & 255, (n >>> 16) & 255, (n >>> 8) & 255, n & 255];
+      for (let k = 0; k < 4 - padLen; k++) bytesOut.push(b[k]);
+      i += 5 - padLen;
+    }
+    return new Uint8Array(bytesOut);
+  }
+  // ----- BCD (Binary-Coded Decimal): each decimal digit as its own 4-bit nibble -----
+  function bcdEncode(str) {
+    const digits = str.replace(/\D/g, "");
+    if (!digits.length) throw new Error("Enter a string of digits.");
+    const padded = digits.length % 2 ? digits + "0" : digits;
+    let out = "";
+    for (let i = 0; i < padded.length; i += 2) out += parseInt(padded[i], 10).toString(16) + parseInt(padded[i + 1], 10).toString(16);
+    return out;
+  }
+  function bcdDecode(hex) {
+    const clean = hex.replace(/[^0-9a-fA-F]/g, "");
+    let out = "";
+    for (const c of clean) {
+      const v = parseInt(c, 16);
+      if (v > 9) throw new Error("BCD nibbles must be 0-9 (found " + c + ").");
+      out += v;
+    }
+    return out;
+  }
+  // ----- MIME encoded-word (RFC 2047, "B" = Base64 encoding) -----
+  function mimeWordEncode(str) { return "=?UTF-8?B?" + bytesToBase64(utf8Bytes(str)) + "?="; }
+  function mimeWordDecode(str) {
+    const m = str.trim().match(/^=\?([^?]+)\?B\?([^?]*)\?=$/i);
+    if (!m) throw new Error("Not a valid MIME encoded-word (expected =?charset?B?...?=).");
+    return bytesToText(base64ToBytes(m[2]));
+  }
+  // ----- UTF-7 (RFC 2152): safe ASCII passes through, '+' escapes as '+-', everything
+  // else is shifted into Base64-encoded UTF-16BE runs wrapped in '+...-'. -----
+  const UTF7_DIRECT = /[A-Za-z0-9'(),\-./:? \t\r\n]/;
+  function utf7Encode(str) {
+    let out = "";
+    let i = 0;
+    while (i < str.length) {
+      const c = str[i];
+      if (c === "+") { out += "+-"; i++; continue; }
+      if (UTF7_DIRECT.test(c)) { out += c; i++; continue; }
+      let j = i;
+      const units = [];
+      while (j < str.length && !UTF7_DIRECT.test(str[j]) && str[j] !== "+") { units.push(str.charCodeAt(j)); j++; }
+      const bytes = new Uint8Array(units.length * 2);
+      units.forEach((u, k) => { bytes[k * 2] = (u >> 8) & 0xff; bytes[k * 2 + 1] = u & 0xff; });
+      const b64 = bytesToBase64(bytes).replace(/=+$/, "");
+      out += "+" + b64 + "-";
+      i = j;
+    }
+    return out;
+  }
+  function utf7Decode(str) {
+    let out = "";
+    let i = 0;
+    while (i < str.length) {
+      if (str[i] === "+") {
+        if (str[i + 1] === "-") { out += "+"; i += 2; continue; }
+        let j = i + 1;
+        while (j < str.length && str[j] !== "-") j++;
+        const b64 = str.slice(i + 1, j);
+        const bytes = base64ToBytes(b64 + "=".repeat((4 - (b64.length % 4)) % 4));
+        for (let k = 0; k + 1 < bytes.length; k += 2) out += String.fromCharCode((bytes[k] << 8) | bytes[k + 1]);
+        i = j + 1;
+        continue;
+      }
+      out += str[i]; i++;
+    }
+    return out;
+  }
+  // ----- Bijective base-26 (spreadsheet-style column letters: A,B,...Z,AA,AB,...) -----
+  function toBijective26(str) {
+    let n = parseInt(str.trim(), 10);
+    if (!Number.isInteger(n) || n < 1) throw new Error("Enter a whole number of 1 or more.");
+    let s = "";
+    while (n > 0) { n--; s = String.fromCharCode(65 + (n % 26)) + s; n = Math.floor(n / 26); }
+    return s;
+  }
+  function fromBijective26(str) {
+    const s = str.trim().toUpperCase();
+    if (!/^[A-Z]+$/.test(s)) throw new Error("Enter letters A-Z only.");
+    let n = 0;
+    for (const c of s) n = n * 26 + (c.charCodeAt(0) - 64);
+    return String(n);
+  }
+  // ----- Unary: n as n repeated '1' characters. Capped to keep the output sane. -----
+  function unaryEncode(str) {
+    const n = parseInt(str.trim(), 10);
+    if (!Number.isInteger(n) || n < 0) throw new Error("Enter a non-negative whole number.");
+    if (n > 1000) throw new Error("Keep it under 1000 for unary - it gets long fast.");
+    return "1".repeat(n);
+  }
+  function unaryDecode(str) { return String((str.match(/1/g) || []).length); }
 
   // ----- Roman numerals (standard subtractive notation, 1-3999) -----
   const ROMAN_TABLE = [[1000,"M"],[900,"CM"],[500,"D"],[400,"CD"],[100,"C"],[90,"XC"],[50,"L"],[40,"XL"],[10,"X"],[9,"IX"],[5,"V"],[4,"IV"],[1,"I"]];
@@ -1280,6 +1932,62 @@
     for (let i = 0; i < bytes.length; i++) out[i] = ((bytes[i] << 4) | (bytes[i] >> 4)) & 0xff;
     return bytesToHex(out, false);
   }
+  function bitNandHex(str, key) { return bytesToHex(bitwiseWithKey(utf8Bytes(str), utf8Bytes(key), (a, b) => (~(a & b)) & 0xff), false); }
+  function bitNorHex(str, key) { return bytesToHex(bitwiseWithKey(utf8Bytes(str), utf8Bytes(key), (a, b) => (~(a | b)) & 0xff), false); }
+  function bitXnorHex(str, key) { return bytesToHex(bitwiseWithKey(utf8Bytes(str), utf8Bytes(key), (a, b) => (~(a ^ b)) & 0xff), false); }
+  // Each byte shifted right with its own sign bit preserved (arithmetic, not logical).
+  function arithShiftRightHex(str, amount) {
+    const bytes = utf8Bytes(str), out = new Uint8Array(bytes.length), n = ((parseInt(amount, 10) || 0) % 8 + 8) % 8;
+    for (let i = 0; i < bytes.length; i++) {
+      const signed = bytes[i] > 127 ? bytes[i] - 256 : bytes[i];
+      out[i] = (signed >> n) & 0xff;
+    }
+    return bytesToHex(out, false);
+  }
+  function parityBit(str) {
+    const bytes = utf8Bytes(str);
+    let ones = 0;
+    for (const b of bytes) { let x = b; while (x) { ones += x & 1; x >>= 1; } }
+    return (ones % 2 === 0) ? "0 (even)" : "1 (odd)";
+  }
+  function toTwosComplement(str, bits) {
+    const w = parseInt(bits, 10) || 8;
+    const n = parseInt(str.trim(), 10);
+    if (!Number.isInteger(n)) throw new Error("Enter a whole number.");
+    const max = 2 ** (w - 1) - 1, min = -(2 ** (w - 1));
+    if (n < min || n > max) throw new Error(`Value out of range for ${w}-bit two's complement (${min} to ${max}).`);
+    const unsigned = n < 0 ? n + 2 ** w : n;
+    return unsigned.toString(16).padStart(Math.ceil(w / 4), "0");
+  }
+  function fromTwosComplement(hex, bits) {
+    const w = parseInt(bits, 10) || 8;
+    const n = parseInt(hex.replace(/\s/g, ""), 16);
+    if (!Number.isInteger(n)) throw new Error("Enter a valid hex value.");
+    const half = 2 ** (w - 1);
+    return String(n >= half ? n - 2 ** w : n);
+  }
+  // Bit position is counted from the LSB of the last byte (bit 0 = least significant bit
+  // of the whole value), matching how the value would be read as one big number.
+  function toggleBitHex(hex, position) {
+    const bytes = hexToBytes(hex), pos = parseInt(position, 10) || 0;
+    const byteIdx = bytes.length - 1 - Math.floor(pos / 8), bitIdx = pos % 8;
+    if (byteIdx < 0 || byteIdx >= bytes.length) throw new Error("Bit position is outside the input's range.");
+    const out = new Uint8Array(bytes);
+    out[byteIdx] ^= (1 << bitIdx);
+    return bytesToHex(out, false);
+  }
+  function countLeadingZerosHex(hex, bits) {
+    const w = parseInt(bits, 10) || 8;
+    const n = parseInt(hex.replace(/\s/g, ""), 16);
+    if (!Number.isInteger(n)) throw new Error("Enter a valid hex value.");
+    if (n === 0) return String(w);
+    return String(w - n.toString(2).length);
+  }
+  function bitLength(str) {
+    const n = parseInt(str.trim(), 10);
+    if (!Number.isInteger(n) || n < 0) throw new Error("Enter a non-negative whole number.");
+    return String(n === 0 ? 0 : n.toString(2).length);
+  }
 
   // ----- English-likeness scoring, shared by both brute-force tools -----
   // Standard published English letter frequencies (percent), Wikipedia / Cornell CS.
@@ -1364,19 +2072,33 @@
     utf8Bytes, bytesToText, bytesToBase64, base64ToBytes, bytesToBase64Url, base64UrlToBytes,
     bytesToHex, hexToBytes, bytesToBinary, binaryToBytes, base32Encode, base32Decode, base58Encode, base58Decode,
     base85Encode, base85Decode, base45Encode, base45Decode, base36Encode, base36Decode, base62Encode, base62Decode,
+    crockford32Encode, crockford32Decode, z85Encode, z85Decode, bcdEncode, bcdDecode,
+    mimeWordEncode, mimeWordDecode, utf7Encode, utf7Decode, toBijective26, fromBijective26, unaryEncode, unaryDecode,
     punycodeEncode, punycodeDecode, qpEncode, qpDecode, toRoman, fromRoman,
     toHexdump, fromHexdump, htmlEncode, htmlDecode, caesar, atbash, rot47, a1z26Encode, a1z26Decode,
     vigenereEncode, vigenereDecode, beaufort, affineEncode, affineDecode, polybiusEncode, polybiusDecode,
     baconEncode, baconDecode, railFenceEncode, railFenceDecode, columnarEncode, columnarDecode,
+    trithemiusEncode, trithemiusDecode, gronsfeldEncode, gronsfeldDecode, autokeyEncode, autokeyDecode,
+    nihilistEncode, nihilistDecode, keywordCipherEncode, keywordCipherDecode, rot18, playfairEncode, playfairDecode,
     xorHexOut, xorFromHex, decimalEncode, decimalDecode,
     octalEncode, octalDecode, unicodeEscape, unicodeUnescape, natoEncode, morseEncode, morseDecode,
     stripAccents, jsonEscape, jsonUnescape, changeCase, changeBase, letterFrequency, extract, levenshtein, parseUrl, dateToUnix, unixToDate,
     ipToInt, intToIp, subnetInfo, convertColor,
+    expandIpv6, compressIpv6, formatMac, extractHexColors, extractHashtags, extractMacAddresses,
+    extractDomain, maskEmail, extractHashes, extractIpv6, extractBase64Blobs,
+    csvToJson, jsonToCsv, buildQueryString, unixSecToMs, unixMsToSec, dateDifference, wordFrequency,
     convertLineEndings, stripHtmlTags, wordWrap, inspectChars, byteHistogram,
+    removeLineNumbers, tabsToSpaces, spacesToTabs, removeDuplicateWords, pigLatinEncode, leetEncode, leetDecode,
+    padLeft, padRight, centerText, repeatText, truncateText, wrapInQuotes, stripSurroundingQuotes,
+    alternatingCase, removeNumbers, removePunctuation, insertAtPosition,
     bitAndHex, bitOrHex, bitXorHex, modAddHex, modSubHex, bitNot, bitShift, rotateBits, grayEncodeHex, grayDecodeHex,
     endianSwap, popcount, reverseBitsHex, swapNibblesHex,
+    bitNandHex, bitNorHex, bitXnorHex, arithShiftRightHex, parityBit, toTwosComplement, fromTwosComplement,
+    toggleBitHex, countLeadingZerosHex, bitLength,
     xorBruteForce, caesarBruteForce, chiSquaredEnglish,
     md5, shaHex, hmacHex, crc32, crc16, adler32, luhnAppend, entropy, printableRatio, magicBytes, detect, parseJwt,
-    randomBytes, uuid, password, randomIpv4, rollDice, loremIpsum
+    crc8, fletcher16, fletcher32, fnv1a32, fnv1a64, djb2, sdbm, checksum8, hmacMd5Hex, internetChecksum, xor8Checksum,
+    randomBytes, uuid, password, randomIpv4, rollDice, loremIpsum,
+    randomMac, randomHexColor, randomIntInRange, randomFloatInRange, coinFlip, randomCard, shuffleLines, randomBoolean
   };
 })();

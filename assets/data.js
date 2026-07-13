@@ -1317,6 +1317,270 @@ alphabet size changes the output length.</p>`,
         { q: "What alphabet does Base62 use?", options: ["Only digits 0-9", "Digits plus uppercase and lowercase letters, nothing else", "The same alphabet as Base64"], answer: 1 },
         { q: "Why might Base36/Base62 be riskier than Base58 for a human to copy by hand?", options: ["They're always longer", "They keep ambiguous look-alike characters like 0/O and l/I that Base58 deliberately removes", "They require a calculator to decode"], answer: 1 }
       ]
+    },
+    {
+      id: "playfair", title: "Playfair: encrypting two letters at a time",
+      body: `
+<h3>Playfair: encrypting two letters at a time</h3>
+<p>Every substitution cipher so far — Caesar, Affine, Atbash, Polybius — replaces one letter with one
+symbol, which is exactly what makes frequency analysis work: a common letter like <code>E</code> is always
+disguised as the same other symbol, so its telltale frequency still shows through. The <strong>Playfair
+cipher</strong> (1854) breaks that assumption by encrypting <em>pairs</em> of letters (digraphs) together,
+so the same letter can turn into different ciphertext depending on what follows it.</p>
+<h4>Building the grid</h4>
+<p>A keyword fills a 5×5 grid (I and J share a cell, same trick as the Polybius square), followed by the
+rest of the alphabet in order. Split the message into pairs; a repeated letter within a pair, or a leftover
+single letter at the end, gets padded with an <code>X</code>.</p>
+<h4>Three rules, one per pair</h4>
+<p><strong>Same row:</strong> each letter is replaced by the one immediately to its right (wrapping around).
+<strong>Same column:</strong> each letter is replaced by the one immediately below it (wrapping around).
+<strong>Otherwise (a rectangle):</strong> each letter is replaced by the letter in its own row but the
+other letter's column — this is the rule that does the real work, since it mixes both letters of the pair
+into both outputs.</p>
+<h4>Why pairs resist frequency analysis so much better</h4>
+<p>English has 26 possible single letters but 26×26 = 676 possible digraphs, and their frequency
+distribution is far flatter — no digraph dominates the way <code>E</code> dominates single letters. Playfair
+was strong enough that it saw real military use into the early 20th century, well after simple substitution
+ciphers were considered a solved problem for cryptanalysts.</p>
+<h4>Try it</h4>
+<p>The demo below runs Playfair Cipher Encode — try the default keyword <code>PLAYFAIR</code> on the word
+<code>HIDE</code>.</p>`,
+      demo: { type: "playfair" },
+      quiz: [
+        { q: "What does Playfair encrypt at a time, instead of one letter?", options: ["A pair of letters (a digraph)", "A whole word", "Four letters at once"], answer: 0 },
+        { q: "Why does encrypting pairs resist frequency analysis better than single-letter substitution?", options: ["It doesn't - it's equally weak", "Digraphs have a much flatter frequency distribution than single letters, with no one pair dominating", "It uses a longer key"], answer: 1 }
+      ]
+    },
+    {
+      id: "autokey", title: "Autokey: closing Vigenere's key-length weakness",
+      body: `
+<h3>Autokey: closing Vigenere's key-length weakness</h3>
+<p>The frequency-analysis lesson explained why a repeating Vigenère key is breakable once you know (or guess)
+its length — the ciphertext splits into several interleaved Caesar ciphers, each crackable on its own. The
+<strong>Autokey cipher</strong> fixes the root cause: instead of repeating a short keyword forever, it extends
+the key using the plaintext itself, so the key is exactly as long as the message and never repeats.</p>
+<h4>How the key stream is built</h4>
+<p>The keyword starts the key stream; once it runs out, the key stream continues with the plaintext letters
+themselves, shifted one position later. Encrypting <code>HELLO</code> with keyword <code>KEY</code> uses the
+key stream <code>K, E, Y, H, E</code> — the last two letters borrowed directly from the plaintext
+<code>HELLO</code> itself.</p>
+<h4>Decoding has to work forward, one letter at a time</h4>
+<p>This is the one place Autokey adds real complexity: decoding can't look up the whole key stream in advance,
+because the key stream <em>is</em> the plaintext being recovered. Each decoded letter immediately becomes
+available as a key letter further along — decode position 4 before you can decode position 5.</p>
+<h4>What it doesn't fix</h4>
+<p>A never-repeating key defeats Kasiski examination (the key-length-guessing attack from the frequency
+analysis lesson), but Autokey is still additive letter substitution, and the keyword's own letters at the
+start are still a weak point an attacker can lean on. It's a real improvement over plain Vigenère, not a leap
+to unbreakable — that leap is the one-time pad, covered in the Bits & XOR unit, which uses a key as long as
+the message that is <em>also</em> truly random, not derived from the message.</p>
+<h4>Try it</h4>
+<p>The demo below runs Autokey Cipher Encode — try the default keyword <code>KEY</code> on <code>HELLO</code>
+and check the result is <code>RIJSS</code>.</p>`,
+      demo: { type: "autokey" },
+      quiz: [
+        { q: "How does Autokey extend its key past the keyword's length?", options: ["It repeats the keyword, same as Vigenere", "It continues the key stream using the plaintext itself", "It asks the user to type a longer key"], answer: 1 },
+        { q: "Why can't Autokey decoding look up the whole key stream in advance?", options: ["It's a technical limitation with no real reason", "The key stream past the keyword IS the plaintext being recovered, so it only becomes known as decoding proceeds", "Autokey doesn't support decoding at all"], answer: 1 }
+      ]
+    },
+    {
+      id: "twoscomplement", title: "Two's complement: how negative numbers are actually stored",
+      body: `
+<h3>Two's complement: how negative numbers are actually stored</h3>
+<p>A byte is just 8 bits with no built-in concept of "negative" — so how does a CPU represent -1? The nearly
+universal answer is <strong>two's complement</strong>, and understanding it explains a lot of otherwise-odd
+behavior in low-level code.</p>
+<h4>The rule</h4>
+<p>To negate a number in two's complement: flip every bit, then add 1. Flipping every bit of
+<code>00000001</code> (1) gives <code>11111110</code>; adding 1 gives <code>11111111</code> — so -1 is
+<em>all ones</em> in an 8-bit byte, not the <code>10000001</code> you might naively expect from a plain
+sign-and-magnitude scheme.</p>
+<h4>Why not just use a sign bit directly?</h4>
+<p>An earlier, simpler scheme — sign-and-magnitude, one bit for the sign and the rest for the value — has an
+annoying flaw: it has <em>two</em> representations of zero (<code>00000000</code> and <code>10000000</code>),
+and ordinary addition circuits don't work correctly on it without special-casing the sign bit. Two's
+complement has exactly one zero, and — its real advantage — normal binary addition just works on negative
+numbers automatically, with no extra circuitry: <code>-1 + 1</code> is <code>11111111 + 00000001</code>, which
+overflows to <code>100000000</code>, and dropping the 9th bit (since a byte only holds 8) leaves
+<code>00000000</code>, correctly zero.</p>
+<h4>The range is lopsided</h4>
+<p>An 8-bit two's complement byte covers -128 to 127, not -127 to 127 — one more negative value than positive.
+That's because <code>10000000</code> is used for -128 rather than being a second zero, which is also exactly
+why negating the most negative value (<code>-128</code>) famously overflows back to itself in many
+programming languages.</p>
+<h4>Try it</h4>
+<p>The demo below converts a signed number to its two's complement hex at a chosen bit width — try
+<code>-1</code> and <code>-128</code> at 8 bits.</p>`,
+      demo: { type: "twoscomplement" },
+      quiz: [
+        { q: "How do you negate a number in two's complement?", options: ["Flip the leftmost bit only", "Flip every bit, then add 1", "Reverse the bit order"], answer: 1 },
+        { q: "What is the main practical advantage of two's complement over a simple sign bit?", options: ["It uses fewer bits", "Ordinary binary addition works correctly on negative numbers with no special-casing", "It's easier for humans to read"], answer: 1 }
+      ]
+    },
+    {
+      id: "nandgate", title: "NAND: the one gate that builds every other gate",
+      body: `
+<h3>NAND: the one gate that builds every other gate</h3>
+<p>AND, OR and XOR each do one specific job on two bits. <strong>NAND</strong> (NOT AND — 0 only when both
+inputs are 1) looks like just another entry on that list, but it has a property none of the others share:
+every other logic gate can be built out of NAND gates alone, and nothing else.</p>
+<h4>Building NOT, AND and OR from only NAND</h4>
+<p>Feed a NAND gate the same input twice and it becomes a <strong>NOT</strong> gate: <code>NAND(x, x)</code>
+is 0 only when <code>x</code> is 1, which is exactly what NOT does. Chain that NOT onto a NAND's output and
+you get <strong>AND</strong>: <code>NOT(NAND(a, b))</code>. Push NOT onto NAND's <em>inputs</em> instead and
+you get <strong>OR</strong>, by De Morgan's law. Every other gate — XOR, NOR, XNOR — builds from those three,
+so the whole chain traces back to NAND alone.</p>
+<h4>Why this matters outside a logic textbook</h4>
+<p>This isn't just a cute puzzle: NAND gates are cheap and simple to manufacture in silicon, so many real
+integrated circuits are built almost entirely from NAND gates wired together in different patterns, rather
+than stocking a separate physical gate design for every logical operation. "NAND is universal" is a big part
+of why computer chips are practical to manufacture at all.</p>
+<h4>NOR is universal too</h4>
+<p>NAND isn't unique in this — NOR has the identical property, by the same De Morgan symmetry. Only NAND and
+NOR are universal on their own; AND, OR, and XOR alone can never build a NOT gate, because they're all
+"monotonic" (flipping an input never flips the output the opposite way), while NOT and NAND aren't.</p>
+<h4>Try it</h4>
+<p>In The Lab's Bitwise category, chain NAND with itself (same key twice) and compare it against the NOT
+operation on the same input.</p>`,
+      demo: { type: "none" },
+      quiz: [
+        { q: "What does it mean for NAND to be a 'universal' logic gate?", options: ["It's the fastest gate to compute", "Every other logic gate (NOT, AND, OR, XOR...) can be built from NAND gates alone", "It only works on single bits"], answer: 1 },
+        { q: "Why can't AND, OR, and XOR alone ever build a NOT gate?", options: ["They're too slow", "They're all monotonic - flipping an input never flips the output the opposite way, but NOT always does", "They require more than 2 inputs"], answer: 1 }
+      ]
+    },
+    {
+      id: "noncryptohash", title: "Non-cryptographic hashes: fast, not safe",
+      body: `
+<h3>Non-cryptographic hashes: fast, not safe</h3>
+<p>SHA-256 and MD5 both get called "hashes," but so do FNV and DJB2 — and the two groups are built for
+completely different jobs. Mixing them up is a real, common security mistake.</p>
+<h4>What FNV and DJB2 are actually for</h4>
+<p>Hash tables (the data structure behind most language's dictionaries/objects) need to turn a key into an
+array index, millions of times a second, with no attacker in the picture — just needing outputs to spread out
+roughly evenly. FNV-1a and DJB2 are built purely for that: a tiny multiply-and-XOR (or multiply-and-add) loop
+that's extremely fast and spreads typical inputs well, with no attempt to resist anyone trying to break them.</p>
+<h4>Why that makes them unsafe as cryptographic hashes</h4>
+<p>Both are so cheap to compute that finding two inputs with the same output (or crafting an input to
+collide with a known one) is easy for an attacker on purpose — nothing in their design resists it. Worse, an
+attacker who knows a server uses one of these for something security-sensitive (like a hash table key) can
+often craft many inputs that all land in the same hash bucket, degrading a hash table from fast O(1) lookups
+to slow O(n) ones - a real denial-of-service technique called "hash flooding" that has affected production
+web frameworks.</p>
+<h4>The rule of thumb</h4>
+<p>If a value came from a trusted, non-adversarial source and you just need speed and reasonable spread — a
+hash table key, a quick checksum for a cache — a non-cryptographic hash like FNV or DJB2 is a fine, fast
+choice. The moment an untrusted party can influence the input, or the hash needs to prove something (identity,
+integrity against tampering, a password), only a cryptographic hash from the SHA family will do.</p>
+<h4>Try it</h4>
+<p>In The Lab's Hashing category, run the same short word through FNV-1a (32-bit), DJB2, and SHA-256, and
+compare how long each takes to reason through by hand versus how each is actually meant to be used.</p>`,
+      demo: { type: "none" },
+      quiz: [
+        { q: "What are FNV-1a and DJB2 actually designed for?", options: ["Password storage", "Fast, well-spread hash table keys with no attacker in the picture", "Digital signatures"], answer: 1 },
+        { q: "What real attack can a fast, non-cryptographic hash enable if attacker input reaches it?", options: ["SQL injection", "Hash flooding - crafting inputs that collide into the same bucket, degrading a hash table's performance", "Cross-site scripting"], answer: 1 }
+      ]
+    },
+    {
+      id: "internetchecksumlesson", title: "The Internet Checksum: one's-complement addition, everywhere",
+      body: `
+<h3>The Internet Checksum: one's-complement addition, everywhere</h3>
+<p>Every IPv4, TCP, and UDP packet header carries a 16-bit checksum computed the exact same way — a scheme
+from RFC 1071 that predates CRC-32's widespread use and is still universal today, precisely because it's cheap
+enough to compute in hardware at line rate on every single packet.</p>
+<h4>The algorithm</h4>
+<p>Split the header into 16-bit words, add them all together, and whenever the running sum overflows past 16
+bits, wrap the overflow bit back around and add it in too (called "end-around carry" — a quirk of
+<strong>one's complement</strong> arithmetic, an older way of representing negative numbers than the two's
+complement everything uses internally today). Finally, flip every bit of the total (the "complement" in
+"one's-complement checksum").</p>
+<h4>Why flip the bits at the end?</h4>
+<p>That final complement step makes verification elegant: instead of recomputing the checksum and comparing
+it to the one in the header, a receiver adds the ENTIRE header — checksum field included — through the same
+process. If nothing was corrupted, the sums cancel out and the result is all 1s (every bit set). One
+consistent rule for both computing and checking, no separate comparison step needed.</p>
+<h4>Why not something stronger, like CRC-32?</h4>
+<p>The checksums lesson explained that CRC-32 catches more error patterns than a simple additive checksum.
+Routers and NICs process billions of packets a second, though, and one's-complement addition is dramatically
+cheaper to implement in hardware than CRC's polynomial division. It also only has to catch <em>accidental</em>
+transmission corruption — TCP and application-layer protocols add their own stronger integrity checks
+(TLS, for instance) for anything that actually needs to resist tampering.</p>
+<h4>Try it</h4>
+<p>The demo below computes the Internet Checksum operation on your text — try the canonical worked example from
+RFC 1071 by pasting hex bytes <code>00 01 f2 03 f4 f5 f6 f7</code> through the Internet Checksum operation in
+The Lab and checking you get <code>220d</code>.</p>`,
+      demo: { type: "none" },
+      quiz: [
+        { q: "What makes the Internet Checksum's algorithm attractive for routers processing billions of packets?", options: ["It's the strongest possible checksum", "One's-complement addition is much cheaper to implement in hardware than CRC's polynomial division", "It requires no computation at all"], answer: 1 },
+        { q: "Why does a receiver check the Internet Checksum by summing the WHOLE header, checksum field included?", options: ["It's a mistake, they should exclude it", "If nothing was corrupted, everything cancels out to all 1s - one rule for both computing and checking", "The checksum field is ignored anyway"], answer: 1 }
+      ]
+    },
+    {
+      id: "ipv6", title: "IPv6: solving IPv4's address shortage",
+      body: `
+<h3>IPv6: solving IPv4's address shortage</h3>
+<p>The IPv4 lesson mentioned that 32 bits caps IPv4 at about 4.3 billion addresses — not nearly enough for a
+world with billions of phones, servers, and IoT devices all online at once. IPv6, standardized in 1998, fixes
+this the most direct way possible: far more bits.</p>
+<h4>128 bits is an almost incomprehensibly large space</h4>
+<p>IPv6 addresses are 128 bits — not 4x IPv4's 32 bits, but 2^128 versus 2^32, a difference of 2^96, roughly
+79 octillion times more addresses. It's written as eight groups of four hex digits separated by colons:
+<code>2001:0db8:0000:0000:0000:0000:0000:0001</code>.</p>
+<h4>The :: shorthand</h4>
+<p>Long runs of all-zero groups are extremely common (most addresses don't use anywhere near their full
+range), so IPv6 allows collapsing the <em>single longest</em> run of consecutive all-zero groups into
+<code>::</code>, once per address: the address above shortens to <code>2001:db8::1</code>. Leading zeros
+within each remaining group can also be dropped. Only one <code>::</code> is allowed per address — if two runs
+of zeros both got collapsed, the address would be ambiguous about how many zero groups each <code>::</code>
+represented.</p>
+<h4>What this means day to day</h4>
+<p>Subnetting still works the same conceptual way as the subnetting lesson covered (a prefix length like
+<code>/64</code> marks the network portion), but IPv6 makes it common practice to give every device a full
+<code>/64</code> of its own — 2^64 addresses per subnet, more than the <em>entire</em> IPv4 address space,
+per single network segment. Running out of addresses within a subnet essentially stops being a design
+consideration.</p>
+<h4>Try it</h4>
+<p>Try the Expand IPv6 and Compress IPv6 operations in The Lab on <code>2001:db8::1</code> and
+<code>::1</code> (the IPv6 loopback address, equivalent to IPv4's <code>127.0.0.1</code>).</p>`,
+      demo: { type: "none" },
+      quiz: [
+        { q: "Roughly how much bigger is IPv6's address space than IPv4's?", options: ["Twice as big", "About 79 octillion times bigger (2^128 vs 2^32)", "About 4 billion times bigger"], answer: 1 },
+        { q: "Why is only one :: allowed per IPv6 address?", options: ["It's just a style convention with no real reason", "Two collapsed runs would make it ambiguous how many zero groups each :: represented", "IPv6 addresses can only have one zero group total"], answer: 1 }
+      ]
+    },
+    {
+      id: "csvjson", title: "CSV vs JSON: rows of text vs nested structure",
+      body: `
+<h3>CSV vs JSON: rows of text vs nested structure</h3>
+<p>Almost every data-interchange problem eventually needs to move data between a spreadsheet-shaped world and
+a code-shaped world, and that usually means converting between CSV and JSON — two formats built on genuinely
+different assumptions about what data looks like.</p>
+<h4>CSV: flat rows, comma-separated</h4>
+<p>CSV (comma-separated values) is about as simple as a structured format gets: one header row naming the
+columns, then one line per record, fields separated by commas. Its simplicity is exactly its strength — every
+spreadsheet program, database, and scripting language can read and write it with almost no ceremony.</p>
+<h4>The quoting rule that trips people up</h4>
+<p>What happens when a field's own value contains a comma, or a newline? CSV's answer is to wrap that field in
+double quotes, and escape any literal double-quote inside it by doubling it (<code>""</code>). A field
+containing <code>Say "hi"</code> is written as <code>"Say ""hi"""</code>. Naive CSV parsers that just
+<code>split(",")</code> break on exactly this case — a correct parser has to track whether it's currently
+inside a quoted field before treating a comma as a separator.</p>
+<h4>JSON: nested, typed, unambiguous</h4>
+<p>JSON has no such quoting ambiguity (strings are always quoted and internal quotes are always escaped the
+same way), and — unlike CSV's flat rows — it natively supports nesting: an array of objects, objects inside
+objects, arrays inside arrays. That expressiveness is also JSON's weakness for spreadsheet-shaped data: there's
+no single obvious way to "flatten" deeply nested JSON into CSV's strictly flat rows-and-columns shape.</p>
+<h4>When each one wins</h4>
+<p>CSV wins for genuinely flat, tabular data headed into a spreadsheet or a bulk database import. JSON wins
+the moment the data has real structure — optional fields, nested objects, arrays of varying length — that a
+rigid flat table can't represent cleanly without a lot of redundant or empty columns.</p>
+<h4>Try it</h4>
+<p>Try the CSV to JSON and JSON to CSV operations in The Lab on a couple of rows of your own data, including a
+field with a comma inside it (wrapped in quotes) to see the quoting rule in action.</p>`,
+      demo: { type: "none" },
+      quiz: [
+        { q: "How does CSV handle a field whose value contains a literal comma?", options: ["It's simply not possible in CSV", "The field is wrapped in double quotes", "The comma is replaced with a semicolon"], answer: 1 },
+        { q: "What is JSON able to represent that flat CSV rows fundamentally can't?", options: ["Text with accented characters", "Nested structure - objects and arrays inside other objects and arrays", "Numbers larger than 32 bits"], answer: 1 }
+      ]
     }
   ];
 
@@ -1414,7 +1678,47 @@ alphabet size changes the output length.</p>`,
     { id: "c88", cat: "Hashing", level: "medium", title: "CRC-16", prompt: "Enter the CRC-16 checksum (hex) of the word below.", task: "ByteLabs", answer: "5904", hint: "Use the CRC-16 operation." },
     { id: "c89", cat: "Hashing", level: "easy", title: "Luhn check digit", prompt: "Append the Luhn check digit to the number below.", task: "36695", answer: "366955", hint: "Use the Luhn Checksum operation." },
     { id: "c90", cat: "Data", level: "medium", title: "Edit distance", prompt: "How many single-character edits turn the word below into 'lawn'?", task: "flaw", answer: "2", hint: "Use Levenshtein Distance with Compare to = lawn." },
-    { id: "c91", cat: "Data", level: "medium", title: "Parse the URL", prompt: "Run Parse URL on the address below and enter the value of the 'promo' query parameter.", task: "https://shop.example.com/cart?item=42&promo=SUMMER20", answer: "SUMMER20", hint: "Use Parse URL and read the promo line under Query." }
+    { id: "c91", cat: "Data", level: "medium", title: "Parse the URL", prompt: "Run Parse URL on the address below and enter the value of the 'promo' query parameter.", task: "https://shop.example.com/cart?item=42&promo=SUMMER20", answer: "SUMMER20", hint: "Use Parse URL and read the promo line under Query." },
+    { id: "c92", cat: "Encoding", level: "medium", title: "Crockford Base32", prompt: "Decode this Crockford Base32 string.", task: "E1TQMYKCCMG64VVR", answer: "puzzle box", hint: "Use From Crockford Base32." },
+    { id: "c93", cat: "Encoding", level: "medium", title: "Z85", prompt: "Decode this Z85 string.", task: "lv0V:oKRyK", answer: "ByteLabs", hint: "Use From Z85." },
+    { id: "c94", cat: "Encoding", level: "medium", title: "MIME encoded-word", prompt: "Decode this RFC 2047 MIME encoded-word.", task: "=?UTF-8?B?ZmxhZyBzZWN1cmVk?=", answer: "flag secured", hint: "Use From MIME Encoded-Word." },
+    { id: "c95", cat: "Encoding", level: "hard", title: "UTF-7", prompt: "Decode this UTF-7 string.", task: "na+AO8-ve caf+AOk-", answer: "naïve café", hint: "Use From UTF-7." },
+    { id: "c96", cat: "Encoding", level: "medium", title: "Spreadsheet column, forward", prompt: "Convert this number to spreadsheet-style column letters.", task: "703", answer: "AAA", hint: "Use To Bijective Base26 (Spreadsheet Columns)." },
+    { id: "c97", cat: "Encoding", level: "medium", title: "Spreadsheet column, reversed", prompt: "Convert these spreadsheet column letters back to a number.", task: "AAA", answer: "703", hint: "Use From Bijective Base26 (Spreadsheet Columns)." },
+    { id: "c98", cat: "Encoding", level: "easy", title: "Unary, reversed", prompt: "Decode this unary number.", task: "1111111", answer: "7", hint: "Use From Unary." },
+    { id: "c99", cat: "Encoding", level: "easy", title: "Unary", prompt: "Encode this number in unary.", task: "7", answer: "1111111", hint: "Use To Unary." },
+    { id: "c100", cat: "Ciphers", level: "medium", title: "Trithemius cipher", prompt: "Encrypt this with the Trithemius cipher.", task: "BYTELABS", answer: "BZVHPFHZ", hint: "Use Trithemius Cipher Encode." },
+    { id: "c101", cat: "Ciphers", level: "hard", title: "Break the Gronsfeld cipher", prompt: "This was Gronsfeld-enciphered with key 5210. Recover the message.", task: "FVUAHMBTICXN", answer: "ATTACKATDAWN", hint: "Use Gronsfeld Cipher Decode with key 5210." },
+    { id: "c102", cat: "Ciphers", level: "hard", title: "Break the Autokey cipher", prompt: "This was Autokey-enciphered with keyword LEMON. Recover the message.", task: "DIOFRLQGJWTSI", answer: "SECRETMESSAGE", hint: "Use Autokey Cipher Decode with keyword LEMON." },
+    { id: "c103", cat: "Ciphers", level: "hard", title: "Break the Nihilist cipher", prompt: "This was Nihilist-enciphered with keyword SHIELD. Recover the message.", task: "57 38 45 30 64 28", answer: "DEFEND", hint: "Use Nihilist Cipher Decode with keyword SHIELD." },
+    { id: "c104", cat: "Ciphers", level: "hard", title: "Break the Keyword cipher", prompt: "This was enciphered with a Keyword cipher, keyword CIPHER. Recover the message.", task: "CTTCPGCTHCWL", answer: "ATTACKATDAWN", hint: "Use Keyword Cipher Decode with keyword CIPHER." },
+    { id: "c105", cat: "Ciphers", level: "medium", title: "ROT18", prompt: "Decode this ROT18 string.", task: "Ebbz 97O", answer: "Room 42B", hint: "ROT18 again reverses it - letters and digits both." },
+    { id: "c106", cat: "Ciphers", level: "hard", title: "Playfair cipher", prompt: "Encrypt this with a Playfair cipher, keyword MONARCHY.", task: "ATTACKATDAWN", answer: "RSSRDERSBRNY", hint: "Use Playfair Cipher Encode with keyword MONARCHY." },
+    { id: "c107", cat: "Ciphers", level: "hard", title: "Break the Playfair cipher", prompt: "This was Playfair-enciphered with keyword MONARCHY. Recover the message.", task: "RSSRDERSBRNY", answer: "ATTACKATDAWN", hint: "Use Playfair Cipher Decode with keyword MONARCHY." },
+    { id: "c108", cat: "Bitwise", level: "medium", title: "NAND", prompt: "NAND this text with the key 'ok' and give the hex result.", task: "hi", answer: "9796", hint: "Use the NAND operation with key ok." },
+    { id: "c109", cat: "Bitwise", level: "hard", title: "Arithmetic shift", prompt: "Arithmetic-shift-right this text by 1 bit and give the hex result.", task: "é", answer: "e1d4", hint: "Use Arithmetic Shift Right, amount 1. Note é is 2 UTF-8 bytes, both with the sign bit set." },
+    { id: "c110", cat: "Bitwise", level: "medium", title: "Two's complement", prompt: "Convert this signed number to 8-bit two's complement hex.", task: "-42", answer: "d6", hint: "Use To Two's Complement, bit width 8." },
+    { id: "c111", cat: "Bitwise", level: "medium", title: "From two's complement", prompt: "This is an 8-bit two's complement value. What decimal number is it?", task: "d6", answer: "-42", hint: "Use From Two's Complement, bit width 8." },
+    { id: "c112", cat: "Bitwise", level: "easy", title: "Toggle a bit", prompt: "Toggle bit 3 (counting from 0, LSB first) of this hex byte.", task: "ff", answer: "f7", hint: "Use Toggle Bit, position 3." },
+    { id: "c113", cat: "Bitwise", level: "easy", title: "Count leading zeros", prompt: "How many leading zero bits does this 8-bit hex value have?", task: "0f", answer: "4", hint: "Use Count Leading Zeros, bit width 8." },
+    { id: "c114", cat: "Hashing", level: "medium", title: "CRC-8", prompt: "Enter the CRC-8 checksum (hex) of the word below.", task: "ByteLabs", answer: "92", hint: "Use the CRC-8 operation." },
+    { id: "c115", cat: "Hashing", level: "medium", title: "FNV-1a", prompt: "Enter the FNV-1a (32-bit) hash (hex) of the word below.", task: "ByteLabs", answer: "8e4b9267", hint: "Use the FNV-1a (32-bit) operation." },
+    { id: "c116", cat: "Hashing", level: "medium", title: "DJB2", prompt: "Enter the DJB2 hash (hex) of the word below.", task: "ByteLabs", answer: "dcd84d9b", hint: "Use the DJB2 operation." },
+    { id: "c117", cat: "Hashing", level: "hard", title: "HMAC-MD5", prompt: "Enter the HMAC-MD5 of the message below using the key 'shield'.", task: "attack at dawn", answer: "6e70cec4d038cf6c6bb1ad2835422ad6", hint: "Use HMAC-MD5 with key shield." },
+    { id: "c118", cat: "Hashing", level: "medium", title: "Internet Checksum", prompt: "Enter the Internet Checksum (RFC 1071, hex) of the word below.", task: "ByteLabs", answer: "9a4c", hint: "Use the Internet Checksum (RFC 1071) operation." },
+    { id: "c119", cat: "Hashing", level: "easy", title: "XOR-8 checksum", prompt: "Enter the XOR-8 checksum (hex) of the word below.", task: "ByteLabs", answer: "16", hint: "Use the XOR-8 Checksum operation." },
+    { id: "c120", cat: "Text", level: "easy", title: "Leetspeak", prompt: "Convert this phrase to leetspeak.", task: "elite hacker", answer: "31173 h4ck3r", hint: "Use To Leetspeak." },
+    { id: "c121", cat: "Text", level: "medium", title: "Pig Latin", prompt: "Convert this phrase to Pig Latin.", task: "hello friend", answer: "ellohay iendfray", hint: "Use Pig Latin." },
+    { id: "c122", cat: "Text", level: "easy", title: "Pad with zeros", prompt: "Pad this number to 6 digits with leading zeros.", task: "42", answer: "000042", hint: "Use Pad left, width 6, pad character 0." },
+    { id: "c123", cat: "Text", level: "easy", title: "Center it", prompt: "Center this text in a field of width 8 using * as the pad character.", task: "hi", answer: "***hi***", hint: "Use Center text, width 8, pad character *." },
+    { id: "c124", cat: "Text", level: "easy", title: "Mocking case", prompt: "Convert this phrase to aLtErNaTiNg CaSe.", task: "byte labs", answer: "bYtE lAbS", hint: "Use aLtErNaTiNg CaSe." },
+    { id: "c125", cat: "Text", level: "easy", title: "Strip the punctuation", prompt: "Remove the punctuation from this sentence.", task: "Wait... really?!", answer: "Wait really", hint: "Use Remove punctuation." },
+    { id: "c126", cat: "Data", level: "medium", title: "Compress an IPv6 address", prompt: "Compress this fully-expanded IPv6 address.", task: "2001:0db8:0000:0000:0000:0000:0000:0001", answer: "2001:db8::1", hint: "Use Compress IPv6." },
+    { id: "c127", cat: "Data", level: "easy", title: "Format a MAC address", prompt: "Reformat this MAC address using dashes.", task: "AABBCCDDEEFF", answer: "aa-bb-cc-dd-ee-ff", hint: "Use Format MAC Address, style dash." },
+    { id: "c128", cat: "Data", level: "medium", title: "CSV to JSON", prompt: "Run CSV to JSON on the table below and enter the value of the id field for the Labs row.", task: "id,name\n1,Byte\n2,Labs", answer: "2", hint: "Use CSV to JSON, then read the id value next to \"name\": \"Labs\"." },
+    { id: "c129", cat: "Data", level: "medium", title: "Build a query string", prompt: "Run Build Query String on the key=value lines below and enter the full result.", task: "q=byte labs\npage=2", answer: "?q=byte%20labs&page=2", hint: "Use Build Query String - spaces get percent-encoded." },
+    { id: "c130", cat: "Data", level: "easy", title: "Days between dates", prompt: "How many days are there between 2026-01-01 and 2026-03-15?", task: "2026-01-01", answer: "73 days", hint: "Use Date Difference with the second date set to 2026-03-15." },
+    { id: "c131", cat: "Data", level: "medium", title: "Word frequency", prompt: "Run Word Frequency on the text below and enter the count shown for 'byte'.", task: "byte labs byte encode byte", answer: "3", hint: "Use Word Frequency and read the count next to byte." }
   ];
 
   // Order lessons follow on the progression map (each unlocks the next).
@@ -1422,12 +1726,12 @@ alphabet size changes the output length.</p>`,
   // in order, ARE the lesson order — the unlock chain runs straight through them.
   const LESSON_SECTIONS = [
     { title: "Encodings", ids: ["base64", "hex", "romannumerals", "hexdump", "unicode", "surrogates", "mojibake", "homoglyphs", "url", "mime", "base32", "base58", "base3662", "density", "base45lesson", "morse", "datauri"] },
-    { title: "Classical ciphers", ids: ["ciphers", "affine", "polybius", "beaufortlesson", "transposition", "columnar", "bacon", "frequency", "kerckhoffs"] },
-    { title: "Bits & XOR", ids: ["xor", "otp", "bitwise", "bitmasks", "hamming", "endianness", "bruteforce"] },
-    { title: "Hashing & integrity", ids: ["hashing", "collisions", "merkletrees", "checksums", "luhn", "hmac"] },
+    { title: "Classical ciphers", ids: ["ciphers", "affine", "polybius", "playfair", "beaufortlesson", "transposition", "columnar", "bacon", "frequency", "autokey", "kerckhoffs"] },
+    { title: "Bits & XOR", ids: ["xor", "otp", "bitwise", "twoscomplement", "nandgate", "bitmasks", "hamming", "endianness", "bruteforce"] },
+    { title: "Hashing & integrity", ids: ["hashing", "collisions", "merkletrees", "checksums", "luhn", "noncryptohash", "internetchecksumlesson", "hmac"] },
     { title: "Encryption", ids: ["encryption", "aes", "rsa", "signatures", "keyexchange", "tls"] },
     { title: "Passwords & secrets", ids: ["salt", "kdf", "cracking", "strength-practice", "diceware", "mfa"] },
-    { title: "Data in practice", ids: ["uuids", "jwt", "networking", "subnetting", "unixtime", "regex", "entropy"] }
+    { title: "Data in practice", ids: ["uuids", "jwt", "networking", "subnetting", "ipv6", "csvjson", "unixtime", "regex", "entropy"] }
   ];
   const LESSON_ORDER = LESSON_SECTIONS.reduce((acc, s) => acc.concat(s.ids), []);
 

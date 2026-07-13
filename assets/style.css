@@ -378,7 +378,7 @@ kbd {
 .challenge .chal-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
 .challenge h3 { margin: 0; font-size: 14.5px; }
 .challenge .prompt { color: var(--muted); font-size: 13px; line-height: 1.5; margin-bottom: 10px; }
-.challenge .task { font-family: var(--mono); background: var(--bg-soft); border: 1px solid var(--border); border-radius: 8px; padding: 9px 11px; font-size: 12.5px; margin-bottom: 10px; word-break: break-all; }
+.challenge .task { font-family: var(--mono); background: var(--bg-soft); border: 1px solid var(--border); border-radius: 8px; padding: 9px 11px; font-size: 12.5px; margin-bottom: 10px; word-break: break-all; white-space: pre-wrap; }
 .challenge .feedback { font-size: 12.5px; margin-top: 8px; min-height: 18px; }
 .tag { font-size: 10.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .4px; padding: 2.5px 9px; border-radius: 20px; border: 1px solid transparent; color: var(--muted); background: var(--sel); }
 .tag.easy { color: var(--ok); background: rgba(47,138,91,.1); }
@@ -541,7 +541,10 @@ kbd {
 :root[data-theme="retro"] .map-link { stroke-dasharray: 0 0 !important; stroke-width: 4; }
 :root[data-theme="retro"] .mascot-bubble::before { display: none; }
 
-/* ---------- Ocean theme: sunlit water, soft edges, no JS involved ---------- */
+/* ---------- Ocean theme: sunlit water, bubble-round shapes, no JS involved ---------- */
+/* Retro's identity is sharp pixels + scanlines; Ocean's answer is the opposite extreme —
+   fully round "bubble" controls, generously rounded panels, a scalloped waterline under
+   the topbar, and a perpetual rising-bubble field behind everything. All CSS, no JS. */
 :root[data-theme="ocean"] body {
   position: relative;
   background: linear-gradient(180deg, #0a3348 0%, var(--bg) 55%, #04161f 100%);
@@ -553,7 +556,40 @@ kbd {
     linear-gradient(115deg, transparent 30%, rgba(94,234,212,.07) 42%, transparent 54%),
     linear-gradient(105deg, transparent 55%, rgba(34,195,214,.06) 66%, transparent 78%);
 }
+:root[data-theme="ocean"] body::after {
+  content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none; opacity: .4;
+  background-image:
+    radial-gradient(circle 3px at 15% 0, rgba(94,234,212,.55), rgba(94,234,212,0) 70%),
+    radial-gradient(circle 2px at 45% 0, rgba(94,234,212,.4), rgba(94,234,212,0) 70%),
+    radial-gradient(circle 4px at 72% 0, rgba(94,234,212,.35), rgba(94,234,212,0) 70%),
+    radial-gradient(circle 2.5px at 90% 0, rgba(94,234,212,.45), rgba(94,234,212,0) 70%);
+  background-repeat: repeat-y;
+  background-size: 100% 180px, 100% 240px, 100% 300px, 100% 210px;
+  background-position: 0 0, 0 60px, 0 130px, 0 20px;
+  animation: ocean-bubbles-rise 16s linear infinite;
+}
+@keyframes ocean-bubbles-rise {
+  from { background-position-y: 0, 60px, 130px, 20px; }
+  to   { background-position-y: -180px, -180px, -170px, -190px; }
+}
 :root[data-theme="ocean"] .map-link { stroke-dasharray: 1 7; }
+:root[data-theme="ocean"] .btn, :root[data-theme="ocean"] .mini, :root[data-theme="ocean"] .nav-item,
+:root[data-theme="ocean"] .search-btn, :root[data-theme="ocean"] .quiz-opt, :root[data-theme="ocean"] .tag,
+:root[data-theme="ocean"] .badge, :root[data-theme="ocean"] .chal-filters button,
+:root[data-theme="ocean"] .palette-results li {
+  border-radius: 999px !important;
+}
+:root[data-theme="ocean"] .card, :root[data-theme="ocean"] .challenge, :root[data-theme="ocean"] .demo-out,
+:root[data-theme="ocean"] .task, :root[data-theme="ocean"] .field, :root[data-theme="ocean"] .lesson-modal-box,
+:root[data-theme="ocean"] .palette-box, :root[data-theme="ocean"] .mascot-bubble, :root[data-theme="ocean"] .op-btn,
+:root[data-theme="ocean"] .unit-banner, :root[data-theme="ocean"] .chal-cat-banner {
+  border-radius: 18px !important;
+}
+:root[data-theme="ocean"] .topbar::after {
+  content: ""; position: absolute; left: 0; right: 0; top: 100%; height: 11px;
+  background-image: radial-gradient(circle at 10px 0, transparent 9px, var(--bg) 9.5px);
+  background-size: 20px 11px; background-repeat: repeat-x; pointer-events: none;
+}
 
 /* ---------- Lesson modal ---------- */
 .lesson-modal { position: fixed; inset: 0; z-index: 55; background: rgba(0,0,0,.4); display: flex; align-items: center; justify-content: center; padding: 24px; }
