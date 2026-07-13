@@ -708,8 +708,11 @@
   <ellipse cx="34" cy="82" rx="3.2" ry="2.2" fill="#ffffff" opacity=".5"/>
 </svg>`;
   }
-  // Ocean theme gets its own fish version of Byte — same mood language (one eye
-  // in profile instead of two, a wiggling pectoral fin standing in for the wave).
+  // Ocean theme gets its own fish version of Byte, swimming in a fishbowl — same mood
+  // language (one eye in profile instead of two, a wiggling pectoral fin standing in
+  // for the wave). A clip-path circle keeps the fish and the coral/seaweed/sand decor
+  // confined to the glass silhouette so they read as "inside the bowl," not floating
+  // loose around it.
   function fishMascotSvg(mood) {
     const ink = "#0b2e3d";
     const mouth = mood === "done" ? `<path d="M100 56 Q108 64 100 68" stroke="${ink}" stroke-width="3" fill="none" stroke-linecap="round"/>`
@@ -722,23 +725,48 @@
       ? `<path d="M62 74 Q46 94 74 96 Q82 82 62 74 Z" fill="var(--lime-bright)" stroke="var(--border-strong)" stroke-width="2.5" stroke-linejoin="round"/>`
       : `<g class="mascot-wave-fish"><path d="M62 74 Q54 88 66 92 Q71 80 62 74 Z" fill="var(--lime-bright)" stroke="var(--border-strong)" stroke-width="2.5" stroke-linejoin="round"/></g>`;
     const sparkles = mood === "done"
-      ? `<g class="mascot-sparkle" fill="var(--lime-bright)"><path d="M18 18l1.6 4.4L24 24l-4.4 1.6L18 30l-1.6-4.4L12 24l4.4-1.6z"/><path d="M112 20l1.1 3 3 1.1-3 1.1-1.1 3-1.1-3-3-1.1 3-1.1z"/></g>`
+      ? `<g class="mascot-sparkle" fill="var(--lime-bright)"><path d="M10 8l1.6 4.4L16 14l-4.4 1.6L10 20l-1.6-4.4L4 14l4.4-1.6z"/><path d="M124 12l1.1 3 3 1.1-3 1.1-1.1 3-1.1-3-3-1.1 3-1.1z"/></g>`
       : "";
+    const clipId = "fishbowl-clip-" + mood;
     return `
-<svg class="mascot-svg mood-${mood}" viewBox="0 0 130 100" width="104" height="80" fill="none">
+<svg class="mascot-svg mood-${mood}" viewBox="0 0 132 124" width="111" height="104" fill="none">
   ${sparkles}
-  <g class="mascot-bubbles">
-    <circle cx="118" cy="30" r="2.2" fill="var(--lime-soft)" stroke="var(--lime)" stroke-width="1.3"/>
-    <circle cx="123" cy="22" r="1.5" fill="var(--lime-soft)" stroke="var(--lime)" stroke-width="1.3"/>
+  <defs><clipPath id="${clipId}"><circle cx="66" cy="64" r="48"/></clipPath></defs>
+  <ellipse cx="66" cy="118" rx="38" ry="5" fill="var(--border-strong)" opacity=".16"/>
+  <circle cx="66" cy="64" r="52" fill="var(--panel)" stroke="var(--border-strong)" stroke-width="2.5"/>
+  <g clip-path="url(#${clipId})">
+    <path d="M0 32 Q17 24 34 32 T68 32 T102 32 T136 32 L136 124 L0 124 Z" fill="#5eead4" opacity=".22"/>
+    <path d="M0 104 Q33 94 66 104 T132 104 L132 124 L0 124 Z" fill="#dfc691"/>
+    <ellipse cx="34" cy="110" rx="4" ry="2.6" fill="#b9a377"/>
+    <ellipse cx="48" cy="113" rx="3" ry="2" fill="#a89066"/>
+    <ellipse cx="90" cy="111" rx="3.6" ry="2.4" fill="#b9a377"/>
+    <ellipse cx="100" cy="108" rx="2.6" ry="1.8" fill="#a89066"/>
+    <path d="M22 108 Q14 90 24 76 Q30 66 20 52" stroke="#2f9e6e" stroke-width="4" fill="none" stroke-linecap="round"/>
+    <path d="M28 108 Q24 96 30 86" stroke="#3bb17f" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <path d="M112 108 Q120 90 110 76 Q104 66 114 52" stroke="#2f9e6e" stroke-width="4" fill="none" stroke-linecap="round"/>
+    <path d="M64 108 L64 96" stroke="#ff8a65" stroke-width="5" stroke-linecap="round"/>
+    <path d="M64 102 L57 92" stroke="#ff8a65" stroke-width="4.5" stroke-linecap="round"/>
+    <path d="M64 100 L72 90" stroke="#ff8a65" stroke-width="4.5" stroke-linecap="round"/>
+    <circle cx="64" cy="96" r="2.2" fill="#ff6f4d"/>
+    <circle cx="57" cy="92" r="2" fill="#ff6f4d"/>
+    <circle cx="72" cy="90" r="2" fill="#ff6f4d"/>
+    <g class="mascot-bubbles">
+      <circle cx="104" cy="42" r="2.2" fill="#ffffff" stroke="var(--lime)" stroke-width="1.2" opacity=".7"/>
+      <circle cx="109" cy="35" r="1.5" fill="#ffffff" stroke="var(--lime)" stroke-width="1.2" opacity=".7"/>
+    </g>
+    <g transform="translate(32.36,28.42) scale(.58)">
+      <path d="M32 50 L8 27 L19 50 L8 73 Z" fill="var(--lime-bright)" stroke="var(--border-strong)" stroke-width="2.5" stroke-linejoin="round"/>
+      <ellipse cx="68" cy="50" rx="38" ry="26" fill="var(--lime-bright)" stroke="var(--border-strong)" stroke-width="2.5"/>
+      <path d="M54 27 L65 6 L77 26 Z" fill="var(--lime-bright)" stroke="var(--border-strong)" stroke-width="2.5" stroke-linejoin="round"/>
+      ${fin}
+      <ellipse cx="78" cy="53" rx="3.6" ry="2.4" fill="#ff9fc2" opacity=".5"/>
+      ${eye}
+      ${mouth}
+      <ellipse cx="52" cy="42" rx="4" ry="2.6" fill="#ffffff" opacity=".35"/>
+    </g>
   </g>
-  <path d="M32 50 L8 27 L19 50 L8 73 Z" fill="var(--lime-bright)" stroke="var(--border-strong)" stroke-width="2.5" stroke-linejoin="round"/>
-  <ellipse cx="68" cy="50" rx="38" ry="26" fill="var(--lime-bright)" stroke="var(--border-strong)" stroke-width="2.5"/>
-  <path d="M54 27 L65 6 L77 26 Z" fill="var(--lime-bright)" stroke="var(--border-strong)" stroke-width="2.5" stroke-linejoin="round"/>
-  ${fin}
-  <ellipse cx="78" cy="53" rx="3.6" ry="2.4" fill="#ff9fc2" opacity=".5"/>
-  ${eye}
-  ${mouth}
-  <ellipse cx="52" cy="42" rx="4" ry="2.6" fill="#ffffff" opacity=".35"/>
+  <ellipse cx="66" cy="16" rx="33" ry="9" fill="var(--panel)" stroke="var(--border-strong)" stroke-width="2.5"/>
+  <path d="M30 24 Q18 55 28 88" stroke="#ffffff" stroke-width="5" opacity=".22" fill="none" stroke-linecap="round"/>
 </svg>`;
   }
   // Retro theme gets its own 8-bit sprite version of Byte — same silhouette idea,
