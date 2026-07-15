@@ -290,7 +290,98 @@
     { id: "gen-coin-flip", name: "Coin Flip", cat: "Random", ignoresInput: true, run: () => CL.coinFlip(), about: "Heads or tails, 50/50." },
     { id: "gen-card", name: "Random Card Draw", cat: "Random", ignoresInput: true, run: () => CL.randomCard(), about: "Draws one card from a standard 52-card deck (with replacement - every draw is independent, not dealt from a shrinking deck)." },
     { id: "shuffle-lines", name: "Shuffle Lines", cat: "Random", run: (s) => CL.shuffleLines(s), about: "Randomly reorders the lines of the input (Fisher-Yates shuffle). Unlike the other Random operations, this one actually uses your input." },
-    { id: "gen-boolean", name: "Random Boolean", cat: "Random", ignoresInput: true, run: () => CL.randomBoolean(), about: "Returns true or false, 50/50 - handy as a coin flip for code instead of people." }
+    { id: "gen-boolean", name: "Random Boolean", cat: "Random", ignoresInput: true, run: () => CL.randomBoolean(), about: "Returns true or false, 50/50 - handy as a coin flip for code instead of people." },
+
+    // ---- Encoding additions ----
+    { id: "braille-encode", name: "To Braille", cat: "Encoding", run: (s) => CL.brailleEncode(s), about: "Grade 1 Braille - letters and spaces map straight to their six-dot cell; digits get a leading number-sign cell (⠼) borrowed from the a-j letter shapes, same as real Braille.", example: { in: "hi 5", out: "⠓⠊⠀⠼⠑" } },
+    { id: "braille-decode", name: "From Braille", cat: "Encoding", run: (s) => CL.brailleDecode(s), about: "Decodes Grade 1 Braille cells back into letters, digits and spaces." },
+    { id: "ebcdic-encode", name: "To EBCDIC (cp037)", cat: "Encoding", run: (s) => CL.ebcdicEncode(s), about: "IBM's mainframe text encoding, in the flavor still used today (code page 037) - covers letters, digits and spaces here. Famous for NOT putting the alphabet in one contiguous run of byte values, unlike ASCII.", example: { in: "Hi", out: "c889" } },
+    { id: "ebcdic-decode", name: "From EBCDIC (cp037)", cat: "Encoding", run: (s) => CL.ebcdicDecode(s), about: "Decodes EBCDIC (cp037 subset) hex bytes back into text." },
+    { id: "ternary-encode", name: "To Ternary (Base 3)", cat: "Encoding", run: (s) => CL.ternaryEncode(CL.utf8Bytes(s)), about: "Encodes text as one big number in base 3 (0-2), the same big-integer approach this site uses for Base36/Base58/Base62.", example: { in: "hi", out: "22011021" } },
+    { id: "ternary-decode", name: "From Ternary (Base 3)", cat: "Encoding", run: (s) => CL.bytesToText(CL.ternaryDecode(s)), about: "Decodes a base-3 (0-2 digit) number back into text." },
+    { id: "t9-encode", name: "To T9 (Phone Keypad)", cat: "Encoding", run: (s) => CL.t9Encode(s), about: "Old-school phone keypad text entry - each letter becomes its key digit repeated once per press (2=A, 22=B, 222=C...), space becomes 0.", example: { in: "hi", out: "44 444" } },
+    { id: "t9-decode", name: "From T9 (Phone Keypad)", cat: "Encoding", run: (s) => CL.t9Decode(s), about: "Decodes space-separated T9 key-press sequences back into letters." },
+    { id: "byte-emoji-encode", name: "To Byte-Emoji", cat: "Encoding", run: (s) => CL.byteEmojiEncode(s), about: "A playful 1-byte-to-1-emoji substitution table (256 emoji, one per byte value) - fully reversible, but its own scheme rather than a bit-compatible match to any external 'emoji encoding' spec.", example: { in: "Hi", out: "🐈🐉" } },
+    { id: "byte-emoji-decode", name: "From Byte-Emoji", cat: "Encoding", run: (s) => CL.byteEmojiDecode(s), about: "Decodes this site's byte-emoji table back into text." },
+
+    // ---- Cipher additions ----
+    { id: "adfgvx-encode", name: "ADFGVX Cipher Encode", cat: "Ciphers", params: [{ name: "grid", label: "Grid keyword", type: "text", def: "PRIVACY" }, { name: "key", label: "Transposition key", type: "text", def: "GERMAN" }], run: (s, p) => CL.adfgvxEncode(s, p.grid, p.key), about: "The WWI German field cipher: letters and digits are fractionated into pairs from A/D/F/G/V/X using a keyed 6x6 grid, then the resulting letters are scrambled with a keyed columnar transposition - substitution and transposition stacked together.", example: { in: "ATTACKATDAWN12", out: "(depends on both keys)" } },
+    { id: "adfgvx-decode", name: "ADFGVX Cipher Decode", cat: "Ciphers", params: [{ name: "grid", label: "Grid keyword", type: "text", def: "PRIVACY" }, { name: "key", label: "Transposition key", type: "text", def: "GERMAN" }], run: (s, p) => CL.adfgvxDecode(s, p.grid, p.key), about: "Reverses an ADFGVX cipher with the same grid keyword and transposition key: undoes the columnar transposition first, then reads the A/D/F/G/V/X pairs back through the 6x6 grid." },
+    { id: "porta-encode", name: "Porta Cipher Encode", cat: "Ciphers", params: [{ name: "key", label: "Keyword", type: "text", def: "KEY" }], run: (s, p) => CL.portaEncode(s, p.key), about: "A Vigenere-family cipher built from 13 self-inverse tableaux (one per pair of key letters) - reciprocal like Atbash and Beaufort, so encrypting twice with the same key restores the original.", example: { in: "HELLO", out: "(reciprocal - run it again with the same key to reverse)" } },
+    { id: "porta-decode", name: "Porta Cipher Decode", cat: "Ciphers", params: [{ name: "key", label: "Keyword", type: "text", def: "KEY" }], run: (s, p) => CL.portaDecode(s, p.key), about: "Identical to Porta Cipher Encode - Porta is reciprocal, so running it again with the same key undoes it." },
+    { id: "scytale-encode", name: "Scytale Cipher Encode", cat: "Ciphers", params: [{ name: "diameter", label: "Rod diameter (columns)", type: "number", def: 4 }], run: (s, p) => CL.scytaleEncode(s, p.diameter), about: "The ancient Greek transposition cipher: text is imagined wrapped around an n-sided rod and read off down each face - equivalent to writing it into an n-column grid and reading it out column by column.", example: { in: "HELPMEIAMTRAPPED", out: "HEATPRMAPEPLIMED" } },
+    { id: "scytale-decode", name: "Scytale Cipher Decode", cat: "Ciphers", params: [{ name: "diameter", label: "Rod diameter (columns)", type: "number", def: 4 }], run: (s, p) => CL.scytaleDecode(s, p.diameter), about: "Reverses a Scytale cipher - you need the same rod diameter used to encode." },
+    { id: "substitution-encode", name: "Substitution Cipher Encode", cat: "Ciphers", params: [{ name: "alphabet", label: "Cipher alphabet (A-Z, all 26)", type: "text", def: "QWERTYUIOPASDFGHJKLZXCVBNM" }], run: (s, p) => CL.substitutionEncode(s, p.alphabet), about: "A general monoalphabetic substitution cipher: supply any full scrambling of A-Z and each plaintext letter is swapped for the letter in that position - the general case that Atbash, Caesar and the Keyword cipher are all specific examples of.", example: { in: "HELLO", out: "ITSSG" } },
+    { id: "substitution-decode", name: "Substitution Cipher Decode", cat: "Ciphers", params: [{ name: "alphabet", label: "Cipher alphabet (A-Z, all 26)", type: "text", def: "QWERTYUIOPASDFGHJKLZXCVBNM" }], run: (s, p) => CL.substitutionDecode(s, p.alphabet), about: "Reverses a Substitution cipher - you need the exact same 26-letter cipher alphabet used to encode." },
+    { id: "caesar-box-encode", name: "Caesar Box Encode", cat: "Ciphers", run: (s) => CL.caesarBoxEncode(s), about: "Writes the text into a square grid (side length = ceiling of the square root of its length) row by row, then reads it back out column by column - simple enough to do by hand on graph paper.", example: { in: "WEAREDISCOVERED", out: "WIEEODRSVCEEARD" } },
+    { id: "caesar-box-decode", name: "Caesar Box Decode", cat: "Ciphers", run: (s) => CL.caesarBoxDecode(s), about: "Reverses a Caesar Box cipher, rebuilding the same square grid from the ciphertext's length." },
+    { id: "running-key-encode", name: "Running Key Cipher Encode", cat: "Ciphers", params: [{ name: "key", label: "Key text (as long as the message)", type: "text", def: "THEQUICKBROWNFOXJUMPSOVERTHELAZYDOG" }], run: (s, p) => CL.runningKeyEncode(s, p.key), about: "Like Vigenere, but the key is a long piece of text used straight through once instead of a short keyword repeated over and over - closes the repeating-key weakness that Kasiski analysis exploits, provided the key text is never reused.", example: { in: "ATTACK", out: "TXKSKU" } },
+    { id: "running-key-decode", name: "Running Key Cipher Decode", cat: "Ciphers", params: [{ name: "key", label: "Key text (as long as the message)", type: "text", def: "THEQUICKBROWNFOXJUMPSOVERTHELAZYDOG" }], run: (s, p) => CL.runningKeyDecode(s, p.key), about: "Reverses a Running Key cipher - you need the exact same key text used to encode." },
+    { id: "tapcode-encode", name: "To Tap Code", cat: "Ciphers", run: (s) => CL.tapCodeEncode(s), about: "The prisoner's tap code: each letter becomes a row.column pair on a 5x5 grid (J shares a cell with I, same as this site's Polybius Square), traditionally tapped out through a wall one digit at a time.", example: { in: "HI", out: "2.3 2.4" } },
+    { id: "tapcode-decode", name: "From Tap Code", cat: "Ciphers", run: (s) => CL.tapCodeDecode(s), about: "Decodes space-separated row.column tap-code pairs back into letters." },
+    { id: "bubblebabble-encode", name: "To Bubble Babble", cat: "Ciphers", run: (s) => CL.bubbleBabbleEncode(CL.utf8Bytes(s)), about: "A checksummed binary-to-text encoding (Antti Huima's scheme, used for SSH key fingerprints) that packs bytes into pronounceable consonant-vowel 'words' - easier to read aloud or compare by eye than a hex fingerprint.", example: { in: "", out: "xexax" } },
+    { id: "bubblebabble-decode", name: "From Bubble Babble", cat: "Ciphers", run: (s) => CL.bytesToText(CL.bubbleBabbleDecode(s)), about: "Decodes a Bubble Babble string back into bytes, verifying its built-in checksum as it goes." },
+
+    // ---- Bitwise additions ----
+    { id: "hex-and", name: "AND Two Hex Values", cat: "Bitwise", params: [{ name: "b", label: "Second value (hex)", type: "text", def: "0f" }], run: (s, p) => CL.hexAnd(s, p.b), about: "Bitwise ANDs the input against a second fixed hex value byte-for-byte (right-aligned, shorter side zero-padded) - unlike the repeating-key AND above, this combines two specific values rather than a text key." },
+    { id: "hex-or", name: "OR Two Hex Values", cat: "Bitwise", params: [{ name: "b", label: "Second value (hex)", type: "text", def: "0f" }], run: (s, p) => CL.hexOr(s, p.b), about: "Bitwise ORs the input against a second fixed hex value byte-for-byte (right-aligned, shorter side zero-padded)." },
+    { id: "hex-xor", name: "XOR Two Hex Values", cat: "Bitwise", params: [{ name: "b", label: "Second value (hex)", type: "text", def: "ff" }], run: (s, p) => CL.hexXor(s, p.b), about: "Bitwise XORs the input against a second fixed hex value byte-for-byte (right-aligned, shorter side zero-padded)." },
+    { id: "hamming-distance", name: "Hamming Distance", cat: "Bitwise", params: [{ name: "b", label: "Compare to (hex)", type: "text", def: "ff" }], run: (s, p) => CL.hammingDistance(s, p.b), about: "Counts how many bit positions differ between two equal-length hex values - the standard measure of 'how many single-bit flips apart' two values are, used in error-correcting codes and genetics-style distance metrics alike.", example: { in: "00", out: "8" } },
+    { id: "set-bit", name: "Set Bit", cat: "Bitwise", params: [{ name: "position", label: "Bit position (from LSB)", type: "number", def: 0 }], run: (s, p) => CL.setBitHex(s, p.position), about: "Forces a single bit to 1 at a chosen position (0 = least significant bit), regardless of what it was before.", example: { in: "00", out: "01" } },
+    { id: "clear-bit", name: "Clear Bit", cat: "Bitwise", params: [{ name: "position", label: "Bit position (from LSB)", type: "number", def: 0 }], run: (s, p) => CL.clearBitHex(s, p.position), about: "Forces a single bit to 0 at a chosen position (0 = least significant bit), regardless of what it was before.", example: { in: "ff", out: "fe" } },
+    { id: "rotate-bytes-left", name: "Rotate Bytes Left", cat: "Bitwise", params: [{ name: "amount", label: "Bytes", type: "number", def: 1 }], run: (s, p) => CL.rotateBytesLeft(s, p.amount), about: "Rotates whole bytes left within the value (as opposed to Rotate Bits Left, which rotates the bits inside each byte individually) - no bytes are lost, Rotate Right by the same amount reverses it.", example: { in: "0102030405", out: "02 03 04 05 01" } },
+    { id: "rotate-bytes-right", name: "Rotate Bytes Right", cat: "Bitwise", params: [{ name: "amount", label: "Bytes", type: "number", def: 1 }], run: (s, p) => CL.rotateBytesRight(s, p.amount), about: "Rotates whole bytes right within the value - no bytes are lost, Rotate Left by the same amount reverses it." },
+    { id: "count-clear-bits", name: "Count Clear Bits", cat: "Bitwise", run: (s) => CL.countClearBits(s), about: "Counts the 0-bits across the input, the complement of Count Set Bits - the two always add up to the total bit width.", example: { in: "00", out: "8  (total: 8 of 8 bits clear)" } },
+    { id: "bit-extract", name: "Extract Bit Range", cat: "Bitwise", params: [{ name: "start", label: "Start bit (from LSB)", type: "number", def: 0 }, { name: "length", label: "Length (bits)", type: "number", def: 4 }], run: (s, p) => CL.bitExtractHex(s, p.start, p.length), about: "Pulls a specific run of bits out of a hex value as its own hex number - the same 'grab a bitfield out of a packed value' operation protocol parsers do constantly.", example: { in: "ff0f", out: "f" } },
+
+    // ---- Hashing additions ----
+    { id: "sha3-256", name: "SHA3-256", cat: "Hashing", run: (s) => CL.sha3Hex(256, CL.utf8Bytes(s)), about: "256-bit SHA-3 hash (Keccak with NIST's padding), implemented from the public specification and checked against the published test vectors. A structurally different design from SHA-2, standardized as a hedge in case SHA-2 is ever broken." },
+    { id: "sha3-512", name: "SHA3-512", cat: "Hashing", run: (s) => CL.sha3Hex(512, CL.utf8Bytes(s)), about: "512-bit SHA-3 hash, full-width output." },
+    { id: "keccak256", name: "Keccak-256", cat: "Hashing", run: (s) => CL.keccak256Hex(CL.utf8Bytes(s)), about: "The hash Ethereum calls 'SHA3' but which is actually the original Keccak submission with its pre-standardization padding byte (0x01), not the NIST SHA3-256 padding (0x06) - the two give different digests for the same input, a well-known gotcha.", example: { in: "", out: "c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470" } },
+    { id: "hmac-sha1", name: "HMAC-SHA1", cat: "Hashing", params: [{ name: "key", label: "Key", type: "text", def: "key" }], run: (s, p) => CL.hmacHex("SHA-1", p.key, s), about: "Keyed hash using SHA-1. SHA-1 itself is deprecated for collision resistance, but HMAC-SHA1 remains structurally sound for authentication (the break that hit plain SHA-1 doesn't carry over) - HMAC-SHA256 is still the better default for new work." },
+    { id: "murmur3-32", name: "MurmurHash3 (32-bit)", cat: "Hashing", run: (s) => CL.murmur3_32(CL.utf8Bytes(s)), about: "A fast non-cryptographic hash designed for hash tables and sharding, not security - better bit distribution than FNV or DJB2 at similar speed.", example: { in: "test", out: "ba6bd213" } },
+    { id: "crc32c", name: "CRC-32C (Castagnoli)", cat: "Hashing", run: (s) => CL.crc32c(CL.utf8Bytes(s)), about: "A different 32-bit CRC polynomial than the classic CRC-32 above (Castagnoli's, not zlib's) - used inside iSCSI, ext4 and SCTP, and often faster in hardware thanks to modern CPUs' crc32c instruction.", example: { in: "123456789", out: "e3069283" } },
+
+    // ---- Text additions ----
+    { id: "regex-escape", name: "Regex-escape text", cat: "Text", run: (s) => CL.regexEscape(s), about: "Escapes every character that's special in a regular expression, so the text can be dropped into a regex literally.", example: { in: "a.b*c", out: "a\\.b\\*c" } },
+    { id: "remove-nonprintable", name: "Remove non-printable characters", cat: "Text", run: (s) => CL.removeNonPrintable(s), about: "Strips everything outside printable ASCII (plus tabs and newlines) - handy for cleaning up pasted text with stray control characters." },
+    { id: "remove-non-ascii", name: "Remove non-ASCII characters", cat: "Text", run: (s) => CL.removeNonAscii(s), about: "Strips every character outside the 0-127 ASCII range.", example: { in: "café", out: "caf" } },
+    { id: "unicode-normalize", name: "Normalize Unicode", cat: "Text", params: [{ name: "form", label: "Form", type: "select", def: "NFC", options: [{ v: "NFC", t: "NFC (composed)" }, { v: "NFD", t: "NFD (decomposed)" }, { v: "NFKC", t: "NFKC (compatibility composed)" }, { v: "NFKD", t: "NFKD (compatibility decomposed)" }] }], run: (s, p) => CL.unicodeNormalize(s, p.form), about: "Re-normalizes Unicode text so visually identical strings compare equal - useful since e.g. 'é' can be one composed code point or an 'e' plus a combining accent, and they look the same but aren't ===." },
+    { id: "filter-lines", name: "Filter lines", cat: "Text", params: [{ name: "text", label: "Containing", type: "text", def: "" }, { name: "mode", label: "Mode", type: "select", def: "include", options: [{ v: "include", t: "Keep matching lines" }, { v: "exclude", t: "Drop matching lines" }] }], run: (s, p) => CL.filterLines(s, p.text, p.mode), about: "Keeps or drops every line containing a given piece of text - a quick grep/grep -v without leaving the workbench." },
+    { id: "smart-quotes-encode", name: "Straight to Smart Quotes", cat: "Text", run: (s) => CL.smartQuotesEncode(s), about: "Converts straight \" and ' quotes into curly typographic quotes, alternating open/close as it goes.", example: { in: "\"hi\"", out: "“hi”" } },
+    { id: "smart-quotes-decode", name: "Smart to Straight Quotes", cat: "Text", run: (s) => CL.smartQuotesDecode(s), about: "Converts curly typographic quotes back into plain straight quotes - handy before feeding text into code or JSON." },
+    { id: "sentence-case", name: "Sentence case", cat: "Text", run: (s) => CL.sentenceCase(s), about: "Lower-cases everything, then capitalizes the first letter of the text and of each sentence after a ./!/?.", example: { in: "hello. how ARE you?", out: "Hello. How are you?" } },
+    { id: "collapse-spaces", name: "Collapse spaces", cat: "Text", run: (s) => CL.collapseSpaces(s), about: "Squashes runs of spaces and tabs down to a single space, without touching newlines - unlike Remove whitespace, this keeps line breaks and single spaces intact.", example: { in: "a   b", out: "a b" } },
+    { id: "strip-bom", name: "Strip BOM", cat: "Text", run: (s) => CL.stripBom(s), about: "Removes a leading UTF-8 byte-order-mark character, if present - an invisible character some editors and Windows tools prepend to 'mark' a file as UTF-8, which can break exact string comparisons or JSON parsing." },
+    { id: "shell-quote", name: "Shell-quote text", cat: "Text", run: (s) => CL.shellQuote(s), about: "Wraps text in single quotes for a POSIX shell, escaping any single quotes it contains - the standard way to make a string safe as one shell argument regardless of what's inside it.", example: { in: "it's a test", out: "'it'\\''s a test'" } },
+    { id: "show-whitespace", name: "Show whitespace", cat: "Text", run: (s) => CL.showWhitespace(s), about: "Makes invisible characters visible: tabs become →, line breaks become ¶, and spaces become · - useful for spotting trailing whitespace or mixed tabs/spaces." },
+
+    // ---- Data additions ----
+    { id: "csv-to-tsv", name: "CSV to TSV", cat: "Data", run: (s) => CL.csvToTsv(s), about: "Converts CSV (quoted fields supported) into tab-separated values." },
+    { id: "tsv-to-csv", name: "TSV to CSV", cat: "Data", run: (s) => CL.tsvToCsv(s), about: "Converts tab-separated values into CSV, quoting any field that contains a comma, quote or newline." },
+    { id: "cron-describe", name: "Describe Cron Expression", cat: "Data", run: (s) => CL.cronDescribe(s), about: "Translates a standard 5-field cron expression (minute hour day-of-month month day-of-week) into a plain-English description.", example: { in: "0 9 * * 1-5", out: "at 09:00, on Monday through Friday" } },
+    { id: "geo-distance", name: "Geo Distance (Haversine)", cat: "Data", params: [{ name: "lat2", label: "To latitude", type: "text", def: "51.5074" }, { name: "lon2", label: "To longitude", type: "text", def: "-0.1278" }], run: (s, p) => CL.haversineDistance(s, parseFloat(p.lat2), parseFloat(p.lon2)), about: "Enter a 'lat, long' pair as input and a second pair as parameters to get the great-circle distance between them in kilometers, via the Haversine formula (treats Earth as a sphere - accurate to within about 0.5%).", example: { in: "40.7128, -74.0060", out: "5570.22 km" } },
+    { id: "seconds-to-duration", name: "Seconds to Duration", cat: "Data", run: (s) => CL.secondsToDuration(s), about: "Converts a whole number of seconds into a human-readable duration like '1h 1m 1s'.", example: { in: "3661", out: "1h 1m 1s" } },
+    { id: "duration-to-seconds", name: "Duration to Seconds", cat: "Data", run: (s) => CL.durationToSeconds(s), about: "Converts a human duration like '1h 30m' back into a whole number of seconds.", example: { in: "1h 1m 1s", out: "3661" } },
+    { id: "parse-email-header", name: "Parse Email Header", cat: "Data", run: (s) => CL.parseEmailHeader(s), about: "Pulls out the From, To, Cc, Subject, Date and Message-ID lines from a raw email header block." },
+    { id: "extract-credit-cards", name: "Extract Credit Card Numbers", cat: "Data", run: (s) => CL.extractCreditCards(s), about: "Finds 13-19 digit runs that also pass the Luhn checksum - filters out random digit strings, keeping only numbers that are structurally valid card-number candidates. Test-data / security-review tool, not a guarantee a number is real or active." },
+    { id: "extract-phone-numbers", name: "Extract Phone Numbers", cat: "Data", run: (s) => CL.extractPhoneNumbers(s), about: "Pulls US/Canada-style 10-digit phone numbers (with optional country code, parens and separators) out of a block of text." },
+    { id: "extract-mentions", name: "Extract @Mentions", cat: "Data", run: (s) => CL.extractMentions(s), about: "Pulls every @handle-style mention out of a block of text, the way Twitter/Mastodon/Slack-style @mentions look.", example: { in: "thanks @alice and @bob_2", out: "@alice\n@bob_2" } },
+    { id: "bytes-to-human", name: "Bytes to Human-Readable Size", cat: "Data", run: (s) => CL.bytesToHuman(s), about: "Converts a raw byte count into KB/MB/GB/TB using 1024-based (binary) units.", example: { in: "1073741824", out: "1.00 GB" } },
+    { id: "latlong-to-dms", name: "Decimal Lat/Long to DMS", cat: "Data", run: (s) => CL.latLongToDms(s), about: "Converts a 'lat, long' decimal-degree pair into degrees/minutes/seconds notation.", example: { in: "40.6892, -74.0445", out: "40°41'21.12\"N 74°2'40.20\"W" } },
+    { id: "dms-to-latlong", name: "DMS to Decimal Lat/Long", cat: "Data", run: (s) => CL.dmsToLatLong(s), about: "Converts a degrees/minutes/seconds coordinate pair back into decimal degrees.", example: { in: "40°41'21.12\"N 74°2'40.20\"W", out: "40.689200, -74.044500" } },
+    { id: "temp-convert", name: "Convert Temperature", cat: "Data", params: [{ name: "from", label: "From", type: "select", def: "c", options: [{ v: "c", t: "Celsius" }, { v: "f", t: "Fahrenheit" }, { v: "k", t: "Kelvin" }] }, { name: "to", label: "To", type: "select", def: "f", options: [{ v: "c", t: "Celsius" }, { v: "f", t: "Fahrenheit" }, { v: "k", t: "Kelvin" }] }], run: (s, p) => CL.tempConvert(s, p.from, p.to), about: "Converts a temperature between Celsius, Fahrenheit and Kelvin.", example: { in: "100", out: "212.00" } },
+
+    // ---- Random additions ----
+    { id: "gen-gaussian", name: "Random Gaussian", cat: "Random", ignoresInput: true, params: [{ name: "mean", label: "Mean", type: "number", def: 0 }, { name: "stddev", label: "Std. deviation", type: "number", def: 1 }], run: (s, p) => CL.randomGaussian(p.mean, p.stddev), about: "A random number from a normal (bell-curve) distribution with the given mean and standard deviation, generated via the Box-Muller transform." },
+    { id: "pick-line", name: "Pick Random Line", cat: "Random", run: (s) => CL.pickLine(s), about: "Picks one random non-empty line from your input using secure randomness - like Shuffle Lines, this one actually uses what you typed instead of ignoring it." },
+    { id: "gen-random-prime", name: "Random Prime in Range", cat: "Random", ignoresInput: true, params: [{ name: "min", label: "Min", type: "number", def: 2 }, { name: "max", label: "Max", type: "number", def: 1000 }], run: (s, p) => CL.randomPrimeInRange(p.min, p.max), about: "Picks a random prime number between min and max (inclusive), checked by trial division - handy for quick crypto-adjacent demos." },
+    { id: "gen-random-emoji", name: "Random Emoji", cat: "Random", ignoresInput: true, run: () => CL.randomEmoji(), about: "One random emoji from a small curated set, picked with secure randomness." },
+    { id: "gen-base32", name: "Random Base32", cat: "Random", ignoresInput: true, params: [{ name: "len", label: "Length", type: "number", def: 16 }], run: (s, p) => CL.randomBase32(p.len), about: "A random string in the Base32 (RFC 4648) alphabet - the format TOTP/2FA secret keys are usually shown in." },
+    { id: "gen-username", name: "Random Username", cat: "Random", ignoresInput: true, run: () => CL.randomUsername(), about: "An adjective-noun-number combination (like 'swift-falcon42') from secure randomness - handy placeholder test data for accounts and demos." },
+    { id: "gen-ipv6", name: "Random IPv6", cat: "Random", ignoresInput: true, run: () => CL.randomIpv6(), about: "A random IPv6 address from secure randomness. Test data only - not a real routable address." },
+    { id: "gen-date-range", name: "Random Date in Range", cat: "Random", ignoresInput: true, params: [{ name: "from", label: "From (YYYY-MM-DD)", type: "text", def: "2020-01-01" }, { name: "to", label: "To (YYYY-MM-DD)", type: "text", def: "2024-12-31" }], run: (s, p) => CL.randomDateInRange(p.from, p.to), about: "A random calendar date between two dates, from secure randomness." },
+    { id: "gen-weighted-boolean", name: "Weighted Random Boolean", cat: "Random", ignoresInput: true, params: [{ name: "probability", label: "Probability of true (0-1)", type: "number", def: 0.5 }], run: (s, p) => CL.weightedBoolean(p.probability), about: "Like Random Boolean, but with a chosen probability of coming up true instead of a fixed 50/50 - useful for simulating a biased coin or a feature-flag rollout percentage." }
   ];
   const OP_BY_ID = Object.fromEntries(OPS.map((o) => [o.id, o]));
   const COMMON = ["base64-encode", "base64-decode", "hex-encode", "hex-decode", "url-encode", "url-decode", "sha256", "rot13"];
@@ -861,6 +952,68 @@
   <path d="M30 24 Q18 55 28 88" stroke="#ffffff" stroke-width="5" opacity=".22" fill="none" stroke-linecap="round"/>
 </svg>`;
   }
+  // Laval theme gets its own magma-salamander version of Byte, basking in a lava pool
+  // inside a volcanic crater - same mood language and same clip-path-confined-decor trick
+  // as the Ocean fishbowl above (reuses its exact fin/eye/mouth geometry so the existing
+  // wiggle animation's pivot point stays correct), just reskinned in obsidian and ember.
+  function magmaMascotSvg(mood) {
+    const ink = "#2b0e04";
+    const mouth = mood === "done" ? `<path d="M100 56 Q108 64 100 68" stroke="${ink}" stroke-width="3" fill="none" stroke-linecap="round"/>`
+      : mood === "start" ? `<path d="M100 55 Q107 60 101 65" stroke="${ink}" stroke-width="3" fill="none" stroke-linecap="round"/>`
+      : `<path d="M100 56 Q105 59 101 62" stroke="${ink}" stroke-width="2.5" fill="none" stroke-linecap="round"/>`;
+    const eye = mood === "done"
+      ? `<path d="M82 38 Q87 33 92 38" stroke="${ink}" stroke-width="2.8" fill="none" stroke-linecap="round"/>`
+      : `<circle cx="87" cy="40" r="4.2" fill="${ink}"/><circle cx="86" cy="38.5" r="1.4" fill="#ffd9a8"/>`;
+    const leg = mood === "done"
+      ? `<path d="M62 74 Q46 94 74 96 Q82 82 62 74 Z" fill="var(--lime-bright)" stroke="var(--border-strong)" stroke-width="2.5" stroke-linejoin="round"/>`
+      : `<g class="mascot-wave-fish"><path d="M62 74 Q54 88 66 92 Q71 80 62 74 Z" fill="var(--lime-bright)" stroke="var(--border-strong)" stroke-width="2.5" stroke-linejoin="round"/></g>`;
+    const sparkles = mood === "done"
+      ? `<g class="mascot-sparkle" fill="var(--lime-bright)"><path d="M10 8l1.6 4.4L16 14l-4.4 1.6L10 20l-1.6-4.4L4 14l4.4-1.6z"/><path d="M124 12l1.1 3 3 1.1-3 1.1-1.1 3-1.1-3-3-1.1 3-1.1z"/></g>`
+      : "";
+    const clipId = "crater-clip-" + mood;
+    return `
+<svg class="mascot-svg mood-${mood}" viewBox="0 0 132 124" width="111" height="104" fill="none">
+  ${sparkles}
+  <defs><clipPath id="${clipId}"><circle cx="66" cy="64" r="48"/></clipPath></defs>
+  <ellipse cx="66" cy="118" rx="38" ry="5" fill="var(--border-strong)" opacity=".16"/>
+  <circle cx="66" cy="64" r="52" fill="var(--panel)" stroke="var(--border-strong)" stroke-width="2.5"/>
+  <g clip-path="url(#${clipId})">
+    <path d="M0 32 Q17 24 34 32 T68 32 T102 32 T136 32 L136 124 L0 124 Z" fill="#ff7a1a" opacity=".2"/>
+    <path d="M0 104 Q33 94 66 104 T132 104 L132 124 L0 124 Z" fill="#2a1208"/>
+    <ellipse cx="34" cy="110" rx="4" ry="2.6" fill="#4a2210"/>
+    <ellipse cx="48" cy="113" rx="3" ry="2" fill="#3a1a0c"/>
+    <ellipse cx="90" cy="111" rx="3.6" ry="2.4" fill="#4a2210"/>
+    <ellipse cx="100" cy="108" rx="2.6" ry="1.8" fill="#3a1a0c"/>
+    <path d="M22 108 Q14 90 24 76 Q30 66 20 52" stroke="#ff9a3d" stroke-width="4" fill="none" stroke-linecap="round" opacity=".55"/>
+    <path d="M28 108 Q24 96 30 86" stroke="#ffb347" stroke-width="3" fill="none" stroke-linecap="round" opacity=".55"/>
+    <path d="M112 108 Q120 90 110 76 Q104 66 114 52" stroke="#ff9a3d" stroke-width="4" fill="none" stroke-linecap="round" opacity=".55"/>
+    <path d="M64 108 L64 96" stroke="#ffb347" stroke-width="5" stroke-linecap="round"/>
+    <path d="M64 102 L57 92" stroke="#ffb347" stroke-width="4.5" stroke-linecap="round"/>
+    <path d="M64 100 L72 90" stroke="#ffb347" stroke-width="4.5" stroke-linecap="round"/>
+    <circle cx="64" cy="96" r="2.2" fill="#ff5a1f"/>
+    <circle cx="57" cy="92" r="2" fill="#ff5a1f"/>
+    <circle cx="72" cy="90" r="2" fill="#ff5a1f"/>
+    <g class="mascot-bubbles">
+      <circle cx="104" cy="42" r="2.2" fill="#ffcf6b" stroke="var(--lime)" stroke-width="1.2" opacity=".8"/>
+      <circle cx="109" cy="35" r="1.5" fill="#ff9a3d" stroke="var(--lime)" stroke-width="1.2" opacity=".8"/>
+    </g>
+    <g transform="translate(32.36,28.42) scale(.58)">
+      <path d="M32 50 L8 27 L19 50 L8 73 Z" fill="var(--lime-bright)" stroke="var(--border-strong)" stroke-width="2.5" stroke-linejoin="round"/>
+      <ellipse cx="68" cy="50" rx="38" ry="26" fill="var(--lime-bright)" stroke="var(--border-strong)" stroke-width="2.5"/>
+      <path d="M46 24 L52 10 L58 25 Z" fill="var(--lime-bright)" stroke="var(--border-strong)" stroke-width="2" stroke-linejoin="round"/>
+      <path d="M58 22 L64 8 L70 23 Z" fill="var(--lime-bright)" stroke="var(--border-strong)" stroke-width="2" stroke-linejoin="round"/>
+      <path d="M70 24 L76 11 L82 25 Z" fill="var(--lime-bright)" stroke="var(--border-strong)" stroke-width="2" stroke-linejoin="round"/>
+      ${leg}
+      <ellipse cx="78" cy="53" rx="3.6" ry="2.4" fill="#ff9fc2" opacity=".4"/>
+      ${eye}
+      ${mouth}
+      <ellipse cx="52" cy="42" rx="4" ry="2.6" fill="#fff3e0" opacity=".3"/>
+    </g>
+  </g>
+  <ellipse cx="66" cy="16" rx="33" ry="9" fill="var(--panel)" stroke="var(--border-strong)" stroke-width="2.5"/>
+  <path d="M30 24 Q18 55 28 88" stroke="#ffd9a8" stroke-width="5" opacity=".18" fill="none" stroke-linecap="round"/>
+</svg>`;
+  }
   // Retro theme gets its own 8-bit sprite version of Byte — same silhouette idea,
   // rebuilt from chunky stacked blocks instead of curves.
   function pixelMascotSvg(mood) {
@@ -897,7 +1050,7 @@
     const mood = pct >= 100 ? "done" : completed > 0 ? "start" : "idle";
     const msg = pct >= 100 ? MASCOT_MSG.done : completed > 0 && nextTitle ? MASCOT_MSG.start(nextTitle) : MASCOT_MSG.empty;
     const theme = (loadSettings().theme) || "light";
-    const figure = theme === "retro" ? pixelMascotSvg(mood) : theme === "ocean" ? fishMascotSvg(mood) : mascotSvg(mood);
+    const figure = theme === "retro" ? pixelMascotSvg(mood) : theme === "ocean" ? fishMascotSvg(mood) : theme === "laval" ? magmaMascotSvg(mood) : mascotSvg(mood);
     box.innerHTML = `
       <div class="mascot-figure">${figure}</div>
       <div class="mascot-bubble"><p>${msg}</p></div>`;

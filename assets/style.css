@@ -91,27 +91,58 @@
 :root[data-theme="ocean"] {
   --bg: #062434;
   --bg-soft: #0a2e42;
-  --panel: #0d3a52;
-  --panel-soft: #12455f;
-  --border: #1c516c;
-  --border-strong: #2c6d8a;
+  --panel: rgba(17, 66, 92, .6);
+  --panel-soft: rgba(24, 82, 110, .55);
+  --border: rgba(94, 234, 212, .16);
+  --border-strong: rgba(94, 234, 212, .3);
   --text: #e3f6fb;
   --muted: #a9d6e5;
-  --faint: #5f93a8;
+  --faint: #6ea3b8;
   --accent: #22c3d6;
   --accent-soft: #0f4152;
   --link: #5eead4;
   --danger: #ff6b6b;
   --ok: #34d399;
-  --sel: #12455f;
-  --shadow: 0 2px 8px rgba(2,20,30,.35);
-  --shadow-lift: 0 16px 34px rgba(2,20,30,.5);
-  --radius: 14px;
+  --sel: rgba(94, 234, 212, .14);
+  --shadow: 0 2px 10px rgba(2,14,22,.4);
+  --shadow-lift: 0 18px 38px rgba(2,14,22,.55);
+  --radius: 16px;
   --lime: #2dd4bf;
   --lime-soft: #0f4a4a;
   --lime-bright: #22e5c9;
   --seq-100: #0f4a4a; --seq-250: #146b6e; --seq-400: #1a95a0; --seq-550: #2dd4bf; --seq-700: #a6f3ea;
   --status-good: #34d399; --status-warning: #fbbf24; --status-serious: #fb923c; --status-critical: #ff6b6b;
+  --ocean-glass-blur: blur(14px) saturate(1.4);
+  --ocean-top: #0c3852;
+}
+
+/* Laval — obsidian and molten glass, Byte reimagined as a magma salamander in a crater. */
+:root[data-theme="laval"] {
+  --bg: #170a06;
+  --bg-soft: #200d08;
+  --panel: rgba(48, 21, 12, .72);
+  --panel-soft: rgba(63, 28, 15, .68);
+  --border: rgba(255, 122, 26, .18);
+  --border-strong: rgba(255, 122, 26, .38);
+  --text: #ffe8d6;
+  --muted: #d9a583;
+  --faint: #8a5a42;
+  --accent: #ff7a1a;
+  --accent-soft: #3a1a0a;
+  --link: #ffb347;
+  --danger: #ff3b3b;
+  --ok: #5ed46a;
+  --sel: rgba(255, 122, 26, .16);
+  --shadow: 0 2px 10px rgba(0,0,0,.5), 0 0 14px rgba(255,90,20,.15);
+  --shadow-lift: 0 18px 40px rgba(0,0,0,.6), 0 0 26px rgba(255,110,30,.28);
+  --radius: 10px;
+  --lime: #ff7a1a;
+  --lime-soft: #3a1a0a;
+  --lime-bright: #ffb347;
+  --seq-100: #3a1a0a; --seq-250: #7a2f0f; --seq-400: #c24a12; --seq-550: #ff7a1a; --seq-700: #ffd8a8;
+  --status-good: #5ed46a; --status-warning: #ffd23f; --status-serious: #ff8f3f; --status-critical: #ff3b3b;
+  --laval-glass-blur: blur(12px) saturate(1.3);
+  --laval-top: #200c04;
 }
 
 * { box-sizing: border-box; }
@@ -577,19 +608,148 @@ kbd {
 :root[data-theme="ocean"] .btn, :root[data-theme="ocean"] .mini, :root[data-theme="ocean"] .nav-item,
 :root[data-theme="ocean"] .search-btn, :root[data-theme="ocean"] .quiz-opt, :root[data-theme="ocean"] .tag,
 :root[data-theme="ocean"] .badge, :root[data-theme="ocean"] .chal-filters button,
-:root[data-theme="ocean"] .palette-results li {
+:root[data-theme="ocean"] .palette-results li, :root[data-theme="ocean"] .lesson-list button,
+:root[data-theme="ocean"] .suggestion, :root[data-theme="ocean"] .step-compute-btn {
   border-radius: 999px !important;
 }
 :root[data-theme="ocean"] .card, :root[data-theme="ocean"] .challenge, :root[data-theme="ocean"] .demo-out,
 :root[data-theme="ocean"] .task, :root[data-theme="ocean"] .field, :root[data-theme="ocean"] .lesson-modal-box,
 :root[data-theme="ocean"] .palette-box, :root[data-theme="ocean"] .mascot-bubble, :root[data-theme="ocean"] .op-btn,
-:root[data-theme="ocean"] .unit-banner, :root[data-theme="ocean"] .chal-cat-banner {
-  border-radius: 18px !important;
+:root[data-theme="ocean"] .unit-banner, :root[data-theme="ocean"] .chal-cat-banner, :root[data-theme="ocean"] .step,
+:root[data-theme="ocean"] .step-params input, :root[data-theme="ocean"] .step-params select,
+:root[data-theme="ocean"] .detect-preview code, :root[data-theme="ocean"] .dropzone {
+  border-radius: 16px !important;
 }
+
+/* Every translucent "panel" surface gets a frosted-glass look so the rising bubbles
+   and gradient always read through, instead of sitting behind flat opaque rectangles. */
+:root[data-theme="ocean"] .card, :root[data-theme="ocean"] .challenge, :root[data-theme="ocean"] .step,
+:root[data-theme="ocean"] .quiz-opt, :root[data-theme="ocean"] .lesson-list button, :root[data-theme="ocean"] .op-btn,
+:root[data-theme="ocean"] .palette-box, :root[data-theme="ocean"] .lesson-modal-box, :root[data-theme="ocean"] .mascot-bubble,
+:root[data-theme="ocean"] .unit-banner, :root[data-theme="ocean"] .chal-cat-banner, :root[data-theme="ocean"] .btn.ghost,
+:root[data-theme="ocean"] .btn.dim, :root[data-theme="ocean"] .mini, :root[data-theme="ocean"] .search-btn,
+:root[data-theme="ocean"] .chal-filters button, :root[data-theme="ocean"] .field,
+:root[data-theme="ocean"] .step-params input, :root[data-theme="ocean"] .step-params select,
+:root[data-theme="ocean"] .char-table th, :root[data-theme="ocean"] .ops-pane, :root[data-theme="ocean"] .steps-pane,
+:root[data-theme="ocean"] .io-block {
+  backdrop-filter: var(--ocean-glass-blur);
+  -webkit-backdrop-filter: var(--ocean-glass-blur);
+}
+
+/* The workbench (editor, output, and the two side panes) previously stayed flat,
+   square-cornered rectangles even though everything else in Ocean is bubble-round —
+   turn them into floating glass tanks so the whole view reads as one theme. */
+:root[data-theme="ocean"] .workbench { gap: 10px; padding: 10px 10px 10px 0; }
+:root[data-theme="ocean"] .ops-pane { margin-left: 10px; }
+:root[data-theme="ocean"] .ops-pane, :root[data-theme="ocean"] .steps-pane {
+  border-right: none !important; border: 1px solid var(--border-strong); border-radius: 18px !important;
+  background: var(--panel-soft); overflow: hidden; box-shadow: var(--shadow);
+}
+:root[data-theme="ocean"] .io-pane { gap: 10px; }
+:root[data-theme="ocean"] .io-block {
+  border: 1px solid var(--border-strong) !important; border-radius: 18px !important;
+  background: var(--panel-soft); overflow: hidden; box-shadow: var(--shadow);
+}
+:root[data-theme="ocean"] .io-block:first-child { margin-bottom: 0; }
+:root[data-theme="ocean"] .editor, :root[data-theme="ocean"] #output { background: transparent; }
+:root[data-theme="ocean"] .io-foot { border-top: 1px solid var(--border); }
+:root[data-theme="ocean"] .field.flush {
+  border: none !important; border-radius: 0 !important; background: transparent;
+}
+:root[data-theme="ocean"] .pane-head { border-bottom: 1px solid var(--border); }
+@media (max-width: 1000px) {
+  :root[data-theme="ocean"] .workbench { padding: 10px; }
+  :root[data-theme="ocean"] .ops-pane { margin-left: 0; margin-bottom: 0; }
+}
+
+:root[data-theme="ocean"] .topbar { background: var(--ocean-top); }
 :root[data-theme="ocean"] .topbar::after {
   content: ""; position: absolute; left: 0; right: 0; top: 100%; height: 11px;
-  background-image: radial-gradient(circle at 10px 0, transparent 9px, var(--bg) 9.5px);
+  background-image: radial-gradient(circle at 10px 0, transparent 9px, var(--ocean-top) 9.5px);
   background-size: 20px 11px; background-repeat: repeat-x; pointer-events: none;
+}
+
+/* ---------- Laval theme: obsidian glass over a glowing caldera, no JS involved ---------- */
+/* Where Ocean is soft and fully round, Laval stays angular - moderate rounded-rectangle
+   "cooled rock chunk" panels (not pills), a jagged crack silhouette under the topbar
+   instead of a scallop, and embers drifting up through a warm glow instead of bubbles. */
+:root[data-theme="laval"] body {
+  position: relative;
+  background: linear-gradient(180deg, #170a06 0%, var(--bg) 55%, #2b0e04 100%);
+  background-attachment: fixed;
+}
+:root[data-theme="laval"] body::before {
+  content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none; opacity: .5;
+  background:
+    linear-gradient(115deg, transparent 30%, rgba(255,122,26,.08) 42%, transparent 54%),
+    linear-gradient(105deg, transparent 55%, rgba(255,60,20,.07) 66%, transparent 78%);
+}
+:root[data-theme="laval"] body::after {
+  content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none; opacity: .45;
+  background-image:
+    radial-gradient(circle 2.5px at 18% 100%, rgba(255,179,71,.65), rgba(255,179,71,0) 70%),
+    radial-gradient(circle 1.8px at 46% 100%, rgba(255,122,26,.55), rgba(255,122,26,0) 70%),
+    radial-gradient(circle 3px at 74% 100%, rgba(255,90,20,.5), rgba(255,90,20,0) 70%),
+    radial-gradient(circle 2px at 92% 100%, rgba(255,179,71,.6), rgba(255,179,71,0) 70%);
+  background-repeat: repeat-y;
+  background-size: 100% 190px, 100% 250px, 100% 310px, 100% 220px;
+  background-position: 0 0, 0 70px, 0 140px, 0 30px;
+  animation: laval-embers-rise 14s linear infinite;
+}
+@keyframes laval-embers-rise {
+  from { background-position-y: 0, 70px, 140px, 30px; }
+  to   { background-position-y: 190px, 250px, 310px, 220px; }
+}
+:root[data-theme="laval"] .map-link { stroke-dasharray: 2 5; }
+:root[data-theme="laval"] .card, :root[data-theme="laval"] .challenge, :root[data-theme="laval"] .step,
+:root[data-theme="laval"] .quiz-opt, :root[data-theme="laval"] .lesson-list button, :root[data-theme="laval"] .op-btn,
+:root[data-theme="laval"] .palette-box, :root[data-theme="laval"] .lesson-modal-box, :root[data-theme="laval"] .mascot-bubble,
+:root[data-theme="laval"] .unit-banner, :root[data-theme="laval"] .chal-cat-banner, :root[data-theme="laval"] .btn.ghost,
+:root[data-theme="laval"] .btn.dim, :root[data-theme="laval"] .mini, :root[data-theme="laval"] .search-btn,
+:root[data-theme="laval"] .chal-filters button, :root[data-theme="laval"] .field,
+:root[data-theme="laval"] .step-params input, :root[data-theme="laval"] .step-params select,
+:root[data-theme="laval"] .char-table th, :root[data-theme="laval"] .ops-pane, :root[data-theme="laval"] .steps-pane,
+:root[data-theme="laval"] .io-block {
+  backdrop-filter: var(--laval-glass-blur);
+  -webkit-backdrop-filter: var(--laval-glass-blur);
+}
+:root[data-theme="laval"] .btn:not(.ghost):not(.dim):hover,
+:root[data-theme="laval"] .op-btn:hover,
+:root[data-theme="laval"] .step:hover {
+  box-shadow: var(--shadow-lift);
+}
+:root[data-theme="laval"] .workbench { gap: 10px; padding: 10px 10px 10px 0; }
+:root[data-theme="laval"] .ops-pane { margin-left: 10px; }
+:root[data-theme="laval"] .ops-pane, :root[data-theme="laval"] .steps-pane {
+  border-right: none !important; border: 1px solid var(--border-strong); border-radius: 12px;
+  background: var(--panel-soft); overflow: hidden; box-shadow: var(--shadow);
+}
+:root[data-theme="laval"] .io-pane { gap: 10px; }
+:root[data-theme="laval"] .io-block {
+  border: 1px solid var(--border-strong) !important; border-radius: 12px;
+  background: var(--panel-soft); overflow: hidden; box-shadow: var(--shadow);
+}
+:root[data-theme="laval"] .io-block:first-child { margin-bottom: 0; }
+:root[data-theme="laval"] .editor, :root[data-theme="laval"] #output { background: transparent; }
+:root[data-theme="laval"] .io-foot { border-top: 1px solid var(--border); }
+:root[data-theme="laval"] .field.flush {
+  border: none !important; border-radius: 0 !important; background: transparent;
+}
+:root[data-theme="laval"] .pane-head { border-bottom: 1px solid var(--border); }
+@media (max-width: 1000px) {
+  :root[data-theme="laval"] .workbench { padding: 10px; }
+  :root[data-theme="laval"] .ops-pane { margin-left: 0; margin-bottom: 0; }
+}
+:root[data-theme="laval"] .topbar { background: var(--laval-top); }
+:root[data-theme="laval"] .topbar::after {
+  content: ""; position: absolute; left: 0; right: 0; top: 100%; height: 9px;
+  background-image:
+    linear-gradient(135deg, var(--laval-top) 50%, transparent 50%),
+    linear-gradient(45deg, var(--laval-top) 50%, transparent 50%);
+  background-size: 18px 9px, 18px 9px;
+  background-position: 0 0, 9px 0;
+  background-repeat: repeat-x;
+  pointer-events: none;
 }
 
 /* ---------- Lesson modal ---------- */

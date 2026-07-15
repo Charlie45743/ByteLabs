@@ -2068,6 +2068,755 @@
     return rankByEnglishLikeness(results).slice(0, topN || 26);
   }
 
+  // =====================================================================
+  // Additional operations
+  // =====================================================================
+
+  // ----- Braille (Grade 1: letters, digits via number-sign prefix, and spaces) -----
+  const BRAILLE_BITS = { a: 1, b: 3, c: 9, d: 25, e: 17, f: 11, g: 27, h: 19, i: 10, j: 26, k: 5, l: 7, m: 13,
+    n: 29, o: 21, p: 15, q: 31, r: 23, s: 14, t: 30, u: 37, v: 39, w: 58, x: 45, y: 61, z: 53 };
+  const BRAILLE_REV = Object.fromEntries(Object.entries(BRAILLE_BITS).map(([k, v]) => [v, k]));
+  const BRAILLE_DIGIT_LETTERS = "jabcdefghi"; // index = digit
+  function brailleEncode(str) {
+    let out = "";
+    for (const ch of str.toLowerCase()) {
+      if (ch === " ") { out += String.fromCodePoint(0x2800); continue; }
+      if (ch >= "0" && ch <= "9") {
+        out += String.fromCodePoint(0x283c);
+        out += String.fromCodePoint(0x2800 + BRAILLE_BITS[BRAILLE_DIGIT_LETTERS[Number(ch)]]);
+        continue;
+      }
+      if (BRAILLE_BITS[ch] === undefined) throw new Error("Braille here only supports letters, digits and spaces - '" + ch + "' isn't supported.");
+      out += String.fromCodePoint(0x2800 + BRAILLE_BITS[ch]);
+    }
+    return out;
+  }
+  function brailleDecode(str) {
+    const chars = Array.from(str).filter((c) => c !== " " && c !== "\n");
+    let out = "", numberMode = false;
+    for (const ch of chars) {
+      const code = ch.codePointAt(0);
+      if (code === 0x2800) { out += " "; numberMode = false; continue; }
+      if (code === 0x283c) { numberMode = true; continue; }
+      const letter = BRAILLE_REV[code - 0x2800];
+      if (letter === undefined) throw new Error("'" + ch + "' isn't a supported Braille (grade 1) cell.");
+      if (numberMode) { out += String(BRAILLE_DIGIT_LETTERS.indexOf(letter)); numberMode = false; }
+      else out += letter;
+    }
+    return out;
+  }
+
+  // ----- EBCDIC (IBM code page 037 subset: letters, digits and space) -----
+  function ebcdicByteForChar(c) {
+    if (c === " ") return 0x40;
+    if (c >= "0" && c <= "9") return 0xf0 + (c.charCodeAt(0) - 48);
+    const isUpper = c !== c.toLowerCase();
+    const idx = "abcdefghijklmnopqrstuvwxyz".indexOf(c.toLowerCase());
+    if (idx < 0) return null;
+    const base = idx < 9 ? 0x81 + idx : idx < 18 ? 0x91 + (idx - 9) : 0xa2 + (idx - 18);
+    return isUpper ? base + 0x40 : base;
+  }
+  const EBCDIC_CHARS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 ";
+  const EBCDIC_ENCODE_MAP = {}, EBCDIC_DECODE_MAP = {};
+  for (const c of EBCDIC_CHARS) { const b = ebcdicByteForChar(c); EBCDIC_ENCODE_MAP[c] = b; EBCDIC_DECODE_MAP[b] = c; }
+  function ebcdicEncode(str) {
+    let out = "";
+    for (const c of str) {
+      const b = EBCDIC_ENCODE_MAP[c];
+      if (b === undefined) throw new Error("EBCDIC (cp037 subset) here only supports letters, digits and spaces - '" + c + "' isn't supported.");
+      out += b.toString(16).padStart(2, "0");
+    }
+    return out;
+  }
+  function ebcdicDecode(hex) {
+    const clean = hex.replace(/[^0-9a-fA-F]/g, "");
+    if (clean.length % 2 !== 0) throw new Error("EBCDIC hex needs an even number of digits.");
+    let out = "";
+    for (let i = 0; i < clean.length; i += 2) {
+      const b = parseInt(clean.substr(i, 2), 16);
+      const c = EBCDIC_DECODE_MAP[b];
+      if (c === undefined) throw new Error("Byte " + clean.substr(i, 2) + " isn't a supported EBCDIC (cp037 subset) code.");
+      out += c;
+    }
+    return out;
+  }
+
+  // ----- Ternary (base 3), using the same big-integer codec as Base36/Base62 above -----
+  const TERNARY_ALPHABET = "012";
+  const ternaryEncode = makeBaseNEncode(TERNARY_ALPHABET), ternaryDecode = makeBaseNDecode(TERNARY_ALPHABET);
+
+  // ----- T9 predictive-text keypad encoding -----
+  const T9_MAP = { a: "2", b: "22", c: "222", d: "3", e: "33", f: "333", g: "4", h: "44", i: "444",
+    j: "5", k: "55", l: "555", m: "6", n: "66", o: "666", p: "7", q: "77", r: "777", s: "7777",
+    t: "8", u: "88", v: "888", w: "9", x: "99", y: "999", z: "9999" };
+  const T9_REV = Object.fromEntries(Object.entries(T9_MAP).map(([k, v]) => [v, k]));
+  function t9Encode(str) {
+    return str.toLowerCase().split("").map((c) => {
+      if (c === " ") return "0";
+      if (T9_MAP[c] === undefined) throw new Error("T9 encoding here only supports letters and spaces - '" + c + "' isn't supported.");
+      return T9_MAP[c];
+    }).join(" ");
+  }
+  function t9Decode(str) {
+    return str.trim().split(/\s+/).filter(Boolean).map((tok) => {
+      if (tok === "0") return " ";
+      if (T9_REV[tok] === undefined) throw new Error("'" + tok + "' isn't a valid T9 key sequence.");
+      return T9_REV[tok];
+    }).join("");
+  }
+
+  // ----- Byte<->emoji lookup table. A simple 256-entry substitution (not bit-compatible
+  // with any external "base100"-style spec) - every byte maps to one emoji one-to-one. -----
+  const EMOJI_TABLE = Array.from({ length: 256 }, (_, i) => String.fromCodePoint(0x1f400 + i));
+  const EMOJI_REV = Object.fromEntries(EMOJI_TABLE.map((e, i) => [e, i]));
+  function byteEmojiEncode(str) { return Array.from(utf8Bytes(str)).map((b) => EMOJI_TABLE[b]).join(""); }
+  function byteEmojiDecode(str) {
+    const chars = Array.from(str);
+    const bytes = new Uint8Array(chars.length);
+    chars.forEach((ch, i) => {
+      const v = EMOJI_REV[ch];
+      if (v === undefined) throw new Error("'" + ch + "' isn't in the byte-emoji table.");
+      bytes[i] = v;
+    });
+    return bytesToText(bytes);
+  }
+
+  // ----- ADFGVX cipher: WWI German field cipher. Each letter/digit is fractionated into
+  // a pair from {A,D,F,G,V,X} via a keyed 6x6 grid, then the resulting letter-string is
+  // scrambled with a keyed columnar transposition (reusing the same transposition already
+  // used by the plain Columnar Transposition cipher above). -----
+  function adfgvxGrid(key) {
+    const seen = new Set();
+    const letters = [];
+    (key || "").toUpperCase().replace(/[^A-Z0-9]/g, "").split("").forEach((c) => { if (!seen.has(c)) { seen.add(c); letters.push(c); } });
+    for (const c of "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789") if (!seen.has(c)) { seen.add(c); letters.push(c); }
+    return letters;
+  }
+  const ADFGVX_LABELS = "ADFGVX";
+  function adfgvxEncode(str, gridKey, transKey) {
+    const grid = adfgvxGrid(gridKey);
+    const clean = str.toUpperCase().replace(/[^A-Z0-9]/g, "");
+    let fractionated = "";
+    for (const c of clean) {
+      const idx = grid.indexOf(c);
+      fractionated += ADFGVX_LABELS[Math.floor(idx / 6)] + ADFGVX_LABELS[idx % 6];
+    }
+    return columnarEncode(fractionated, transKey);
+  }
+  function adfgvxDecode(str, gridKey, transKey) {
+    const grid = adfgvxGrid(gridKey);
+    const cipherLetters = str.toUpperCase().replace(/[^ADFGVX]/g, "");
+    const fractionated = columnarDecode(cipherLetters, transKey);
+    if (fractionated.length % 2 !== 0) throw new Error("ADFGVX ciphertext should decode to an even number of A/D/F/G/V/X letters.");
+    let out = "";
+    for (let i = 0; i < fractionated.length; i += 2) {
+      const row = ADFGVX_LABELS.indexOf(fractionated[i]), col = ADFGVX_LABELS.indexOf(fractionated[i + 1]);
+      out += grid[row * 6 + col];
+    }
+    return out;
+  }
+
+  // ----- Porta cipher: a reciprocal Vigenere-family cipher built from 13 self-inverse
+  // tableaux (one per pair of key letters) - encrypting twice with the same key restores
+  // the original text, like Atbash or Beaufort. -----
+  function portaShift(c, keyLetter) {
+    const base = c <= "Z" ? 65 : 97;
+    const x = c.charCodeAt(0) - base;
+    const k = Math.floor((keyLetter.toUpperCase().charCodeAt(0) - 65) / 2);
+    const y = x < 13 ? 13 + ((x + k) % 13) : (x - 13 - k + 169) % 13;
+    return String.fromCharCode(y + base);
+  }
+  function portaEncode(str, key) {
+    if (!/[a-z]/i.test(key || "")) throw new Error("Porta needs an alphabetic keyword.");
+    const k = key.toUpperCase().replace(/[^A-Z]/g, "");
+    let ki = 0;
+    return str.replace(/[a-z]/gi, (c) => { const out = portaShift(c, k[ki % k.length]); ki++; return out; });
+  }
+  function portaDecode(str, key) { return portaEncode(str, key); }
+
+  // ----- Scytale cipher: the ancient Greek transposition cipher - text is written down
+  // the faces of an imaginary n-sided rod, then read off row by row. -----
+  function scytaleEncode(str, diameter) {
+    const n = Math.max(2, parseInt(diameter, 10) || 2);
+    const chars = Array.from(str);
+    const rows = Math.ceil(chars.length / n);
+    let out = "";
+    for (let c = 0; c < n; c++) for (let r = 0; r < rows; r++) { const pos = r * n + c; if (pos < chars.length) out += chars[pos]; }
+    return out;
+  }
+  function scytaleDecode(str, diameter) {
+    const n = Math.max(2, parseInt(diameter, 10) || 2);
+    const chars = Array.from(str);
+    const len = chars.length;
+    const rows = Math.ceil(len / n);
+    const lastRowLen = len - (rows - 1) * n;
+    const colLen = new Array(n).fill(rows);
+    for (let c = lastRowLen; c < n; c++) colLen[c] = rows - 1;
+    const grid = new Array(n);
+    let pos = 0;
+    for (let c = 0; c < n; c++) { grid[c] = chars.slice(pos, pos + colLen[c]); pos += colLen[c]; }
+    let out = "";
+    for (let r = 0; r < rows; r++) for (let c = 0; c < n; c++) if (grid[c][r] !== undefined) out += grid[c][r];
+    return out;
+  }
+
+  // ----- Generic monoalphabetic substitution cipher with a user-supplied 26-letter alphabet -----
+  function substitutionEncode(str, alphabet) {
+    const alpha = (alphabet || "").toUpperCase().replace(/[^A-Z]/g, "");
+    if (alpha.length !== 26 || new Set(alpha).size !== 26) throw new Error("Substitution alphabet must contain all 26 letters, each exactly once.");
+    return str.replace(/[a-z]/gi, (c) => { const base = c <= "Z" ? 65 : 97; const out = alpha[c.toUpperCase().charCodeAt(0) - 65]; return base === 65 ? out : out.toLowerCase(); });
+  }
+  function substitutionDecode(str, alphabet) {
+    const alpha = (alphabet || "").toUpperCase().replace(/[^A-Z]/g, "");
+    if (alpha.length !== 26 || new Set(alpha).size !== 26) throw new Error("Substitution alphabet must contain all 26 letters, each exactly once.");
+    return str.replace(/[a-z]/gi, (c) => { const base = c <= "Z" ? 65 : 97; const idx = alpha.indexOf(c.toUpperCase()); return base === 65 ? String.fromCharCode(65 + idx) : String.fromCharCode(97 + idx); });
+  }
+
+  // ----- Caesar Box: writes text into a square grid row by row, reads it out column by
+  // column - a transposition cipher simple enough to do by hand with graph paper. -----
+  function caesarBoxEncode(str) {
+    const chars = Array.from(str.replace(/\s/g, ""));
+    const side = Math.ceil(Math.sqrt(chars.length)) || 1;
+    let out = "";
+    for (let c = 0; c < side; c++) for (let r = 0; r < side; r++) { const pos = r * side + c; if (pos < chars.length) out += chars[pos]; }
+    return out;
+  }
+  function caesarBoxDecode(str) {
+    const chars = Array.from(str.replace(/\s/g, ""));
+    const side = Math.ceil(Math.sqrt(chars.length)) || 1;
+    const rows = Math.ceil(chars.length / side);
+    const fullCols = chars.length - side * (rows - 1);
+    const colLen = Array.from({ length: side }, (_, c) => (c < fullCols ? rows : rows - 1));
+    const grid = new Array(side);
+    let pos = 0;
+    for (let c = 0; c < side; c++) { grid[c] = chars.slice(pos, pos + colLen[c]); pos += colLen[c]; }
+    let out = "";
+    for (let r = 0; r < rows; r++) for (let c = 0; c < side; c++) if (grid[c][r] !== undefined) out += grid[c][r];
+    return out;
+  }
+
+  // ----- Running Key cipher: like Vigenere, but the key is a long piece of text used
+  // once straight through (never repeated) instead of a short repeating keyword. -----
+  function runningKeyEncode(str, key) {
+    if (!/[a-z]/i.test(key || "")) throw new Error("Running key needs alphabetic key text.");
+    const keyLetters = key.toUpperCase().replace(/[^A-Z]/g, "").split("");
+    let ki = 0;
+    return str.replace(/[a-z]/gi, (c) => {
+      if (ki >= keyLetters.length) throw new Error("The running key text is shorter than the message - provide at least as many letters as in the message.");
+      const base = c <= "Z" ? 65 : 97;
+      const x = c.charCodeAt(0) - base;
+      const k = keyLetters[ki].charCodeAt(0) - 65;
+      ki++;
+      return String.fromCharCode(((x + k) % 26) + base);
+    });
+  }
+  function runningKeyDecode(str, key) {
+    if (!/[a-z]/i.test(key || "")) throw new Error("Running key needs alphabetic key text.");
+    const keyLetters = key.toUpperCase().replace(/[^A-Z]/g, "").split("");
+    let ki = 0;
+    return str.replace(/[a-z]/gi, (c) => {
+      if (ki >= keyLetters.length) throw new Error("The running key text is shorter than the message - provide at least as many letters as in the message.");
+      const base = c <= "Z" ? 65 : 97;
+      const y = c.charCodeAt(0) - base;
+      const k = keyLetters[ki].charCodeAt(0) - 65;
+      ki++;
+      return String.fromCharCode((((y - k) % 26) + 26) % 26 + base);
+    });
+  }
+
+  // ----- Tap Code: the prisoner's code, letters as row.column taps on a 5x5 grid (shares
+  // this app's Polybius Square convention of merging J into I). -----
+  const TAPCODE_SQ = "ABCDEFGHIKLMNOPQRSTUVWXYZ";
+  function tapCodeEncode(str) {
+    return str.toUpperCase().replace(/[^A-Z]/g, "").split("").map((c) => {
+      const i = TAPCODE_SQ.indexOf(c === "J" ? "I" : c);
+      return (Math.floor(i / 5) + 1) + "." + ((i % 5) + 1);
+    }).join(" ");
+  }
+  function tapCodeDecode(str) {
+    const pairs = str.trim().split(/\s+/).filter(Boolean);
+    return pairs.map((p) => {
+      const m = p.match(/^(\d)[.\- ]?(\d)$/);
+      if (!m) throw new Error("Tap code pairs should look like '1.1 2.3 ...'.");
+      const row = parseInt(m[1], 10) - 1, col = parseInt(m[2], 10) - 1;
+      if (row < 0 || row > 4 || col < 0 || col > 4) throw new Error("Tap code digits must be 1-5.");
+      return TAPCODE_SQ[row * 5 + col];
+    }).join("");
+  }
+
+  // ----- Bubble Babble: a checksummed binary-to-ASCII encoding (Antti Huima's scheme,
+  // used for SSH key fingerprints) that produces pronounceable "words". -----
+  const BUBBLEBABBLE_VOWELS = "aeiouy", BUBBLEBABBLE_CONSONANTS = "bcdfghklmnprstvzx";
+  function bubbleBabbleEncode(bytes) {
+    let seed = 1, out = "x";
+    const len = bytes.length;
+    const rounds = Math.floor(len / 2) + 1;
+    for (let i = 0; i < rounds; i++) {
+      if (i + 1 < rounds || len % 2 !== 0) {
+        const b1 = bytes[2 * i];
+        out += BUBBLEBABBLE_VOWELS[(((b1 >> 6) & 3) + seed) % 6];
+        out += BUBBLEBABBLE_CONSONANTS[(b1 >> 2) & 15];
+        out += BUBBLEBABBLE_VOWELS[((b1 & 3) + Math.floor(seed / 6)) % 6];
+        if (i + 1 < rounds) {
+          const b2 = bytes[2 * i + 1];
+          out += BUBBLEBABBLE_CONSONANTS[(b2 >> 4) & 15];
+          out += "-";
+          out += BUBBLEBABBLE_CONSONANTS[b2 & 15];
+          seed = (seed * 5 + b1 * 7 + b2) % 36;
+        } else {
+          out += BUBBLEBABBLE_CONSONANTS[16];
+        }
+      } else {
+        out += BUBBLEBABBLE_VOWELS[seed % 6];
+        out += BUBBLEBABBLE_CONSONANTS[16];
+        out += BUBBLEBABBLE_VOWELS[Math.floor(seed / 6)];
+      }
+    }
+    return out + "x";
+  }
+  function bubbleBabbleDecode(str) {
+    const clean = Array.from(str.trim().toLowerCase()).filter((c) => c !== "-");
+    if (clean[0] !== "x" || clean[clean.length - 1] !== "x") throw new Error("Bubble Babble text should start and end with 'x'.");
+    const body = clean.slice(1, -1);
+    let pos = 0, seed = 1;
+    const bytes = [];
+    function readVowel() { const i = BUBBLEBABBLE_VOWELS.indexOf(body[pos]); if (i < 0) throw new Error("Expected a vowel at position " + pos + "."); pos++; return i; }
+    function readConsonant() { const i = BUBBLEBABBLE_CONSONANTS.indexOf(body[pos]); if (i < 0) throw new Error("Expected a consonant at position " + pos + "."); pos++; return i; }
+    while (pos < body.length) {
+      const idx0 = readVowel(), idx1 = readConsonant(), idx2 = readVowel();
+      if (idx1 === 16) {
+        if (idx0 !== seed % 6 || idx2 !== Math.floor(seed / 6) % 6 || pos !== body.length) throw new Error("Bubble Babble checksum mismatch.");
+        break;
+      }
+      const v0 = ((idx0 - seed) % 6 + 6) % 6;
+      const v2 = ((idx2 - Math.floor(seed / 6)) % 6 + 6) % 6;
+      const b1 = (v0 << 6) | (idx1 << 2) | v2;
+      bytes.push(b1);
+      if (pos >= body.length) throw new Error("Truncated Bubble Babble text.");
+      if (BUBBLEBABBLE_CONSONANTS.indexOf(body[pos]) === 16 && pos === body.length - 1) { pos++; break; }
+      const idx3 = readConsonant(), idx4 = readConsonant();
+      const b2 = (idx3 << 4) | idx4;
+      bytes.push(b2);
+      seed = (seed * 5 + b1 * 7 + b2) % 36;
+    }
+    return new Uint8Array(bytes);
+  }
+
+  // ----- Extra bitwise operations -----
+  function hexAnd(a, b) {
+    const ba = hexToBytes(a), bb = hexToBytes(b);
+    const len = Math.max(ba.length, bb.length);
+    const out = new Uint8Array(len);
+    for (let i = 0; i < len; i++) out[i] = (ba[ba.length - len + i] || 0) & (bb[bb.length - len + i] || 0);
+    return bytesToHex(out, true);
+  }
+  function hexOr(a, b) {
+    const ba = hexToBytes(a), bb = hexToBytes(b);
+    const len = Math.max(ba.length, bb.length);
+    const out = new Uint8Array(len);
+    for (let i = 0; i < len; i++) out[i] = (ba[ba.length - len + i] || 0) | (bb[bb.length - len + i] || 0);
+    return bytesToHex(out, true);
+  }
+  function hexXor(a, b) {
+    const ba = hexToBytes(a), bb = hexToBytes(b);
+    const len = Math.max(ba.length, bb.length);
+    const out = new Uint8Array(len);
+    for (let i = 0; i < len; i++) out[i] = (ba[ba.length - len + i] || 0) ^ (bb[bb.length - len + i] || 0);
+    return bytesToHex(out, true);
+  }
+  function hammingDistance(a, b) {
+    const ba = hexToBytes(a), bb = hexToBytes(b);
+    if (ba.length !== bb.length) throw new Error("Hamming Distance needs two equal-length hex values.");
+    let dist = 0;
+    for (let i = 0; i < ba.length; i++) { let x = ba[i] ^ bb[i]; while (x) { dist += x & 1; x >>= 1; } }
+    return String(dist);
+  }
+  function setBitHex(hex, position) {
+    const bytes = hexToBytes(hex), pos = parseInt(position, 10) || 0;
+    const byteIdx = bytes.length - 1 - Math.floor(pos / 8);
+    if (byteIdx < 0 || byteIdx >= bytes.length) throw new Error("Bit position is outside the input's range.");
+    const out = new Uint8Array(bytes);
+    out[byteIdx] |= (1 << (pos % 8));
+    return bytesToHex(out, false);
+  }
+  function clearBitHex(hex, position) {
+    const bytes = hexToBytes(hex), pos = parseInt(position, 10) || 0;
+    const byteIdx = bytes.length - 1 - Math.floor(pos / 8);
+    if (byteIdx < 0 || byteIdx >= bytes.length) throw new Error("Bit position is outside the input's range.");
+    const out = new Uint8Array(bytes);
+    out[byteIdx] &= ~(1 << (pos % 8));
+    return bytesToHex(out, false);
+  }
+  function rotateBytesLeft(hex, amount) {
+    const bytes = Array.from(hexToBytes(hex));
+    if (!bytes.length) return "";
+    const n = ((parseInt(amount, 10) || 0) % bytes.length + bytes.length) % bytes.length;
+    return bytesToHex(new Uint8Array(bytes.slice(n).concat(bytes.slice(0, n))), true);
+  }
+  function rotateBytesRight(hex, amount) {
+    const bytes = Array.from(hexToBytes(hex));
+    if (!bytes.length) return "";
+    const n = ((parseInt(amount, 10) || 0) % bytes.length + bytes.length) % bytes.length;
+    return bytesToHex(new Uint8Array(bytes.slice(bytes.length - n).concat(bytes.slice(0, bytes.length - n))), true);
+  }
+  function countClearBits(hex) {
+    const bytes = hexToBytes(hex);
+    let total = bytes.length * 8, set = 0;
+    for (const b of bytes) { let x = b; while (x) { set += x & 1; x >>= 1; } }
+    return String(total - set) + "  (total: " + (total - set) + " of " + total + " bits clear)";
+  }
+  function bitExtractHex(hex, start, length) {
+    const bytes = hexToBytes(hex);
+    let n = 0n;
+    for (const b of bytes) n = (n << 8n) | BigInt(b);
+    const s = BigInt(parseInt(start, 10) || 0), len = BigInt(Math.max(1, parseInt(length, 10) || 1));
+    const mask = (1n << len) - 1n;
+    return ((n >> s) & mask).toString(16);
+  }
+
+  // ----- Keccak-f[1600] permutation, used by both SHA3 (NIST padding) and the original
+  // Keccak/Ethereum variant (different padding byte) - implemented from the public
+  // specification and checked against the published empty-string test vectors. -----
+  const KECCAK_MASK64 = (1n << 64n) - 1n;
+  function keccakRotl64(x, n) {
+    n = BigInt(n % 64);
+    if (n === 0n) return x & KECCAK_MASK64;
+    return ((x << n) | (x >> (64n - n))) & KECCAK_MASK64;
+  }
+  const KECCAK_RHO = [
+    [0, 1, 62, 28, 27], [36, 44, 6, 55, 20], [3, 10, 43, 25, 39], [41, 45, 15, 21, 8], [18, 2, 61, 56, 14]
+  ]; // KECCAK_RHO[y][x]
+  const KECCAK_RC = (function () {
+    const RC = [];
+    let lfsr = 0x01;
+    function nextBit() { const bit = lfsr & 1; lfsr <<= 1; if (lfsr & 0x100) lfsr ^= 0x171; return bit; }
+    for (let round = 0; round < 24; round++) {
+      let rc = 0n;
+      for (let j = 0; j <= 6; j++) if (nextBit()) rc |= 1n << ((1n << BigInt(j)) - 1n);
+      RC.push(rc & KECCAK_MASK64);
+    }
+    return RC;
+  })();
+  function keccakF1600(state) {
+    for (let round = 0; round < 24; round++) {
+      const C = new Array(5);
+      for (let x = 0; x < 5; x++) C[x] = state[x] ^ state[x + 5] ^ state[x + 10] ^ state[x + 15] ^ state[x + 20];
+      const D = new Array(5);
+      for (let x = 0; x < 5; x++) D[x] = C[(x + 4) % 5] ^ keccakRotl64(C[(x + 1) % 5], 1);
+      for (let x = 0; x < 5; x++) for (let y = 0; y < 5; y++) state[x + 5 * y] ^= D[x];
+      const B = new Array(25);
+      for (let x = 0; x < 5; x++) for (let y = 0; y < 5; y++) {
+        const newX = y, newY = (2 * x + 3 * y) % 5;
+        B[newX + 5 * newY] = keccakRotl64(state[x + 5 * y], KECCAK_RHO[y][x]);
+      }
+      for (let x = 0; x < 5; x++) for (let y = 0; y < 5; y++) {
+        state[x + 5 * y] = B[x + 5 * y] ^ ((~B[(x + 1) % 5 + 5 * y] & KECCAK_MASK64) & B[(x + 2) % 5 + 5 * y]);
+      }
+      state[0] ^= KECCAK_RC[round];
+    }
+    return state;
+  }
+  function keccak(rateBits, msgBytes, domainSuffix, outputBytes) {
+    const rateBytes = rateBits / 8;
+    const state = new Array(25).fill(0n);
+    const input = Array.from(msgBytes);
+    input.push(domainSuffix);
+    while (input.length % rateBytes !== 0) input.push(0);
+    input[input.length - 1] ^= 0x80;
+    for (let offset = 0; offset < input.length; offset += rateBytes) {
+      for (let i = 0; i < rateBytes / 8; i++) {
+        let lane = 0n;
+        for (let b = 7; b >= 0; b--) lane = (lane << 8n) | BigInt(input[offset + i * 8 + b]);
+        state[i] ^= lane;
+      }
+      keccakF1600(state);
+    }
+    const out = [];
+    while (out.length < outputBytes) {
+      for (let i = 0; i < rateBytes / 8 && out.length < outputBytes; i++) {
+        let lane = state[i];
+        for (let b = 0; b < 8 && out.length < outputBytes; b++) { out.push(Number(lane & 0xffn)); lane >>= 8n; }
+      }
+      if (out.length < outputBytes) keccakF1600(state);
+    }
+    return new Uint8Array(out);
+  }
+  function sha3Hex(bits, msgBytes) {
+    const rateBits = 1600 - 2 * bits;
+    return bytesToHex(keccak(rateBits, msgBytes, 0x06, bits / 8), false);
+  }
+  function keccak256Hex(msgBytes) { return bytesToHex(keccak(1088, msgBytes, 0x01, 32), false); }
+
+  // ----- MurmurHash3 (x86, 32-bit), a fast non-cryptographic hash used in hash tables -----
+  function murmur3_32(bytes) {
+    const c1 = 0xcc9e2d51, c2 = 0x1b873593;
+    let h1 = 0;
+    const len = bytes.length;
+    const nblocks = Math.floor(len / 4);
+    for (let i = 0; i < nblocks; i++) {
+      let k1 = (bytes[i * 4] | (bytes[i * 4 + 1] << 8) | (bytes[i * 4 + 2] << 16) | (bytes[i * 4 + 3] << 24));
+      k1 = Math.imul(k1, c1); k1 = (k1 << 15) | (k1 >>> 17); k1 = Math.imul(k1, c2);
+      h1 ^= k1; h1 = (h1 << 13) | (h1 >>> 19); h1 = (Math.imul(h1, 5) + 0xe6546b64) | 0;
+    }
+    let k1 = 0;
+    const tailIndex = nblocks * 4, rem = len & 3;
+    if (rem === 3) k1 ^= bytes[tailIndex + 2] << 16;
+    if (rem >= 2) k1 ^= bytes[tailIndex + 1] << 8;
+    if (rem >= 1) { k1 ^= bytes[tailIndex]; k1 = Math.imul(k1, c1); k1 = (k1 << 15) | (k1 >>> 17); k1 = Math.imul(k1, c2); h1 ^= k1; }
+    h1 ^= len; h1 ^= h1 >>> 16; h1 = Math.imul(h1, 0x85ebca6b); h1 ^= h1 >>> 13; h1 = Math.imul(h1, 0xc2b2ae35); h1 ^= h1 >>> 16;
+    return (h1 >>> 0).toString(16).padStart(8, "0");
+  }
+
+  // ----- CRC-32C (Castagnoli) - the CRC-32 variant used by iSCSI, ext4 and SCTP -----
+  function crc32c(bytes) {
+    let crc = 0xffffffff;
+    for (const byte of bytes) {
+      crc ^= byte;
+      for (let i = 0; i < 8; i++) crc = (crc & 1) ? (crc >>> 1) ^ 0x82f63b78 : crc >>> 1;
+    }
+    return ((crc ^ 0xffffffff) >>> 0).toString(16).padStart(8, "0");
+  }
+
+  // ----- Extra text operations -----
+  function regexEscape(str) { return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); }
+  function removeNonPrintable(str) { return str.replace(/[^\x20-\x7e\n\t]/g, ""); }
+  function removeNonAscii(str) { return str.replace(/[^\x00-\x7f]/g, ""); }
+  function unicodeNormalize(str, form) { return str.normalize(form || "NFC"); }
+  function filterLines(str, needle, mode) {
+    const lines = str.split(/\r?\n/);
+    const keep = mode === "exclude"
+      ? lines.filter((l) => !l.includes(needle))
+      : lines.filter((l) => l.includes(needle));
+    return keep.join("\n");
+  }
+  const SMART_QUOTE_MAP = { '"': "“", "'": "‘" };
+  function smartQuotesEncode(str) {
+    let dq = 0, sq = 0;
+    return str.replace(/["']/g, (c) => {
+      if (c === '"') { dq++; return dq % 2 ? "“" : "”"; }
+      sq++; return sq % 2 ? "‘" : "’";
+    });
+  }
+  function smartQuotesDecode(str) { return str.replace(/[“”]/g, '"').replace(/[‘’]/g, "'"); }
+  function sentenceCase(str) {
+    return str.toLowerCase().replace(/(^\s*\w|[.!?]\s+\w)/g, (m) => m.toUpperCase());
+  }
+  function collapseSpaces(str) { return str.replace(/[ \t]+/g, " "); }
+  function stripBom(str) { return str.replace(/^﻿/, ""); }
+  function shellQuote(str) { return "'" + str.replace(/'/g, "'\\''") + "'"; }
+  function showWhitespace(str) {
+    return str.replace(/\t/g, "→").replace(/\r\n/g, "¶\n").replace(/\n/g, "¶\n").replace(/ /g, "·");
+  }
+
+  // ----- Extra data operations -----
+  function csvToTsv(str) {
+    return str.split(/\r?\n/).filter((l) => l.length).map((line) => parseCsvLine(line).map((f) => f.replace(/\t/g, " ")).join("\t")).join("\n");
+  }
+  function tsvToCsv(str) {
+    return str.split(/\r?\n/).filter((l) => l.length).map((line) => line.split("\t").map((f) => (/[",\n]/.test(f) ? '"' + f.replace(/"/g, '""') + '"' : f)).join(",")).join("\n");
+  }
+  function parseCsvLine(line) {
+    const out = []; let cur = "", inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+      const c = line[i];
+      if (inQuotes) { if (c === '"') { if (line[i + 1] === '"') { cur += '"'; i++; } else inQuotes = false; } else cur += c; }
+      else if (c === '"') inQuotes = true;
+      else if (c === ",") { out.push(cur); cur = ""; }
+      else cur += c;
+    }
+    out.push(cur);
+    return out;
+  }
+  function describeCronField(field, names) {
+    const name = (v) => (names ? names[v] || v : v);
+    if (field === "*") return null;
+    if (/^\*\/\d+$/.test(field)) return "every " + field.split("/")[1] + (names ? " units" : " minutes/hours");
+    if (field.includes(",")) return field.split(",").map(name).join(", ");
+    if (field.includes("-")) { const [a, b] = field.split("-"); return name(a) + " through " + name(b); }
+    return name(field);
+  }
+  function cronDescribe(str) {
+    const parts = str.trim().split(/\s+/);
+    if (parts.length !== 5) throw new Error("Enter a standard 5-field cron expression: minute hour day-of-month month day-of-week.");
+    const [min, hour, dom, mon, dow] = parts;
+    const MONTHS = { 1: "January", 2: "February", 3: "March", 4: "April", 5: "May", 6: "June", 7: "July", 8: "August", 9: "September", 10: "October", 11: "November", 12: "December" };
+    const DAYS = { 0: "Sunday", 1: "Monday", 2: "Tuesday", 3: "Wednesday", 4: "Thursday", 5: "Friday", 6: "Saturday", 7: "Sunday" };
+    const clauses = [];
+    const minDesc = describeCronField(min), hourDesc = describeCronField(hour);
+    if (minDesc === null && hourDesc === null) clauses.push("every minute");
+    else if (hourDesc === null) clauses.push("at " + minDesc + " past every hour");
+    else if (minDesc === null) clauses.push("every minute of " + hourDesc);
+    else clauses.push("at " + hour.padStart(2, "0") + ":" + min.padStart(2, "0"));
+    const domDesc = describeCronField(dom); if (domDesc !== null) clauses.push("on day-of-month " + domDesc);
+    const monDesc = describeCronField(mon, MONTHS); if (monDesc !== null) clauses.push("in " + monDesc);
+    const dowDesc = describeCronField(dow, DAYS); if (dowDesc !== null) clauses.push("on " + dowDesc);
+    return clauses.join(", ");
+  }
+  function haversineDistance(str, lat2, lon2) {
+    const m = str.trim().match(/^(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)$/);
+    if (!m) throw new Error("Enter the first point as 'lat, long' in decimal degrees.");
+    const lat1 = parseFloat(m[1]), lon1 = parseFloat(m[2]);
+    const R = 6371, toRad = (d) => d * Math.PI / 180;
+    const dLat = toRad(lat2 - lat1), dLon = toRad(lon2 - lon1);
+    const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return (R * c).toFixed(2) + " km";
+  }
+  function secondsToDuration(str) {
+    let secs = Math.floor(Number(str));
+    if (!Number.isFinite(secs) || secs < 0) throw new Error("Enter a non-negative number of seconds.");
+    const d = Math.floor(secs / 86400); secs %= 86400;
+    const h = Math.floor(secs / 3600); secs %= 3600;
+    const m = Math.floor(secs / 60); secs %= 60;
+    const parts = [];
+    if (d) parts.push(d + "d"); if (h) parts.push(h + "h"); if (m) parts.push(m + "m"); if (secs || !parts.length) parts.push(secs + "s");
+    return parts.join(" ");
+  }
+  function durationToSeconds(str) {
+    const re = /(\d+)\s*([dhms])/gi;
+    let m, total = 0, matched = false;
+    while ((m = re.exec(str))) { matched = true; const n = parseInt(m[1], 10); const unit = m[2].toLowerCase(); total += unit === "d" ? n * 86400 : unit === "h" ? n * 3600 : unit === "m" ? n * 60 : n; }
+    if (!matched) throw new Error("Enter a duration like '1h 30m' or '90s'.");
+    return String(total);
+  }
+  function parseEmailHeader(str) {
+    const fields = ["From", "To", "Cc", "Subject", "Date", "Message-ID"];
+    const out = [];
+    for (const f of fields) {
+      const m = str.match(new RegExp("^" + f + ":\\s*(.+)$", "im"));
+      if (m) out.push(f + ": " + m[1].trim());
+    }
+    return out.length ? out.join("\n") : "(no recognized header fields found)";
+  }
+  function luhnValid(digits) {
+    const nums = digits.split("").map(Number);
+    let sum = 0;
+    for (let i = 0; i < nums.length; i++) { let d = nums[nums.length - 1 - i]; if (i % 2 === 1) { d *= 2; if (d > 9) d -= 9; } sum += d; }
+    return sum % 10 === 0;
+  }
+  function extractCreditCards(str) {
+    const candidates = str.match(/\b(?:\d[ -]?){13,19}\b/g) || [];
+    const out = [];
+    for (const c of candidates) { const digits = c.replace(/[ -]/g, ""); if (digits.length >= 13 && digits.length <= 19 && luhnValid(digits)) out.push(c); }
+    return out.join("\n") || "(none found)";
+  }
+  function extractPhoneNumbers(str) {
+    const matches = str.match(/(?:\+?\d{1,3}[\s.-]?)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}\b/g) || [];
+    return matches.join("\n") || "(none found)";
+  }
+  function extractMentions(str) {
+    const matches = str.match(/(?<![\w@])@[a-zA-Z0-9_]{1,30}\b/g) || [];
+    return matches.join("\n") || "(none found)";
+  }
+  function bytesToHuman(str) {
+    let n = Number(str);
+    if (!Number.isFinite(n) || n < 0) throw new Error("Enter a non-negative number of bytes.");
+    const units = ["B", "KB", "MB", "GB", "TB", "PB"];
+    let i = 0;
+    while (n >= 1024 && i < units.length - 1) { n /= 1024; i++; }
+    return (i === 0 ? String(n) : n.toFixed(2)) + " " + units[i];
+  }
+  function latLongToDms(str) {
+    const m = str.trim().match(/^(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)$/);
+    if (!m) throw new Error("Enter as 'lat, long' in decimal degrees, e.g. 40.6892, -74.0445");
+    function toDms(deg, posLabel, negLabel) {
+      const label = deg >= 0 ? posLabel : negLabel;
+      deg = Math.abs(deg);
+      const d = Math.floor(deg);
+      const minFloat = (deg - d) * 60;
+      const mm = Math.floor(minFloat);
+      const s = (minFloat - mm) * 60;
+      return d + "°" + mm + "'" + s.toFixed(2) + "\"" + label;
+    }
+    return toDms(parseFloat(m[1]), "N", "S") + " " + toDms(parseFloat(m[2]), "E", "W");
+  }
+  function dmsToLatLong(str) {
+    const re = /(-?\d+(?:\.\d+)?)\D+(\d+(?:\.\d+)?)\D+(\d+(?:\.\d+)?)\D*([NSEW])/gi;
+    const out = [];
+    let m;
+    while ((m = re.exec(str))) {
+      let val = Math.abs(parseFloat(m[1])) + parseFloat(m[2]) / 60 + parseFloat(m[3]) / 3600;
+      if (/[SW]/i.test(m[4])) val = -val;
+      out.push(val.toFixed(6));
+    }
+    if (out.length !== 2) throw new Error("Enter as e.g. 40°41'21.12\"N 74°2'40.20\"W");
+    return out.join(", ");
+  }
+  function tempConvert(str, from, to) {
+    const n = Number(str);
+    if (!Number.isFinite(n)) throw new Error("Enter a number.");
+    const c = from === "c" ? n : from === "f" ? (n - 32) * 5 / 9 : n - 273.15;
+    const out = to === "c" ? c : to === "f" ? c * 9 / 5 + 32 : c + 273.15;
+    return out.toFixed(2);
+  }
+
+  // ----- Extra random operations -----
+  function randomGaussian(mean, stddev) {
+    let u = 0, v = 0;
+    while (u === 0) u = Math.random();
+    while (v === 0) v = Math.random();
+    const z = Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+    const m = parseFloat(mean) || 0, sd = parseFloat(stddev) || 1;
+    return (m + z * sd).toFixed(4);
+  }
+  function pickLine(str) {
+    const lines = str.split(/\r?\n/).filter((l) => l.length);
+    if (!lines.length) throw new Error("Enter at least one non-empty line to pick from.");
+    const idx = new Uint32Array(1); window.crypto.getRandomValues(idx);
+    return lines[idx[0] % lines.length];
+  }
+  function isPrime(n) {
+    if (n < 2) return false;
+    if (n % 2 === 0) return n === 2;
+    for (let i = 3; i * i <= n; i += 2) if (n % i === 0) return false;
+    return true;
+  }
+  function randomPrimeInRange(min, max) {
+    const lo = Math.max(2, parseInt(min, 10) || 2), hi = Math.max(lo, parseInt(max, 10) || 100);
+    const candidates = [];
+    for (let i = lo; i <= hi; i++) if (isPrime(i)) candidates.push(i);
+    if (!candidates.length) throw new Error("No primes in that range.");
+    const idx = new Uint32Array(1); window.crypto.getRandomValues(idx);
+    return String(candidates[idx[0] % candidates.length]);
+  }
+  const RANDOM_EMOJI = ["\u{1f600}", "\u{1f602}", "\u{1f60e}", "\u{1f914}", "\u{1f973}", "\u{1f47d}", "\u{1f680}",
+    "\u{1f30d}", "\u{1f3af}", "\u{1f9e0}", "\u{1f52c}", "\u{1f9ea}", "\u{1f381}", "\u{1f3b2}", "\u{1f984}", "\u{1f40d}"];
+  function randomEmoji() {
+    const idx = new Uint32Array(1); window.crypto.getRandomValues(idx);
+    return RANDOM_EMOJI[idx[0] % RANDOM_EMOJI.length];
+  }
+  const B32_ALPHABET_PLAIN = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+  function randomBase32(len) {
+    const n = parseInt(len, 10) || 16;
+    const bytes = new Uint8Array(n); window.crypto.getRandomValues(bytes);
+    let out = ""; for (let i = 0; i < n; i++) out += B32_ALPHABET_PLAIN[bytes[i] % 32];
+    return out;
+  }
+  const USERNAME_ADJECTIVES = ["swift", "brave", "quiet", "clever", "bright", "cosmic", "lucky", "mighty", "silent", "sunny", "wild", "gentle", "bold", "calm", "eager"];
+  const USERNAME_NOUNS = ["falcon", "otter", "comet", "cedar", "harbor", "ember", "willow", "tiger", "meadow", "raven", "canyon", "quartz", "maple", "lynx", "delta"];
+  function randomUsername() {
+    const idx = new Uint32Array(3); window.crypto.getRandomValues(idx);
+    return USERNAME_ADJECTIVES[idx[0] % USERNAME_ADJECTIVES.length] + "-" + USERNAME_NOUNS[idx[1] % USERNAME_NOUNS.length] + (idx[2] % 100);
+  }
+  function randomIpv6() {
+    const groups = [];
+    const bytes = new Uint8Array(16); window.crypto.getRandomValues(bytes);
+    for (let i = 0; i < 8; i++) groups.push(((bytes[i * 2] << 8) | bytes[i * 2 + 1]).toString(16));
+    return groups.join(":");
+  }
+  function randomDateInRange(fromStr, toStr) {
+    const from = new Date(fromStr).getTime(), to = new Date(toStr).getTime();
+    if (!Number.isFinite(from) || !Number.isFinite(to) || to <= from) throw new Error("Enter valid 'from' and 'to' dates (YYYY-MM-DD), with 'to' after 'from'.");
+    const rand = new Uint32Array(1); window.crypto.getRandomValues(rand);
+    const t = from + (rand[0] / 0xffffffff) * (to - from);
+    return new Date(t).toISOString().slice(0, 10);
+  }
+  function weightedBoolean(probability) {
+    const p = Math.min(1, Math.max(0, parseFloat(probability)));
+    const rand = new Uint32Array(1); window.crypto.getRandomValues(rand);
+    return String((rand[0] / 0xffffffff) < p);
+  }
+
   window.CL = {
     utf8Bytes, bytesToText, bytesToBase64, base64ToBytes, bytesToBase64Url, base64UrlToBytes,
     bytesToHex, hexToBytes, bytesToBinary, binaryToBytes, base32Encode, base32Decode, base58Encode, base58Decode,
@@ -2099,6 +2848,22 @@
     md5, shaHex, hmacHex, crc32, crc16, adler32, luhnAppend, entropy, printableRatio, magicBytes, detect, parseJwt,
     crc8, fletcher16, fletcher32, fnv1a32, fnv1a64, djb2, sdbm, checksum8, hmacMd5Hex, internetChecksum, xor8Checksum,
     randomBytes, uuid, password, randomIpv4, rollDice, loremIpsum,
-    randomMac, randomHexColor, randomIntInRange, randomFloatInRange, coinFlip, randomCard, shuffleLines, randomBoolean
+    randomMac, randomHexColor, randomIntInRange, randomFloatInRange, coinFlip, randomCard, shuffleLines, randomBoolean,
+
+    brailleEncode, brailleDecode, ebcdicEncode, ebcdicDecode, ternaryEncode, ternaryDecode,
+    t9Encode, t9Decode, byteEmojiEncode, byteEmojiDecode,
+    adfgvxEncode, adfgvxDecode, portaEncode, portaDecode, scytaleEncode, scytaleDecode,
+    substitutionEncode, substitutionDecode, caesarBoxEncode, caesarBoxDecode,
+    runningKeyEncode, runningKeyDecode, tapCodeEncode, tapCodeDecode, bubbleBabbleEncode, bubbleBabbleDecode,
+    hexAnd, hexOr, hexXor, hammingDistance, setBitHex, clearBitHex, rotateBytesLeft, rotateBytesRight,
+    countClearBits, bitExtractHex,
+    sha3Hex, keccak256Hex, murmur3_32, crc32c,
+    regexEscape, removeNonPrintable, removeNonAscii, unicodeNormalize, filterLines,
+    smartQuotesEncode, smartQuotesDecode, sentenceCase, collapseSpaces, stripBom, shellQuote, showWhitespace,
+    csvToTsv, tsvToCsv, cronDescribe, haversineDistance, secondsToDuration, durationToSeconds,
+    parseEmailHeader, extractCreditCards, extractPhoneNumbers, extractMentions, bytesToHuman,
+    latLongToDms, dmsToLatLong, tempConvert,
+    randomGaussian, pickLine, randomPrimeInRange, randomEmoji, randomBase32, randomUsername,
+    randomIpv6, randomDateInRange, weightedBoolean
   };
 })();

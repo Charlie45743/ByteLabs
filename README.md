@@ -138,14 +138,18 @@ device only.
 
 ### Settings
 
-Four themes — **Light**, **Dark**, **Retro** (a phosphor-green CRT terminal: sharp
+Five themes — **Light**, **Dark**, **Retro** (a phosphor-green CRT terminal: sharp
 pixel corners, scanlines, a chunky monospace UI, and Byte redrawn as an 8-bit sprite),
-and **Ocean** (its own bubble-round shape language — fully rounded pill buttons,
+**Ocean** (its own bubble-round shape language — fully rounded pill buttons,
 generously rounded panels, a scalloped waterline under the top bar, and a perpetual
 field of rising bubbles behind everything, all pure CSS with no JS color logic — deep
 blues and teals throughout, and Byte reimagined as a fish swimming in a glass bowl with
-coral, seaweed, and a sandy floor) — plus editor font size, word wrap, and animations,
-all stored in local storage, nothing else.
+coral, seaweed, and a sandy floor), and **Laval** (obsidian and molten glass — angular
+rounded-rock panels with a warm frosted-glass blur, a jagged cracked-rock silhouette
+under the top bar, and a field of embers drifting upward instead of bubbles, all pure
+CSS — and Byte reimagined as a magma salamander basking in a lava pool inside a volcanic
+crater) — plus editor font size, word wrap, and animations, all stored in local
+storage, nothing else.
 
 ## Privacy & security posture
 
